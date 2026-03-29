@@ -1,10 +1,9 @@
 // ============================================
 // 📁 LOKASI: app/admin/page.tsx
-// ✅ FIX:
-//    1. Hapus 'as any' cast — sekarang RPC ada di schema
-//    2. Import yang tidak dipakai dihapus
+// ✅ UPDATED: Suspense wrapper for useSearchParams in AdminDashboard
 // ============================================
 
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase-server';
 import AdminDashboard from './AdminDashboard';
 
@@ -22,19 +21,9 @@ export default async function AdminPage() {
     { data: users },
   ] = await Promise.all([
     supabase.from('reports').select('*', { count: 'exact', head: true }),
-    supabase
-      .from('reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending'),
-    supabase
-      .from('reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'verified'),
-    supabase
-      .from('reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'rejected'),
-    // ✅ FIX: RPC sekarang ada di schema.sql
+    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
+    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
     supabase.rpc('get_reports_admin'),
     supabase.from('profiles').select('id, full_name, role, updated_at'),
   ]);
@@ -47,10 +36,21 @@ export default async function AdminPage() {
   };
 
   return (
-    <AdminDashboard
-      stats={stats}
-      reports={reports ?? []}
-      users={users ?? []}
-    />
+    <Suspense fallback={
+      <div className="max-w-[1200px] mx-auto px-6 py-6">
+        <div className="h-8 w-32 bg-zinc-200 rounded-lg animate-pulse mb-4" />
+        <div className="grid grid-cols-5 gap-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-24 bg-white border border-zinc-200 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    }>
+      <AdminDashboard
+        stats={stats}
+        reports={reports ?? []}
+        users={users ?? []}
+      />
+    </Suspense>
   );
 }
