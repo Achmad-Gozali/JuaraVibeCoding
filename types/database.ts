@@ -1,10 +1,10 @@
 // ============================================
 // 📁 LOKASI: types/database.ts
-// 📝 REPLACE — proper Supabase types
 // ============================================
 
 export type TargetType = 'phone' | 'bank_account';
 export type ReportStatus = 'pending' | 'verified' | 'rejected';
+export type UserRole = 'user' | 'admin' | 'moderator';
 
 export interface Profile {
   id: string;
@@ -13,6 +13,8 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   website: string | null;
+  // ✅ Tambah kolom role
+  role: UserRole;
 }
 
 export interface Report {
@@ -40,6 +42,7 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           website?: string | null;
+          role?: UserRole;
         };
         Update: {
           id?: string;
@@ -48,6 +51,7 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           website?: string | null;
+          role?: UserRole;
         };
       };
       reports: {

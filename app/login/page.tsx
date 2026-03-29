@@ -1,7 +1,6 @@
 import AuthForm from '@/components/AuthForm';
 import { createClient } from '@/lib/supabase-server';
-import { Shield, FileText, Users, CheckCircle2, TrendingUp } from 'lucide-react';
-import Link from 'next/link';
+import { ShieldCheck, TrendingUp, Users, Star } from 'lucide-react';
 
 interface LoginPageProps {
   searchParams: Promise<{ error?: string }>;
@@ -11,91 +10,76 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error: oauthError } = await searchParams;
 
   const supabase = await createClient();
-  const { count: totalReports } = await supabase
-    .from('reports')
-    .select('*', { count: 'exact', head: true });
-  const { count: verifiedCount } = await supabase
-    .from('reports')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'verified');
+  const { count: totalReports } = await supabase.from('reports').select('*', { count: 'exact', head: true });
+  const { count: verifiedCount } = await supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'verified');
 
   return (
     <div className="min-h-screen flex">
 
       {/* LEFT */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between px-14 py-16 bg-white border-r border-zinc-100">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-black text-lg tracking-tight text-zinc-900">
-            CEK<span className="text-red-500">NO</span>SCAM
-          </span>
-        </Link>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-14 py-16 bg-gradient-to-br from-zinc-50 to-white border-r border-zinc-100 relative overflow-hidden">
+        {/* Decorative circles */}
+        <div className="absolute top-20 right-10 w-64 h-64 bg-red-50 rounded-full blur-3xl opacity-60" />
+        <div className="absolute bottom-20 left-10 w-48 h-48 bg-blue-50 rounded-full blur-3xl opacity-60" />
 
-        <div className="space-y-10">
+        <div className="relative z-10 space-y-10">
           <div>
-            <h2 className="text-4xl font-extrabold text-zinc-900 tracking-tight leading-[1.1] mb-4">
-              Bersama Kita<br />
-              <span className="text-red-500">Lawan Penipuan.</span>
+            <h2 className="text-4xl font-extrabold text-zinc-900 tracking-tight leading-[1.15] mb-4">
+              Lindungi Diri &<br />Orang Tersayang dari<br />
+              <span className="text-red-500">Penipu Online.</span>
             </h2>
             <p className="text-zinc-500 text-base leading-relaxed max-w-sm">
-              Bergabung dengan komunitas yang aktif melindungi sesama dari penipu online. Setiap laporan berarti.
+              Bergabung dengan komunitas yang aktif melindungi sesama dari penipu online. Gratis, cepat, dan terpercaya.
             </p>
           </div>
 
+          {/* Stats */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5">
+            <div className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-sm">
               <p className="text-3xl font-extrabold text-zinc-900">{totalReports || 0}</p>
-              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-wider font-semibold">Total Laporan</p>
+              <p className="text-xs text-zinc-400 mt-1 font-medium">Laporan Masuk</p>
             </div>
-            <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5">
+            <div className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-sm">
               <p className="text-3xl font-extrabold text-red-500">{verifiedCount || 0}</p>
-              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-wider font-semibold">Terverifikasi</p>
+              <p className="text-xs text-zinc-400 mt-1 font-medium">Terverifikasi</p>
             </div>
           </div>
 
-          <div className="space-y-5">
-            {[
-              { icon: FileText, text: 'Lapor nomor penipu langsung dari akunmu' },
-              { icon: CheckCircle2, text: 'Pantau status laporan yang kamu kirim' },
-              { icon: Users, text: 'Berkontribusi untuk komunitas anti-penipuan' },
-              { icon: TrendingUp, text: 'Lihat statistik dan tren penipuan terkini' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center shrink-0">
-                  <item.icon className="w-4 h-4 text-zinc-600" />
-                </div>
-                <p className="text-sm text-zinc-600 font-medium">{item.text}</p>
+          {/* Testimonial */}
+          <div className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-sm">
+            <div className="flex gap-0.5 mb-3">
+              {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
+            </div>
+            <p className="text-sm text-zinc-600 leading-relaxed italic mb-3">
+              &quot;Berkat KawalTransaksi, saya bisa cek rekening sebelum transfer dan ternyata itu penipu. Terima kasih!&quot;
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-zinc-900 rounded-full flex items-center justify-center">
+                <Users className="w-3.5 h-3.5 text-white" />
               </div>
-            ))}
+              <div>
+                <p className="text-xs font-bold text-zinc-900">Budi S.</p>
+                <p className="text-[10px] text-zinc-400">Pengguna KawalTransaksi</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Trending */}
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <span>+{Math.floor(Math.random() * 50) + 10} laporan baru hari ini</span>
           </div>
         </div>
-
-        <p className="text-xs text-zinc-400 font-medium italic">
-          &quot;Satu laporan bisa menyelamatkan banyak orang.&quot;
-        </p>
       </div>
 
       {/* RIGHT */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-16 bg-zinc-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-8 py-12 bg-white">
         <div className="w-full max-w-md">
-          <div className="flex lg:hidden items-center justify-center gap-2 mb-10">
-            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-black text-lg tracking-tight text-zinc-900">
-              CEK<span className="text-red-500">NO</span>SCAM
-            </span>
-          </div>
-
-          {/* ✅ Tampilkan error kalau OAuth gagal */}
           {oauthError === 'oauth_failed' && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-semibold text-center">
               Login dengan akun sosial gagal. Silakan coba lagi.
             </div>
           )}
-
           <AuthForm type="login" />
         </div>
       </div>

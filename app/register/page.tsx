@@ -1,69 +1,51 @@
 import AuthForm from '@/components/AuthForm';
-import { Shield, ShieldCheck, Eye, Lock, HeartHandshake } from 'lucide-react';
-import Link from 'next/link';
+import { ShieldCheck, Eye, Lock, HeartHandshake, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterPage() {
   return (
     <div className="min-h-screen flex">
 
       {/* LEFT */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between px-14 py-16 bg-white border-r border-zinc-100">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-black text-lg tracking-tight text-zinc-900">
-            CEK<span className="text-red-500">NO</span>SCAM
-          </span>
-        </Link>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-14 py-16 bg-gradient-to-br from-zinc-50 to-white border-r border-zinc-100 relative overflow-hidden">
+        <div className="absolute top-20 right-10 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-60" />
+        <div className="absolute bottom-20 left-10 w-48 h-48 bg-blue-50 rounded-full blur-3xl opacity-60" />
 
-        <div className="space-y-10">
+        <div className="relative z-10 space-y-10">
           <div>
-            <h2 className="text-4xl font-extrabold text-zinc-900 tracking-tight leading-[1.1] mb-4">
-              Daftar Gratis,<br />
-              <span className="text-red-500">Mulai Berkontribusi.</span>
+            <h2 className="text-4xl font-extrabold text-zinc-900 tracking-tight leading-[1.15] mb-4">
+              Satu Akun untuk<br />Melindungi<br />
+              <span className="text-red-500">Jutaan Orang.</span>
             </h2>
             <p className="text-zinc-500 text-base leading-relaxed max-w-sm">
-              Buat akun CekNoScam dan mulai melaporkan nomor penipu untuk melindungi sesama pengguna internet Indonesia.
+              Buat akun KawalTransaksi dan mulai berkontribusi melindungi sesama pengguna internet Indonesia dari penipuan.
             </p>
           </div>
 
-          <div className="space-y-5">
+          {/* Features */}
+          <div className="space-y-4">
             {[
-              { icon: ShieldCheck, title: 'Gratis selamanya', desc: 'Tidak ada biaya atau langganan apapun.' },
-              { icon: Eye, title: 'Laporan kamu berarti', desc: 'Setiap laporan membantu mencegah korban baru.' },
-              { icon: Lock, title: 'Identitas terlindungi', desc: 'Data pelapor tidak pernah dipublikasikan.' },
-              { icon: HeartHandshake, title: 'Komunitas nyata', desc: 'Ribuan pengguna aktif menjaga database bersama.' },
+              { icon: ShieldCheck, title: 'Gratis Selamanya', desc: 'Tidak ada biaya tersembunyi atau langganan.', color: 'bg-emerald-50 text-emerald-600' },
+              { icon: Eye, title: 'Laporan Kamu Berarti', desc: 'Setiap laporan mencegah orang lain jadi korban.', color: 'bg-blue-50 text-blue-600' },
+              { icon: Lock, title: 'Identitas Terlindungi', desc: 'Data pelapor tidak pernah ditampilkan publik.', color: 'bg-purple-50 text-purple-600' },
+              { icon: HeartHandshake, title: 'Komunitas Nyata', desc: 'Ribuan pengguna aktif menjaga database.', color: 'bg-red-50 text-red-600' },
             ].map((item, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className="w-9 h-9 bg-zinc-100 rounded-xl flex items-center justify-center shrink-0">
-                  <item.icon className="w-4 h-4 text-zinc-600" />
+              <div key={i} className="flex items-center gap-4 bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm">
+                <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center shrink-0`}>
+                  <item.icon className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-zinc-900">{item.title}</p>
-                  <p className="text-sm text-zinc-400 leading-relaxed">{item.desc}</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        <p className="text-xs text-zinc-400 font-medium italic">
-          "Komunitas yang kuat dimulai dari satu langkah kecil."
-        </p>
       </div>
 
       {/* RIGHT */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-16 bg-zinc-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-8 py-12 bg-white">
         <div className="w-full max-w-md">
-          <div className="flex lg:hidden items-center justify-center gap-2 mb-10">
-            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-black text-lg tracking-tight text-zinc-900">
-              CEK<span className="text-red-500">NO</span>SCAM
-            </span>
-          </div>
           <AuthForm type="register" />
         </div>
       </div>

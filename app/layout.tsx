@@ -4,8 +4,6 @@ import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
-// ✅ Tambah display: 'swap' → mencegah invisible text saat font loading (CLS fix)
-// ✅ Tambah variable → bisa dipakai di CSS jika perlu
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
@@ -14,12 +12,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CekNoScam - Platform Anti-Penipuan Komunitas',
-  description: 'Cek dan laporkan nomor telepon atau rekening terindikasi penipuan.',
-  // ✅ Tambah metaData tambahan untuk SEO & performa
-  metadataBase: new URL('https://ceknoscam.vercel.app'), // ganti sesuai domain kamu
+  title: 'KawalTransaksi - Platform Anti-Penipuan Komunitas',
+  description: 'Cek dan laporkan nomor telepon atau rekening terindikasi penipuan. Gratis, cepat, didukung komunitas.',
+  metadataBase: new URL('https://kawaltransaksi-kf68.vercel.app'),
   openGraph: {
-    title: 'CekNoScam - Platform Anti-Penipuan Komunitas',
+    title: 'KawalTransaksi - Platform Anti-Penipuan Komunitas',
     description: 'Cek dan laporkan nomor telepon atau rekening terindikasi penipuan.',
     type: 'website',
     locale: 'id_ID',
@@ -30,7 +27,6 @@ export const metadata: Metadata = {
   },
 };
 
-// ✅ Pisahkan viewport ke export tersendiri (Next.js 14+ best practice)
 export const viewport: Viewport = {
   themeColor: '#ffffff',
   width: 'device-width',

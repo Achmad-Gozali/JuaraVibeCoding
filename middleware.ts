@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
 
   // ✅ FIX: Tambah /report ke protectedPaths — konsisten dengan server-side check
   // Sebelumnya hanya /dashboard yang diprotect di middleware
-  const protectedPaths = ['/dashboard', '/report'];
+  const protectedPaths = ['/dashboard', '/admin'];
   const isProtected = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );

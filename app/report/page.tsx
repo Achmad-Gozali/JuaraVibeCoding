@@ -5,8 +5,7 @@
 import ReportForm from '@/components/ReportForm';
 import { createClient } from '@/lib/supabase-server';
 import {
-  ShieldAlert, Info, Scale, FileText, Clock,
-  LogIn, UserPlus, Shield, CheckCircle2
+  ShieldAlert, Info, Scale, FileText, Clock, Shield, CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -14,166 +13,126 @@ export default async function ReportPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // ===== GATEWAY — belum login =====
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-zinc-50">
-        <div className="max-w-6xl mx-auto px-4 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-
-            {/* LEFT — Penjelasan */}
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
-                <ShieldAlert className="w-3 h-3" />
-                Formulir Laporan
-              </div>
-              <h1 className="text-4xl font-extrabold text-zinc-900 tracking-tight mb-4 leading-tight">
-                Laporkan Nomor<br />Penipu Online
-              </h1>
-              <p className="text-zinc-500 text-base leading-relaxed mb-10">
-                Laporan kamu sangat berarti untuk mencegah orang lain menjadi korban pelaku yang sama. Masuk atau daftar dulu untuk mulai melapor.
-              </p>
-
-              {/* Steps */}
-              <div className="space-y-7">
-                {[
-                  {
-                    icon: LogIn,
-                    title: 'Login untuk Melapor',
-                    desc: 'Sebelum melapor, pastikan kamu sudah masuk ke akun CekNoScam. Bila belum punya akun, daftar sekarang — gratis!',
-                  },
-                  {
-                    icon: FileText,
-                    title: 'Isi Form Laporan',
-                    desc: 'Laporkan nomor HP atau rekening bank terduga penipu. Isi formulir dengan informasi sejelas-jelasnya.',
-                  },
-                  {
-                    icon: CheckCircle2,
-                    title: 'Kirim & Tunggu Verifikasi',
-                    desc: 'Laporan kamu akan diverifikasi moderator dalam 1×24 jam, lalu tampil di database publik.',
-                  },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="w-10 h-10 shrink-0 bg-zinc-900 rounded-xl flex items-center justify-center">
-                      <item.icon className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-zinc-900 mb-1">{item.title}</p>
-                      <p className="text-sm text-zinc-500 leading-relaxed">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Legal note */}
-              <div className="mt-10 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
-                <Scale className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 leading-relaxed">
-                  Laporan palsu atau pencemaran nama baik dapat berakibat pemblokiran akun permanen dan konsekuensi hukum sesuai UU ITE.
-                </p>
-              </div>
-            </div>
-
-            {/* RIGHT — Gateway cards */}
-            <div className="bg-white border border-zinc-200 rounded-3xl shadow-sm p-8">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-zinc-900 rounded-2xl mb-4">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
-                <h2 className="text-xl font-extrabold text-zinc-900 mb-1.5">Masuk ke Akun Dulu!</h2>
-                <p className="text-sm text-zinc-500">
-                  Kamu perlu login atau daftar terlebih dahulu untuk mulai membuat laporan.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Login card */}
-                <div className="border border-zinc-200 rounded-2xl p-5 flex flex-col items-center text-center gap-3 hover:border-zinc-400 transition-all">
-                  <div className="w-12 h-12 bg-zinc-100 rounded-xl flex items-center justify-center">
-                    <LogIn className="w-5 h-5 text-zinc-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900">Masuk</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">Sudah punya akun CekNoScam</p>
-                  </div>
-                  <Link
-                    href="/login?redirectTo=%2Freport"
-                    className="w-full py-2.5 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-black transition-all text-center active:scale-95"
-                  >
-                    Masuk
-                  </Link>
-                </div>
-
-                {/* Register card */}
-                <div className="border border-zinc-200 rounded-2xl p-5 flex flex-col items-center text-center gap-3 hover:border-zinc-400 transition-all">
-                  <div className="w-12 h-12 bg-zinc-100 rounded-xl flex items-center justify-center">
-                    <UserPlus className="w-5 h-5 text-zinc-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900">Daftar</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">Buat akun baru, gratis!</p>
-                  </div>
-                  <Link
-                    href="/register"
-                    className="w-full py-2.5 bg-white text-zinc-900 text-sm font-bold rounded-xl border border-zinc-300 hover:border-zinc-900 transition-all text-center active:scale-95"
-                  >
-                    Daftar
-                  </Link>
-                </div>
-              </div>
-
-              <p className="text-center text-xs text-zinc-400">
-                Dengan masuk, kamu menyetujui{' '}
-                <Link href="/syarat-ketentuan" className="underline underline-offset-2 hover:text-zinc-700">
-                  Syarat & Ketentuan
-                </Link>{' '}
-                kami.
-              </p>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== FORM — sudah login =====
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
         {/* Header */}
-        <div className="max-w-2xl mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
+        <div className="max-w-2xl mb-8 sm:mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-5 sm:mb-6">
             <ShieldAlert className="w-3 h-3" />
             Formulir Laporan
           </div>
-          <h1 className="text-4xl font-extrabold text-zinc-900 tracking-tight mb-3">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-zinc-900 tracking-tight mb-3">
             Laporkan Penipuan
           </h1>
-          <p className="text-zinc-500 text-lg leading-relaxed">
+          <p className="text-zinc-500 text-base sm:text-lg leading-relaxed">
             Bantu lindungi komunitas dengan melaporkan nomor penipu. Setiap laporan akan diverifikasi oleh tim moderator.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-10">
-          {/* Main Form */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-8 sm:p-10">
-              <ReportForm />
+        <div className="grid lg:grid-cols-3 gap-6 sm:gap-10">
+          {/* Main Form Area */}
+          <div className="lg:col-span-2 relative">
+            <div className={`bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 sm:p-10 ${!user ? 'select-none' : ''}`}>
+              {/* Blur overlay untuk non-logged in */}
+              {!user && (
+                <div className="absolute inset-0 z-10 rounded-2xl overflow-hidden">
+                  {/* Blur layer */}
+                  <div className="absolute inset-0 backdrop-blur-sm bg-white/60" />
+
+                  {/* Prompt card */}
+                  <div className="absolute inset-0 flex items-center justify-center p-6">
+                    <div className="bg-white rounded-3xl shadow-2xl shadow-zinc-200/80 border border-zinc-100 p-8 sm:p-10 w-full max-w-sm text-center">
+                      <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-zinc-900/20">
+                        <Shield className="w-8 h-8 text-white" />
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mb-2 tracking-tight">
+                        Login untuk Melapor
+                      </h2>
+                      <p className="text-sm text-zinc-500 mb-8 leading-relaxed">
+                        Kamu perlu masuk atau daftar akun untuk mulai membuat laporan. Gratis dan cepat!
+                      </p>
+
+                      <div className="space-y-3">
+                        <Link
+                          href="/login?redirectTo=%2Freport"
+                          className="flex items-center justify-center gap-2 w-full py-3.5 bg-zinc-900 text-white font-bold text-sm rounded-2xl hover:bg-black transition-all active:scale-95"
+                        >
+                          Masuk ke Akun
+                        </Link>
+                        <Link
+                          href="/register"
+                          className="flex items-center justify-center gap-2 w-full py-3.5 bg-zinc-50 text-zinc-700 font-bold text-sm rounded-2xl border border-zinc-200 hover:bg-zinc-100 transition-all active:scale-95"
+                        >
+                          Daftar Gratis
+                        </Link>
+                      </div>
+
+                      <p className="text-[11px] text-zinc-400 mt-6 leading-relaxed">
+                        Identitas pelapor dijaga kerahasiaannya dan tidak akan ditampilkan ke publik.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Form preview / actual form */}
+              {user ? (
+                <ReportForm />
+              ) : (
+                // Preview form (blurred) — tidak functional
+                <div className="space-y-8 pointer-events-none opacity-60">
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-[0.15em]">Informasi Target</h3>
+                    <p className="text-xs text-zinc-400">Data nomor atau rekening yang ingin dilaporkan.</p>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <div className="h-3 bg-zinc-200 rounded w-24" />
+                      <div className="h-12 bg-zinc-100 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-zinc-200 rounded w-20" />
+                      <div className="h-12 bg-zinc-100 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <div className="h-3 bg-zinc-200 rounded w-28" />
+                      <div className="h-12 bg-zinc-100 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-zinc-200 rounded w-24" />
+                      <div className="h-12 bg-zinc-100 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="border-t border-zinc-100" />
+                  <div className="space-y-2">
+                    <div className="h-3 bg-zinc-200 rounded w-20" />
+                    <div className="h-32 bg-zinc-100 rounded-xl" />
+                  </div>
+                  <div className="border-t border-zinc-100" />
+                  <div className="space-y-2">
+                    <div className="h-3 bg-zinc-200 rounded w-32" />
+                    <div className="h-28 bg-zinc-100 rounded-2xl border-2 border-dashed border-zinc-200" />
+                  </div>
+                  <div className="h-12 bg-zinc-900/80 rounded-xl" />
+                </div>
+              )}
             </div>
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-5">
-            <div className="bg-white rounded-2xl border border-zinc-200 p-6 shadow-sm">
-              <h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-[0.15em] mb-5">Cara Kerja</h4>
-              <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 shadow-sm">
+              <h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-[0.15em] mb-4 sm:mb-5">Cara Kerja</h4>
+              <div className="space-y-4 sm:space-y-5">
                 {[
                   { icon: FileText, title: 'Isi Formulir', desc: 'Lengkapi data nomor target dan kronologi kejadian.' },
                   { icon: Clock, title: 'Proses Review', desc: 'Tim moderator akan memverifikasi laporan Anda dalam 1×24 jam.' },
                   { icon: ShieldAlert, title: 'Terpublikasi', desc: 'Laporan terverifikasi akan tampil di database publik.' },
                 ].map((item, i) => (
-                  <div key={i} className="flex gap-3.5">
+                  <div key={i} className="flex gap-3">
                     <div className="w-8 h-8 shrink-0 bg-zinc-900 rounded-lg flex items-center justify-center">
                       <item.icon className="w-3.5 h-3.5 text-white" />
                     </div>
@@ -186,7 +145,24 @@ export default async function ReportPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-6 text-white shadow-lg">
+            {/* Kenapa lapor */}
+            <div className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 shadow-sm">
+              <h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-[0.15em] mb-4">Kenapa Harus Lapor?</h4>
+              <div className="space-y-3">
+                {[
+                  'Mencegah orang lain menjadi korban yang sama',
+                  'Membangun database penipu yang akurat',
+                  'Kontribusi nyata untuk komunitas Indonesia',
+                ].map((reason, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-zinc-500 leading-relaxed">{reason}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-5 sm:p-6 text-white shadow-lg">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center">
                   <Info className="w-3.5 h-3.5 text-white" />
@@ -198,9 +174,9 @@ export default async function ReportPage() {
               </p>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-3">
-                <Scale className="w-4 h-4 text-amber-600" />
+                <Scale className="w-4 h-4 text-amber-600 shrink-0" />
                 <h4 className="text-xs font-extrabold text-amber-800 uppercase tracking-[0.15em]">Peringatan Hukum</h4>
               </div>
               <p className="text-xs text-amber-700 leading-relaxed">
