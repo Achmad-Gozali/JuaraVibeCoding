@@ -2,25 +2,17 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
+        getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -29,13 +21,8 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session — IMPORTANT: don't remove this
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // ✅ FIX: Tambah /report ke protectedPaths — konsisten dengan server-side check
-  // Sebelumnya hanya /dashboard yang diprotect di middleware
   const protectedPaths = ['/dashboard', '/admin'];
   const isProtected = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
@@ -48,7 +35,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect logged-in users away from auth pages
   const authPaths = ['/login', '/register'];
   const isAuthPage = authPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
@@ -59,6 +45,9 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/';
     return NextResponse.redirect(url);
   }
+
+  // ✅ Set pathname di header biar bisa dibaca di layout
+  supabaseResponse.headers.set('x-pathname', request.nextUrl.pathname);
 
   return supabaseResponse;
 }

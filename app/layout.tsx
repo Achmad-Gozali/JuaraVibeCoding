@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { headers } from 'next/headers';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -21,10 +22,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'id_ID',
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
@@ -33,7 +31,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '';
+  const isAdminPage = pathname.startsWith('/admin');
+
   return (
     <html lang="id" className={`scroll-smooth ${inter.variable}`}>
       <body
@@ -41,11 +43,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         suppressHydrationWarning
       >
         <div className="fixed inset-0 -z-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50" />
-        <Navbar />
+        {!isAdminPage && <Navbar />}
         <main className="flex-grow">
           {children}
         </main>
-        <Footer />
+        {!isAdminPage && <Footer />}
       </body>
     </html>
   );
