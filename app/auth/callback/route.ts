@@ -8,13 +8,19 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/';
+  const error = searchParams.get('error');
+  const errorDescription = searchParams.get('error_description');
 
-  // ✅ Gunakan NEXT_PUBLIC_SITE_URL kalau ada, fallback ke origin dari request
-  // Ini fix masalah redirect ke localhost padahal udah di Vercel
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || origin;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://kawaltransaksi-kf68.vercel.app';
+
+  // ✅ Handle error dari provider
+  if (error) {
+    console.error('OAuth error:', error, errorDescription);
+    return NextResponse.redirect(`${siteUrl}/login?error=oauth_failed`);
+  }
 
   if (code) {
     const cookieStore = await cookies();
@@ -33,20 +39,20 @@ export async function GET(request: NextRequest) {
                 cookieStore.set(name, value, options)
               );
             } catch {
-              // Ignore di Server Component
+              // ignore
             }
           },
         },
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
+    if (!exchangeError) {
       return NextResponse.redirect(`${siteUrl}${next}`);
     }
 
-    console.error('OAuth callback error:', error);
+    console.error('Exchange error:', exchangeError);
   }
 
   return NextResponse.redirect(`${siteUrl}/login?error=oauth_failed`);
