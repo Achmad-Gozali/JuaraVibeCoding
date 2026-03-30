@@ -80,6 +80,7 @@ export default function ReportForm() {
     loss_amount: '',
     incident_date: '',
     platform: '',
+    link_url: '', // ✅ field baru
   });
 
   const [file, setFile] = useState<File | null>(null);
@@ -92,7 +93,7 @@ export default function ReportForm() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] || null;
     if (selected && selected.size > 5 * 1024 * 1024) {
-      setError('Ukuran file melebihi 5MB.');
+      setError('ukuran file melebihi 5mb.');
       return;
     }
     setFile(selected);
@@ -114,8 +115,8 @@ export default function ReportForm() {
       fd.append('file', file);
       const result = await analyzeEvidence(fd);
       if (result.success) setImageAnalysis(result.data);
-      else setError(result.error || 'Gagal analisis gambar.');
-    } catch (err) { setError('Gagal analisis gambar.'); }
+      else setError(result.error || 'gagal analisis gambar.');
+    } catch (err) { setError('gagal analisis gambar.'); }
     finally { setIsAnalyzingImage(false); }
   };
 
@@ -125,8 +126,8 @@ export default function ReportForm() {
     try {
       const result = await analyzeChronology(formData.chronology);
       if (result.success) setTextAnalysis(result.data);
-      else setError(result.error || 'Gagal analisis teks.');
-    } catch (err) { setError('Gagal analisis teks.'); }
+      else setError(result.error || 'gagal analisis teks.');
+    } catch (err) { setError('gagal analisis teks.'); }
     finally { setIsAnalyzingText(false); }
   };
 
@@ -149,7 +150,6 @@ export default function ReportForm() {
           ? formData.ewallet_name 
           : null;
 
-      // ✅ FIX TypeScript & Logic Error
       const result = await submitReport({
         target_number: formData.target_number,
         target_name: formData.target_name || '',
@@ -161,16 +161,17 @@ export default function ReportForm() {
         loss_amount: formData.loss_amount ? parseInt(formData.loss_amount.replace(/\D/g, ''), 10) : null,
         incident_date: formData.incident_date || null,
         platform: formData.platform || null,
+        link_url: formData.link_url || null, // ✅ data link terkirim
       });
 
       if (result.success) {
         setIsSuccess(true);
         setTimeout(() => router.push(`/check/${result.slug}`), 1500);
       } else {
-        setError(result.error || 'Gagal mengirim laporan.');
+        setError(result.error || 'gagal mengirim laporan.');
       }
     } catch (err) { 
-      setError('Terjadi kesalahan. Periksa koneksi Anda.'); 
+      setError('terjadi kesalahan. periksa koneksi anda.'); 
     }
     finally { setIsLoading(false); }
   };
@@ -204,7 +205,7 @@ export default function ReportForm() {
               key={item.id}
               type="button"
               onClick={() => setFormData({ ...formData, target_type: item.id as TargetType })}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all
+              className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-xs font-bold transition-all
                 ${formData.target_type === item.id ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200' : 'text-zinc-500 hover:text-zinc-800'}`}
             >
               <item.icon className={`w-3.5 h-3.5 ${formData.target_type === item.id ? 'text-zinc-900' : 'text-zinc-400'}`} />
@@ -290,7 +291,7 @@ export default function ReportForm() {
           <h3 className="text-[11px] font-extrabold text-zinc-400 uppercase tracking-wider">Detail Tambahan</h3>
         </div>
 
-        <div className="grid xs:grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid xs:grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-zinc-500 ml-1 flex items-center gap-1.5"><DollarSign className="w-3 h-3" /> Kerugian</label>
             <input
@@ -314,16 +315,27 @@ export default function ReportForm() {
               className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-semibold"
             />
           </div>
-          <div className="space-y-2 xs:col-span-2 sm:col-span-1">
+          <div className="space-y-2">
             <label className="text-[10px] font-bold text-zinc-500 ml-1 flex items-center gap-1.5"><Globe className="w-3 h-3" /> Platform</label>
             <select
               value={formData.platform}
               onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
               className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-semibold"
             >
-              <option value="">Pilih Platform...</option>
+              <option value="">Pilih...</option>
               {platformList.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
+          </div>
+          {/* ✅ FIELD BARU: LINK / URL PENIPUAN ✅ */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-zinc-500 ml-1 flex items-center gap-1.5"><Globe className="w-3 h-3" /> Link / URL</label>
+            <input
+              type="url"
+              value={formData.link_url}
+              onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
+              placeholder="https://..."
+              className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-semibold"
+            />
           </div>
         </div>
 
@@ -372,7 +384,7 @@ export default function ReportForm() {
                 <X className="w-3 h-3" />
               </button>
               <div className="mt-2 px-2 pb-1 flex justify-between items-center">
-                <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[150px]">{file?.name}</span>
+                <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[200px]">{file?.name}</span>
                 <button 
                   type="button" 
                   onClick={handleAIImageAnalysis}
@@ -402,8 +414,8 @@ export default function ReportForm() {
         Kirim Laporan
       </button>
 
-      <p className="text-center text-[10px] text-zinc-400 font-medium">
-        Laporan akan diverifikasi dalam 24 jam. Identitas Anda aman 100%.
+      <p className="text-center text-[10px] text-zinc-400 font-medium uppercase tracking-widest">
+        laporan divalidasi 24 jam. identitas aman 100%.
       </p>
     </form>
   );

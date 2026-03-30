@@ -1,55 +1,64 @@
 import AuthForm from '@/components/AuthForm';
-import { ShieldCheck, Eye, Lock, HeartHandshake, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { ArrowLeft, UserPlus, FileText, Database } from 'lucide-react';
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex">
-
-      {/* LEFT */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-14 py-16 bg-gradient-to-br from-zinc-50 to-white border-r border-zinc-100 relative overflow-hidden">
-        <div className="absolute top-20 right-10 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-60" />
-        <div className="absolute bottom-20 left-10 w-48 h-48 bg-blue-50 rounded-full blur-3xl opacity-60" />
-
-        <div className="relative z-10 space-y-10">
-          <div>
-            <h2 className="text-4xl font-extrabold text-zinc-900 tracking-tight leading-[1.15] mb-4">
-              Satu Akun untuk<br />Melindungi<br />
-              <span className="text-red-500">Jutaan Orang.</span>
-            </h2>
-            <p className="text-zinc-500 text-base leading-relaxed max-w-sm">
-              Buat akun KawalTransaksi dan mulai berkontribusi melindungi sesama pengguna internet Indonesia dari penipuan.
-            </p>
-          </div>
-
-          {/* Features */}
-          <div className="space-y-4">
-            {[
-              { icon: ShieldCheck, title: 'Gratis Selamanya', desc: 'Tidak ada biaya tersembunyi atau langganan.', color: 'bg-emerald-50 text-emerald-600' },
-              { icon: Eye, title: 'Laporan Kamu Berarti', desc: 'Setiap laporan mencegah orang lain jadi korban.', color: 'bg-blue-50 text-blue-600' },
-              { icon: Lock, title: 'Identitas Terlindungi', desc: 'Data pelapor tidak pernah ditampilkan publik.', color: 'bg-purple-50 text-purple-600' },
-              { icon: HeartHandshake, title: 'Komunitas Nyata', desc: 'Ribuan pengguna aktif menjaga database.', color: 'bg-red-50 text-red-600' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-4 bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm">
-                <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center shrink-0`}>
-                  <item.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-zinc-900">{item.title}</p>
-                  <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
+      
+      {/* Top Bar - Back Link */}
+      <div className="absolute top-0 left-0 w-full p-6 max-w-7xl mx-auto flex items-center justify-between">
+        <Link href="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 text-xs font-bold uppercase tracking-widest transition-colors group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali ke Beranda
+        </Link>
+        <div className="text-[10px] font-bold text-slate-400 flex items-center gap-2 uppercase tracking-[0.3em]">
+          <UserPlus className="w-3 h-3" /> Contributor Access
         </div>
       </div>
 
-      {/* RIGHT */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-8 py-12 bg-white">
-        <div className="w-full max-w-md">
+      {/* Main Container (Compact but Pro) */}
+      <div className="w-full max-w-[440px] px-6 py-12">
+        
+        {/* ✅ LOGO GEDE & PRO (48px) ✅ */}
+        <div className="flex flex-col items-center mb-10 text-center">
+          <div className="relative mb-5">
+             <Image 
+                src="/logo.png" 
+                alt="Logo KawalTransaksi" 
+                width={48} 
+                height={48} 
+                className="rounded-xl shadow-sm"
+                priority
+             />
+             <div className="absolute -inset-1 bg-emerald-500/15 rounded-xl blur opacity-75" />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2">Gabung Komunitas.</h1>
+          <p className="text-sm text-slate-500 font-medium">Bantu kami membangun database keamanan transaksi terbaik.</p>
+        </div>
+
+        {/* ✅ REGISTER CARD (Enterprise Style - Emerald) ✅ */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-lg shadow-emerald-900/5 p-8 sm:p-10 relative overflow-hidden">
+          
+          {/* Subtle Top Accent Emerald */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-600" />
+          
           <AuthForm type="register" />
+          
+          <div className="mt-8 pt-8 border-t border-slate-100 text-center">
+             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sudah punya akses?</p>
+             <Link href="/login" className="text-xs font-black text-slate-800 hover:text-emerald-700 uppercase tracking-widest flex items-center justify-center gap-1 transition-colors">
+               Masuk ke Portal Kontributor <ArrowLeft className="w-3 h-3 rotate-180" />
+             </Link>
+          </div>
+        </div>
+
+        {/* Legal Links (Small Caps) */}
+        <div className="mt-12 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] space-x-6">
+           <Link href="/syarat-ketentuan" className="hover:text-emerald-600 transition-colors">Syarat & Ketentuan</Link>
+           <Link href="/kebijakan-privasi" className="hover:text-emerald-600 transition-colors">Kebijakan Privasi</Link>
         </div>
       </div>
-
     </div>
   );
 }

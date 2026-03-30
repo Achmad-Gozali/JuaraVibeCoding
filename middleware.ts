@@ -35,7 +35,8 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // 3. Logika Proteksi Halaman
-  if (['/dashboard', '/admin', '/report'].some(path => pathname.startsWith(path)) && !user) {
+  // ✅ FIX: '/report' GUA HAPUS dari sini biar Gateway lu bisa kebuka bebas!
+  if (['/dashboard', '/admin'].some(path => pathname.startsWith(path)) && !user) {
     const url = new URL('/login', request.url);
     url.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(url);

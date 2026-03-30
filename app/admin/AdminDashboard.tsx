@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, Clock, Eye, ExternalLink,
   Phone, Building2, ChevronDown, ChevronUp, Loader2,
   Search, Users, FileText, DollarSign, X, TrendingUp, ChevronRight,
-  AlertCircle, Download
+  AlertCircle, Download, Globe // ✅ tambah globe buat icon link
 } from 'lucide-react';
 import { updateReportStatus, updateUserRole } from './actions';
 import { formatDateID } from '@/lib/utils';
@@ -26,6 +26,7 @@ interface Report {
   loss_amount?: number | string | null;
   incident_date?: string | null;
   platform?: string | null;
+  link_url?: string | null; // ✅ tambahin link_url di interface
 }
 
 interface AdminUser {
@@ -80,7 +81,6 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     });
   }, [reports, statusFilter, searchQuery, bankFilter, platformFilter]);
 
-  // ✅ FIX TIMEZONE HARI INI
   const todayStr = new Date().toLocaleDateString('en-CA'); 
   const todayReports = useMemo(() => reports.filter(r => {
     return new Date(r.created_at).toLocaleDateString('en-CA') === todayStr;
@@ -148,8 +148,9 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   const selectAll = () => setSelectedIds(selectedIds.size === filteredReports.length ? new Set() : new Set(filteredReports.map(r => r.id)));
   
   const handleExportCSV = () => {
-    const rows = [['ID','Nomor','Nama','Tipe','Bank','Kategori','Platform','Kerugian','Tgl Kejadian','Status','Pelapor','Tgl Lapor'],
-      ...reports.map(r => [r.id,r.target_number,r.target_name??'',r.target_type,r.bank_name??'',r.category,r.platform??'',r.loss_amount?String(r.loss_amount):'',r.incident_date??'',r.status,r.reporter_email,r.created_at])];
+    // ✅ tambahin link_url ke csv export
+    const rows = [['ID','Nomor','Nama','Tipe','Bank','Kategori','Platform','Link URL','Kerugian','Tgl Kejadian','Status','Pelapor','Tgl Lapor'],
+      ...reports.map(r => [r.id,r.target_number,r.target_name??'',r.target_type,r.bank_name??'',r.category,r.platform??'',r.link_url??'',r.loss_amount?String(r.loss_amount):'',r.incident_date??'',r.status,r.reporter_email,r.created_at])];
     const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `laporan-${todayStr}.csv`; a.click();
   };
@@ -293,6 +294,15 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                             <span>{report.category}</span><span>·</span><span>{formatDateID(report.created_at)}</span>
                             {report.loss_amount ? <><span>·</span><span className="text-red-500 font-medium">{formatRupiah(report.loss_amount)}</span></> : null}
                             {report.platform ? <><span>·</span><span>{report.platform}</span></> : null}
+                            {/* ✅ tampilin link_url di baris metadata kalo ada */}
+                            {report.link_url && (
+                              <>
+                                <span>·</span>
+                                <span className="flex items-center gap-1 text-blue-500 font-medium truncate max-w-[150px]">
+                                  <Globe className="w-2.5 h-2.5" /> {report.link_url}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -316,6 +326,8 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                           {report.loss_amount && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Kerugian</p><p className="text-sm font-semibold text-red-600">{formatRupiah(report.loss_amount)}</p></div>}
                           {report.incident_date && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Tgl Kejadian</p><p className="text-sm font-medium text-zinc-700">{formatDateID(report.incident_date)}</p></div>}
                           {report.platform && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Platform</p><p className="text-sm font-medium text-zinc-700">{report.platform}</p></div>}
+                          {/* ✅ tambahin box Link URL di expanded view */}
+                          {report.link_url && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Link URL</p><a href={report.link_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1 truncate">{report.link_url} <ExternalLink className="w-3 h-3" /></a></div>}
                         </div>
                         <div><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5">Kronologi</p><div className="bg-white border border-zinc-100 rounded-lg p-3"><p className="text-sm text-zinc-600 leading-relaxed">{report.chronology}</p></div></div>
                         <div className="flex gap-3">

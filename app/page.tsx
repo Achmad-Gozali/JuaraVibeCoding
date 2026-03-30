@@ -1,53 +1,14 @@
-// ============================================
-// 📁 LOKASI: app/page.tsx (Homepage)
-// ✅ FIX:
-//    1. Tambah target_type di query recent reports
-//    2. Tambah icon + label tipe di card laporan (Nomor HP / Rekening / E-Wallet)
-// ============================================
-
 import Link from 'next/link';
 import {
-  Search,
-  ArrowRight,
-  ShieldAlert,
-  Lock,
-  Eye,
-  ArrowUpRight,
-  Phone,
-  Landmark,
-  ShieldCheck,
-  Building2,
-  Wallet,
+  Search, ArrowRight, ShieldAlert, Lock, Eye, ArrowUpRight,
+  Phone, Building2, ShieldCheck, Wallet, TrendingUp, Users,
+  Zap, PlusCircle
 } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import { createClient } from '@/lib/supabase-server';
 import { formatDateID, maskNumber } from '@/lib/utils';
 
 export const revalidate = 60;
-
-// Helper: label + icon berdasarkan target_type
-function TargetTypeBadge({ type }: { type: string }) {
-  if (type === 'bank_account') {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-        <Building2 className="w-2.5 h-2.5" /> Rekening
-      </span>
-    );
-  }
-  if (type === 'ewallet') {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
-        <Wallet className="w-2.5 h-2.5" /> E-Wallet
-      </span>
-    );
-  }
-  // default: phone
-  return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-      <Phone className="w-2.5 h-2.5" /> Nomor HP
-    </span>
-  );
-}
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -56,7 +17,6 @@ export default async function HomePage() {
     { count: totalReports },
     { count: verifiedCount },
     { data: rawRecentReports },
-    { data: rawCategoryData },
   ] = await Promise.all([
     supabase.from('reports').select('*', { count: 'exact', head: true }),
     supabase
@@ -65,415 +25,166 @@ export default async function HomePage() {
       .eq('status', 'verified'),
     supabase
       .from('reports')
-      // ✅ FIX: Tambah target_type di query
       .select('id, target_number, target_name, target_type, category, created_at, status')
       .order('created_at', { ascending: false })
       .limit(6),
-    supabase.rpc('get_category_counts'),
   ]);
 
   const recentReports = rawRecentReports ?? [];
-  const sortedCategories = (rawCategoryData ?? [])
-    .slice(0, 6)
-    .map((r: { category: string; count: number }) => [r.category, Number(r.count)] as [string, number]);
-  const maxCategoryCount = sortedCategories[0]?.[1] || 1;
 
   return (
-    <div>
-      {/* ===== HERO ===== */}
-      <section className="relative bg-white border-b border-zinc-100 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute -top-1/2 left-1/2 -translate-x-1/2 w-[600px] sm:w-[900px] h-[600px] sm:h-[900px] bg-gradient-to-b from-red-50 to-transparent rounded-full opacity-60" />
-        </div>
+    <main className="bg-slate-50 text-slate-900 overflow-hidden font-sans">
+      
+      {/* SECTION 1: HERO - Clean Enterprise */}
+      <section className="relative pt-24 pb-28 border-b border-slate-200 bg-white overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-[400px] bg-emerald-100/30 rounded-full blur-[120px] -z-10" />
+        
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          {/* ✅ BADGE RISIH SUDAH DIHAPUS MAD ✅ */}
+          
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-8 uppercase text-slate-900">
+            TRANSAKSI <span className="text-emerald-600 italic underline decoration-emerald-200 decoration-8 underline-offset-8">AMAN</span>,<br />
+            HATI TENANG.
+          </h1>
+          
+          <div className="text-slate-500 text-base md:text-lg max-w-2xl mx-auto font-medium leading-relaxed mb-10">
+            Verifikasi nomor identitas atau rekening bank dalam hitungan detik. Gabung bersama komunitas untuk memberantas kejahatan siber.
+          </div>
 
-        <div className="relative max-w-4xl mx-auto px-4 pt-14 pb-16 sm:pt-20 sm:pb-24 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-zinc-900 tracking-tight mb-4 sm:mb-6 leading-[1.05]">
-              Cek Nomor,
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 via-red-500 to-orange-500">
-                Hindari Penipuan.
+          <div className="flex flex-col sm:flex-row justify-center gap-4 px-4">
+            <Link href="/cek-nomor" className="group px-8 py-4 bg-slate-900 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-md active:scale-95 uppercase tracking-widest">
+              <Phone className="w-4 h-4 text-emerald-400 group-hover:text-white transition-colors" /> CEK NOMOR HP
+            </Link>
+            <Link href="/cek-rekening" className="group px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-xl font-bold text-sm flex items-center justify-center gap-3 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm active:scale-95 uppercase tracking-widest">
+              <Building2 className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" /> CEK REKENING
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 2: BENTO DASHBOARD */}
+      <section className="max-w-6xl mx-auto px-6 pt-16 mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+          <div className="md:col-span-8 bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:scale-110 transition-transform duration-700">
+              <TrendingUp className="w-60 h-60 text-slate-900" />
+            </div>
+            <div className="relative z-10 h-full flex flex-col justify-between">
+              <div>
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 text-left">Statistik Registry</h3>
+                <p className="text-2xl sm:text-3xl font-black leading-tight max-w-md text-left text-slate-900">
+                  Kami mengawasi <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-4">setiap laporan</span> untuk keamanan Anda.
+                </p>
+              </div>
+              <div className="flex gap-10 mt-12 border-t border-slate-100 pt-8">
+                <div className="text-left">
+                  <p className="text-5xl font-black tracking-tighter text-slate-900">{totalReports || 0}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Total Entri</p>
+                </div>
+                <div className="w-px h-16 bg-slate-200" />
+                <div className="text-left">
+                  <p className="text-5xl font-black text-red-600 tracking-tighter">{verifiedCount || 0}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Verified Scam</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-4 space-y-5">
+            <div className="bg-emerald-600 rounded-2xl p-8 text-white shadow-md h-[200px] flex flex-col justify-between group overflow-hidden relative border border-emerald-700">
+               <ShieldCheck className="w-20 h-20 absolute -right-4 -top-4 opacity-10 group-hover:scale-125 transition-transform" />
+               <h4 className="text-lg font-black leading-tight text-left">Verifikasi Komunitas</h4>
+               <p className="text-xs text-emerald-50/80 font-medium leading-relaxed text-left">Laporan divalidasi secara transparan oleh sistem moderator untuk menjaga akurasi.</p>
+            </div>
+            <div className="bg-slate-900 rounded-2xl p-8 text-white h-[200px] flex flex-col justify-between group shadow-md border border-slate-800">
+               <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
+                   <Lock className="w-5 h-5 text-emerald-400" />
+                 </div>
+                 <h4 className="text-lg font-black">Enkripsi 24/7</h4>
+               </div>
+               <div className="text-left">
+                 <p className="text-xs text-slate-400 font-medium mt-2 leading-relaxed">Sistem keamanan berjalan tanpa henti memantau anomali transaksi digital.</p>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: LIVE FEED ACTIVITY */}
+      <section className="max-w-6xl mx-auto px-6 mb-24">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-slate-200 pb-4">
+          <div className="text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-            </h1>
-
-            <p className="text-base sm:text-lg text-zinc-500 mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed px-2">
-              Verifikasi nomor HP atau rekening bank sebelum bertransaksi.
-              Gratis, cepat, dan didukung oleh komunitas.
-            </p>
-          </motion.div>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-            className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4 sm:px-0"
-          >
-            <Link
-              href="/cek-nomor"
-              className="inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-4 rounded-2xl bg-zinc-900 text-white text-sm sm:text-base font-bold hover:bg-black transition-all active:scale-95 shadow-lg shadow-zinc-900/10"
-            >
-              <Phone className="w-5 h-5" />
-              Cek Nomor HP
-            </Link>
-            <Link
-              href="/cek-rekening"
-              className="inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-4 rounded-2xl bg-white text-zinc-900 text-sm sm:text-base font-bold border border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all active:scale-95 shadow-sm"
-            >
-              <Landmark className="w-5 h-5" />
-              Cek Rekening Bank
-            </Link>
-          </motion.div>
-
-          {/* Stats Row */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.35 }}
-            className="mt-10 sm:mt-16 flex justify-center gap-6 sm:gap-12"
-          >
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-extrabold text-zinc-900">
-                {totalReports || 0}
-              </p>
-              <p className="text-[10px] sm:text-xs text-zinc-400 font-medium mt-1 uppercase tracking-wider">
-                Total Laporan
-              </p>
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Live Activity Feed</span>
             </div>
-            <div className="w-px bg-zinc-200" />
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-extrabold text-zinc-900">
-                {verifiedCount || 0}
-              </p>
-              <p className="text-[10px] sm:text-xs text-zinc-400 font-medium mt-1 uppercase tracking-wider">
-                Terverifikasi
-              </p>
-            </div>
-            <div className="w-px bg-zinc-200" />
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-extrabold text-zinc-900">
-                24/7
-              </p>
-              <p className="text-[10px] sm:text-xs text-zinc-400 font-medium mt-1 uppercase tracking-wider">
-                Monitoring
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== CARA KERJA ===== */}
-      <section className="py-14 sm:py-20 bg-white border-b border-zinc-100">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center mb-10 sm:mb-14">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-3">
-              Cara Kerja
-            </p>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-zinc-900 tracking-tight">
-              Mudah, Cepat, 3 Langkah.
-            </h2>
+            <h2 className="text-2xl font-black tracking-tighter uppercase text-slate-900">Log Laporan Terkini</h2>
           </div>
+          <Link href="/report" className="px-5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-emerald-600 hover:border-emerald-200 transition-all flex items-center gap-2 shadow-sm uppercase tracking-widest">
+            Entri Laporan <PlusCircle className="w-3.5 h-3.5" />
+          </Link>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
-            {[
-              {
-                step: '01',
-                icon: Search,
-                title: 'Masukkan Nomor',
-                desc: 'Ketik nomor HP atau nomor rekening yang ingin kamu verifikasi.',
-                color: 'bg-blue-50 text-blue-600 border-blue-100',
-              },
-              {
-                step: '02',
-                icon: Eye,
-                title: 'Cek Database',
-                desc: 'Sistem mencocokkan nomor dengan database laporan komunitas secara real-time.',
-                color: 'bg-amber-50 text-amber-600 border-amber-100',
-              },
-              {
-                step: '03',
-                icon: ShieldCheck,
-                title: 'Lihat Hasilnya',
-                desc: 'Dapatkan info lengkap — apakah nomor aman, pernah dilaporkan, atau terverifikasi penipu.',
-                color: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="flex sm:flex-col items-start sm:items-center sm:text-center gap-4 sm:gap-0 bg-zinc-50 sm:bg-transparent rounded-2xl p-4 sm:p-0"
-              >
-                <div
-                  className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl border-2 ${item.color} flex items-center justify-center shrink-0 sm:mb-5 bg-white`}
-                >
-                  <item.icon className="w-5 h-5 sm:w-7 sm:h-7" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest block mb-1">
-                    {item.step}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {recentReports.map((report, i) => (
+            <motion.div 
+              key={report.id} 
+              initial={{ opacity: 0, y: 10 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              viewport={{ once: true }} 
+              transition={{ delay: i * 0.1 }}
+            >
+              <Link href={`/check/${report.target_number}`} className="block bg-white border border-slate-200 p-6 rounded-xl shadow-sm hover:shadow-md hover:border-emerald-300 transition-all group">
+                <div className="flex justify-between items-start mb-5">
+                  <span className={`px-2 py-0.5 rounded-md border text-[9px] font-bold uppercase tracking-widest ${
+                    report.status === 'verified' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-amber-50 text-amber-700 border-amber-100'
+                  }`}>
+                    {report.status}
                   </span>
-                  <h3 className="text-sm sm:text-base font-bold text-zinc-900 mb-1 sm:mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed">
-                    {item.desc}
-                  </p>
+                  <span className="text-[10px] text-slate-400 font-medium">{formatDateID(report.created_at)}</span>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== FEATURES ===== */}
-      <section className="py-14 sm:py-20 bg-zinc-50">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-10 sm:mb-14">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-3">
-              Mengapa KawalTransaksi?
-            </p>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-zinc-900 tracking-tight">
-              Perlindungan dari komunitas,
-              <br className="hidden sm:block" />
-              untuk komunitas.
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-            {[
-              {
-                icon: Search,
-                title: 'Pencarian Instan',
-                desc: 'Hasil real-time dari database yang terus diperbarui komunitas.',
-                color: 'bg-blue-50 text-blue-600',
-              },
-              {
-                icon: ShieldAlert,
-                title: 'Lapor Cepat',
-                desc: 'Formulir laporan sederhana dengan verifikasi AI otomatis.',
-                color: 'bg-red-50 text-red-600',
-              },
-              {
-                icon: Eye,
-                title: 'Verifikasi Manual',
-                desc: 'Setiap laporan ditinjau tim moderator sebelum dipublikasi.',
-                color: 'bg-amber-50 text-amber-600',
-              },
-              {
-                icon: Lock,
-                title: 'Privasi Terjaga',
-                desc: 'Identitas pelapor tidak pernah dipublikasikan ke publik.',
-                color: 'bg-emerald-50 text-emerald-600',
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-6 hover:shadow-lg hover:border-zinc-300 transition-all"
-              >
-                <div
-                  className={`w-9 h-9 sm:w-10 sm:h-10 ${item.color} rounded-xl flex items-center justify-center mb-3 sm:mb-4`}
-                >
-                  <item.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <div className="mb-5 text-left">
+                  <p className="text-xl font-black font-mono tracking-tighter text-slate-900 group-hover:text-emerald-600 transition-colors">{maskNumber(report.target_number)}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">a.n. {report.target_name || 'Anonymous'}</p>
                 </div>
-                <h3 className="text-sm font-bold text-zinc-900 mb-1 sm:mb-1.5">
-                  {item.title}
-                </h3>
-                <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed">
-                  {item.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {report.target_type === 'bank_account' ? <Building2 className="w-3.5 h-3.5 text-slate-400" /> : <Phone className="w-3.5 h-3.5 text-slate-400" />}
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{report.category}</span>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+                </div>
+              </Link>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* ===== STATISTICS ===== */}
-      {sortedCategories.length > 0 && (
-        <section className="py-14 sm:py-20 bg-white border-y border-zinc-100">
-          <div className="max-w-4xl mx-auto px-4">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-10 gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-2">
-                  Statistik
-                </p>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 tracking-tight">
-                  Modus Penipuan Terbanyak
-                </h2>
-              </div>
-              <p className="text-sm text-zinc-400 font-medium">
-                Berdasarkan {verifiedCount || 0} laporan terverifikasi
-              </p>
-            </div>
-            <div className="space-y-5 sm:space-y-6">
-              {sortedCategories.map(([category, count], i) => {
-                const percentage = (count / maxCategoryCount) * 100;
-                return (
-                  <motion.div
-                    key={category}
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.06 }}
-                    className="group"
-                  >
-                    <div className="flex justify-between items-baseline mb-2">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="text-xs sm:text-sm font-mono text-zinc-300 w-5 sm:w-6">
-                          {String(i + 1).padStart(2, '0')}
-                        </span>
-                        <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                          {category}
-                        </span>
-                      </div>
-                      <span className="text-[11px] sm:text-xs font-bold text-zinc-400 tabular-nums">
-                        {count} laporan
-                      </span>
-                    </div>
-                    <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${percentage}%` }}
-                        viewport={{ once: true }}
-                        transition={{
-                          duration: 0.8,
-                          delay: i * 0.08,
-                          ease: [0.16, 1, 0.3, 1],
-                        }}
-                        className="h-full bg-zinc-900 rounded-full group-hover:bg-red-600 transition-colors duration-300"
-                      />
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ===== RECENT REPORTS ===== */}
-      {recentReports.length > 0 && (
-        <section className="py-14 sm:py-20 bg-zinc-50">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-10 gap-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-2">
-                  Terbaru
-                </p>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 tracking-tight">
-                  Laporan Masuk
-                </h2>
-              </div>
-              <Link
-                href="/report"
-                className="inline-flex items-center gap-2 text-sm font-bold text-zinc-900 hover:text-red-600 transition-colors self-start sm:self-auto"
-              >
-                Buat Laporan <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {recentReports.map((report, i) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Link
-                    href={`/check/${report.target_number}`}
-                    className="block bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 hover:shadow-md hover:border-zinc-300 transition-all group"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {/* ✅ FIX: Status badge */}
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded ${
-                            report.status === 'verified'
-                              ? 'bg-red-50 text-red-600'
-                              : report.status === 'rejected'
-                                ? 'bg-zinc-100 text-zinc-400'
-                                : 'bg-amber-50 text-amber-600'
-                          }`}
-                        >
-                          {report.status === 'verified'
-                            ? 'Verified'
-                            : report.status === 'rejected'
-                              ? 'Rejected'
-                              : 'Pending'}
-                        </span>
-                        {/* ✅ FIX: Tipe target badge */}
-                        <TargetTypeBadge type={report.target_type} />
-                      </div>
-                      <span className="text-[11px] text-zinc-400 font-medium shrink-0 ml-1">
-                        {formatDateID(report.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-base sm:text-lg font-extrabold text-zinc-900 mb-0.5 font-mono tracking-wide">
-                      {maskNumber(report.target_number)}
-                    </p>
-                    {report.target_name && (
-                      <p className="text-xs text-zinc-400 mb-3">
-                        a.n. {report.target_name}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
-                      <span className="text-[11px] font-medium text-zinc-400">
-                        {report.category}
-                      </span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ===== CTA ===== */}
-      <section className="py-16 sm:py-24 bg-zinc-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]" />
-        <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 sm:mb-5">
-              Lindungi Sesama dari Penipuan
-            </h2>
-            <p className="text-zinc-400 text-base sm:text-lg mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed">
-              Setiap laporan yang Anda kirim membantu mencegah orang lain
-              menjadi korban. Mulai kontribusi sekarang.
+      {/* SECTION 4: FINAL CTA */}
+      <section className="max-w-5xl mx-auto px-6 pb-20">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 md:p-16 text-center text-white relative overflow-hidden shadow-xl">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
+          <div className="relative z-10">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4 uppercase">Berikan Kontribusi Anda.</h2>
+            <p className="text-slate-400 text-sm max-w-xl mx-auto mb-10 font-medium leading-relaxed">
+              Jangan biarkan pelaku mencari korban berikutnya. Laporkan nomor mencurigakan sekarang untuk ekosistem digital yang lebih aman.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4 sm:px-0">
-              <Link
-                href="/report"
-                className="px-8 py-4 bg-white text-zinc-900 font-bold text-sm rounded-xl hover:bg-zinc-100 transition-all active:scale-95"
-              >
-                Buat Laporan
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/report" className="w-full sm:w-auto px-8 py-4 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-500 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest">
+                <PlusCircle className="w-4 h-4" /> Entri Laporan Baru
               </Link>
-              <Link
-                href="/register"
-                className="px-8 py-4 bg-zinc-800 text-zinc-300 font-bold text-sm rounded-xl border border-zinc-700 hover:bg-zinc-700 hover:text-white transition-all active:scale-95"
-              >
-                Daftar Akun
+              <Link href="/register" className="w-full sm:w-auto px-8 py-4 bg-transparent border border-slate-700 text-white font-bold text-sm rounded-xl hover:bg-slate-800 hover:border-slate-600 transition-all uppercase tracking-widest">
+                Gabung Komunitas
               </Link>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
-    </div>
+
+    </main>
   );
 }

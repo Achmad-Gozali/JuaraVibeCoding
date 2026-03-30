@@ -1,11 +1,4 @@
-// ============================================
-// 📁 LOKASI: app/edukasi/page.tsx
-// ✅ FIX:
-//    1. Branding konsisten: KawalTransaksi
-//    2. Stats section -mt-6 diperbaiki agar tidak overlap di mobile
-//    3. Tombol Kembali Dihapus
-// ============================================
-
+// app/edukasi/page.tsx
 import Link from 'next/link';
 import {
   ShieldAlert,
@@ -18,241 +11,245 @@ import {
   Landmark,
   TrendingUp,
   UserX,
+  PlusCircle
 } from 'lucide-react';
 import type { Metadata } from 'next';
 
-// ✅ FIX: Branding
 export const metadata: Metadata = {
-  title: 'Edukasi Modus Penipuan - KawalTransaksi',
+  title: 'edukasi modus penipuan - kawaltransaksi',
   description:
-    'Pelajari berbagai modus penipuan online di Indonesia dan cara melindungi diri dari scam, phishing, investasi bodong, dan modus lainnya.',
+    'pelajari berbagai modus penipuan online di indonesia dan cara melindungi diri dari scam, phishing, investasi bodong, dan modus lainnya.',
 };
 
 const modusData = [
   {
     slug: 'jual-beli-online',
     icon: CreditCard,
-    color: 'bg-blue-50 text-blue-600 border-blue-100',
     iconBg: 'bg-blue-100',
-    title: 'Penipuan Jual Beli Online',
+    headerBg: 'bg-blue-50',
+    title: 'penipuan jual beli online',
     summary:
-      'Modus paling umum di Indonesia. Penipu menjual barang di marketplace atau media sosial dengan harga murah, setelah korban transfer uang, barang tidak dikirim.',
+      'modus paling umum di indonesia. penipu menjual barang di marketplace atau media sosial dengan harga murah, setelah korban transfer uang, barang tidak dikirim.',
     redFlags: [
-      'Harga jauh di bawah pasaran',
-      'Minta transfer ke rekening pribadi, bukan lewat marketplace',
-      'Menolak COD atau rekening bersama',
-      'Akun baru dengan sedikit review',
-      'Memaksa korban untuk cepat transfer',
+      'harga jauh di bawah pasaran',
+      'minta transfer ke rekening pribadi, bukan lewat marketplace',
+      'menolak cod atau rekening bersama',
+      'akun baru dengan sedikit review',
+      'memaksa korban untuk cepat transfer',
     ],
     tips: [
-      'Selalu gunakan fitur pembayaran resmi marketplace',
-      'Cek reputasi dan review penjual',
-      'Gunakan rekening bersama untuk transaksi di luar marketplace',
-      'Jangan tergiur harga yang terlalu murah',
+      'selalu gunakan fitur pembayaran resmi marketplace',
+      'cek reputasi dan review penjual',
+      'gunakan rekening bersama untuk transaksi di luar marketplace',
+      'jangan tergiur harga yang terlalu murah',
     ],
     example:
-      'Penipu posting iPhone 15 Pro Max seharga Rp 5 juta di Facebook. Setelah korban transfer, penipu blokir nomor dan menghilang.',
+      'penipu posting iphone 15 pro max seharga rp 5 juta di facebook. setelah korban transfer, penipu blokir nomor dan menghilang.',
   },
   {
     slug: 'investasi-bodong',
     icon: TrendingUp,
     iconBg: 'bg-red-100',
-    title: 'Investasi Bodong',
+    headerBg: 'bg-red-50',
+    title: 'investasi bodong',
     summary:
-      'Menjanjikan keuntungan besar dalam waktu singkat. Biasanya menggunakan skema ponzi — membayar investor lama dari uang investor baru sampai akhirnya kolaps.',
+      'menjanjikan keuntungan besar dalam waktu singkat. biasanya menggunakan skema ponzi — membayar investor lama dari uang investor baru sampai akhirnya kolaps.',
     redFlags: [
-      'Menjanjikan return tetap 10-50% per bulan',
-      'Tidak terdaftar di OJK',
-      'Tekanan untuk mengajak orang lain bergabung',
-      'Tidak jelas produk investasinya apa',
-      'Testimoni palsu dari "investor sukses"',
+      'menjanjikan return tetap 10-50% per bulan',
+      'tidak terdaftar di ojk',
+      'tekanan untuk mengajak orang lain bergabung',
+      'tidak jelas produk investasinya apa',
+      'testimoni palsu dari "investor sukses"',
     ],
     tips: [
-      'Cek legalitas di website OJK (ojk.go.id)',
-      'Ingat: high return = high risk, kalau terlalu bagus pasti palsu',
-      'Jangan invest uang yang tidak siap hilang',
-      'Waspadai skema MLM berkedok investasi',
+      'cek legalitas di website ojk (ojk.go.id)',
+      'ingat: high return = high risk, kalau terlalu bagus pasti palsu',
+      'jangan invest uang yang tidak siap hilang',
+      'waspadai skema mlm berkedok investasi',
     ],
     example:
-      'Aplikasi "TradingPro" menjanjikan profit 30% per bulan dari trading forex. Setelah 3 bulan dan ribuan korban, aplikasi tiba-tiba tidak bisa diakses.',
+      'aplikasi "tradingpro" menjanjikan profit 30% per bulan dari trading forex. setelah 3 bulan dan ribuan korban, aplikasi tiba-tiba tidak bisa diakses.',
   },
   {
     slug: 'phishing-soceng',
     icon: Globe,
     iconBg: 'bg-purple-100',
-    title: 'Phishing & Social Engineering',
+    headerBg: 'bg-purple-50',
+    title: 'phishing & social engineering',
     summary:
-      'Penipu berpura-pura menjadi pihak bank, e-commerce, atau instansi resmi untuk mencuri data pribadi seperti password, PIN, OTP, atau nomor kartu kredit.',
+      'penipu berpura-pura menjadi pihak bank, e-commerce, atau instansi resmi untuk mencuri data pribadi seperti password, pin, otp, atau nomor kartu kredit.',
     redFlags: [
-      'SMS/email berisi link mencurigakan',
-      'Mengaku dari bank dan meminta OTP',
-      'Website palsu yang mirip website resmi',
-      'Meminta data pribadi lewat telepon',
-      'Ancaman akun akan diblokir jika tidak segera bertindak',
+      'sms/email berisi link mencurigakan',
+      'mengaku dari bank dan meminta otp',
+      'website palsu yang mirip website resmi',
+      'meminta data pribadi lewat telepon',
+      'ancaman akun akan diblokir jika tidak segera bertindak',
     ],
     tips: [
-      'Bank tidak pernah meminta OTP, PIN, atau password',
-      'Selalu cek URL website — pastikan domain resmi',
-      'Jangan klik link dari SMS/email yang tidak dikenal',
-      'Aktifkan 2FA di semua akun penting',
+      'bank tidak pernah meminta otp, pin, atau password',
+      'selalu cek url website — pastikan domain resmi',
+      'jangan klik link dari sms/email yang tidak dikenal',
+      'aktifkan 2fa di semua akun penting',
     ],
     example:
-      'Korban menerima SMS "BCA: Akun Anda terblokir, klik link berikut untuk verifikasi". Link mengarah ke website palsu yang mencuri username dan password.',
+      'korban menerima sms "bca: akun anda terblokir, klik link berikut untuk verifikasi". link mengarah ke website palsu yang mencuri username dan password.',
   },
   {
     slug: 'undian-palsu',
     icon: Gift,
     iconBg: 'bg-amber-100',
-    title: 'Undian & Hadiah Palsu',
+    headerBg: 'bg-amber-50',
+    title: 'undian & hadiah palsu',
     summary:
-      'Korban diberitahu memenangkan undian atau hadiah besar, lalu diminta membayar "pajak" atau "biaya admin" terlebih dahulu untuk menerima hadiah.',
+      'korban diberitahu memenangkan undian atau hadiah besar, lalu diminta membayar "pajak" atau "biaya admin" terlebih dahulu untuk menerima hadiah.',
     redFlags: [
-      'Anda tidak pernah mengikuti undian tersebut',
-      'Diminta transfer uang untuk "pajak hadiah"',
-      'Menggunakan nama perusahaan besar (Telkomsel, Shopee, dll)',
-      'Menghubungi lewat WhatsApp bukan channel resmi',
-      'Memberikan tekanan waktu untuk segera bayar',
+      'anda tidak pernah mengikuti undian tersebut',
+      'diminta transfer uang untuk "pajak hadiah"',
+      'menggunakan nama perusahaan besar (telkomsel, shopee, dll)',
+      'menghubungi lewat whatsapp bukan channel resmi',
+      'memberikan tekanan waktu untuk segera bayar',
     ],
     tips: [
-      'Tidak ada undian yang meminta korban bayar duluan',
-      'Verifikasi ke channel resmi perusahaan yang disebutkan',
-      'Blokir dan laporkan nomor pengirim',
-      'Jangan bagikan data pribadi ke nomor yang tidak dikenal',
+      'tidak ada undian yang meminta korban bayar duluan',
+      'verifikasi ke channel resmi perusahaan yang disebutkan',
+      'blokir dan laporkan nomor pengirim',
+      'jangan bagikan data pribadi ke nomor yang tidak dikenal',
     ],
     example:
-      'Pesan WhatsApp: "Selamat! Anda memenangkan Rp 50 juta dari Shopee! Transfer Rp 500.000 untuk biaya pajak ke rekening berikut."',
+      'pesan whatsapp: "selamat! anda memenangkan rp 50 juta dari shopee! transfer rp 500.000 untuk biaya pajak ke rekening berikut."',
   },
   {
     slug: 'pinjaman-online-ilegal',
     icon: Landmark,
     iconBg: 'bg-emerald-100',
-    title: 'Pinjaman Online Ilegal',
+    headerBg: 'bg-emerald-50',
+    title: 'pinjaman online ilegal',
     summary:
-      'Aplikasi pinjaman yang tidak terdaftar di OJK. Memberikan pinjaman dengan bunga sangat tinggi, lalu melakukan intimidasi dan teror ke peminjam dan kontaknya.',
+      'aplikasi pinjaman yang tidak terdaftar di ojk. memberikan pinjaman dengan bunga sangat tinggi, lalu melakukan intimidasi dan teror ke peminjam dan kontaknya.',
     redFlags: [
-      'Tidak terdaftar di OJK',
-      'Proses pencairan sangat cepat tanpa verifikasi',
-      'Bunga harian sangat tinggi (1-2% per hari)',
-      'Mengakses semua kontak di HP peminjam',
-      'Melakukan teror dan ancaman via telepon',
+      'tidak terdaftar di ojk',
+      'proses pencairan sangat cepat tanpa verifikasi',
+      'bunga harian sangat tinggi (1-2% per hari)',
+      'mengakses semua kontak di hp peminjam',
+      'melakukan teror dan ancaman via telepon',
     ],
     tips: [
-      'Cek daftar pinjol legal di website OJK',
-      'Baca syarat dan ketentuan sebelum meminjam',
-      'Jangan berikan akses kontak dan galeri ke aplikasi',
-      'Laporkan ke OJK jika mengalami intimidasi',
+      'cek daftar pinjol legal di website ojk',
+      'baca syarat dan ketentuan sebelum meminjam',
+      'jangan berikan akses kontak dan galeri ke aplikasi',
+      'laporkan ke ojk jika mengalami intimidasi',
     ],
     example:
-      'Aplikasi "DanaCepat" memberikan pinjaman Rp 1 juta tapi yang diterima hanya Rp 700.000. Dalam 7 hari harus bayar Rp 1.400.000. Jika telat, semua kontak diteror.',
+      'aplikasi "danacepat" memberikan pinjaman rp 1 juta tapi yang diterima hanya rp 700.000. dalam 7 hari harus bayar rp 1.400.000. jika telat, semua kontak diteror.',
   },
   {
     slug: 'penipuan-telepon',
     icon: PhoneCall,
     iconBg: 'bg-orange-100',
-    title: 'Penipuan via Telepon',
+    headerBg: 'bg-orange-50',
+    title: 'penipuan via telepon',
     summary:
-      'Penipu menelepon mengaku sebagai polisi, jaksa, atau petugas bank. Mengklaim korban terlibat kasus hukum atau punya tunggakan, lalu meminta transfer uang.',
+      'penipu menelepon mengaku sebagai polisi, jaksa, atau petugas bank. mengklaim korban terlibat kasus hukum atau punya tunggakan, lalu meminta transfer uang.',
     redFlags: [
-      'Mengaku dari kepolisian atau kejaksaan',
-      'Menyebut korban terlibat kasus pencucian uang',
-      'Meminta transfer ke rekening pribadi',
-      'Memberikan tekanan dan ancaman',
-      'Melarang korban menghubungi pihak lain',
+      'mengaku dari kepolisian atau kejaksaan',
+      'menyebut korban terlibat kasus pencucian uang',
+      'meminta transfer ke rekening pribadi',
+      'memberikan tekanan dan ancaman',
+      'melarang korban menghubungi pihak lain',
     ],
     tips: [
-      'Polisi dan jaksa tidak pernah meminta uang lewat telepon',
-      'Tutup telepon dan verifikasi ke kantor polisi terdekat',
-      'Jangan panik — penipu memanfaatkan rasa takut korban',
-      'Catat nomor penelepon dan laporkan',
+      'polisi dan jaksa tidak pernah meminta uang lewat telepon',
+      'tutup telepon dan verifikasi ke kantor polisi terdekat',
+      'jangan panik — penipu memanfaatkan rasa takut korban',
+      'catat nomor penelepon dan laporkan',
     ],
     example:
-      'Penelepon mengaku Jaksa dan mengatakan korban terlibat kasus narkoba. Diminta transfer Rp 25 juta untuk "biaya penghentian penyidikan".',
+      'penelepon mengaku jaksa dan mengatakan korban terlibat kasus narkoba. diminta transfer rp 25 juta untuk "biaya penghentian penyidikan".',
   },
   {
     slug: 'love-scam',
     icon: UserX,
     iconBg: 'bg-pink-100',
-    title: 'Romance Scam (Love Scam)',
+    headerBg: 'bg-pink-50',
+    title: 'romance scam (love scam)',
     summary:
-      'Penipu membangun hubungan romantis online dengan korban selama berminggu-minggu, lalu mulai meminta uang dengan berbagai alasan darurat.',
+      'penipu membangun hubungan romantis online dengan korban selama berminggu-minggu, lalu mulai meminta uang dengan berbagai alasan darurat.',
     redFlags: [
-      'Kenalan di dating app atau media sosial',
-      'Profil terlalu sempurna (foto model, karir sukses)',
-      'Selalu menolak video call',
-      'Mulai minta uang setelah hubungan terasa dekat',
-      'Alasan darurat: sakit, kecelakaan, bisnis rugi',
+      'kenalan di dating app atau media sosial',
+      'profil terlalu sempurna (foto model, karir sukses)',
+      'selalu menolak video call',
+      'mulai minta uang setelah hubungan terasa dekat',
+      'alasan darurat: sakit, kecelakaan, bisnis rugi',
     ],
     tips: [
-      'Jangan pernah kirim uang ke orang yang belum pernah ditemui langsung',
-      'Reverse image search foto profil mereka',
-      'Waspadai hubungan online yang berkembang terlalu cepat',
-      'Ceritakan ke teman/keluarga untuk perspektif objektif',
+      'jangan pernah kirim uang ke orang yang belum pernah ditemui langsung',
+      'reverse image search foto profil mereka',
+      'waspadai hubungan online yang berkembang terlalu cepat',
+      'ceritakan ke teman/keluarga untuk perspektif objektif',
     ],
     example:
-      'Korban berkenalan dengan "dokter dari London" di Instagram. Setelah 2 bulan chat setiap hari, dia minta Rp 15 juta untuk "biaya customs paket hadiah dari luar negeri".',
+      'korban berkenalan dengan "dokter dari london" di instagram. setelah 2 bulan chat setiap hari, dia minta rp 15 juta untuk "biaya customs paket hadiah dari luar negeri".',
   },
   {
     slug: 'modus-kurir',
     icon: MessageSquare,
     iconBg: 'bg-teal-100',
-    title: 'Modus File APK / Kurir Paket',
+    headerBg: 'bg-teal-50',
+    title: 'modus file apk / kurir paket',
     summary:
-      'Penipu mengirim file APK berbahaya lewat WhatsApp yang disamarkan sebagai foto paket, undangan pernikahan, atau surat tilang. Jika di-install, malware mencuri data perbankan.',
+      'penipu mengirim file apk berbahaya lewat whatsapp yang disamarkan sebagai foto paket, undangan pernikahan, atau surat tilang. jika di-install, malware mencuri data perbankan.',
     redFlags: [
-      'Pesan dari nomor tidak dikenal',
-      'File berekstensi .apk (bukan .jpg atau .pdf)',
-      'Mengaku kurir dan meminta "konfirmasi paket"',
-      'Undangan pernikahan digital dari orang tidak dikenal',
-      'Surat tilang elektronik palsu',
+      'pesan dari nomor tidak dikenal',
+      'file berekstensi .apk (bukan .jpg atau .pdf)',
+      'mengaku kurir dan meminta "konfirmasi paket"',
+      'undangan pernikahan digital dari orang tidak dikenal',
+      'surat tilang elektronik palsu',
     ],
     tips: [
-      'Jangan pernah install file APK dari WhatsApp',
-      'Cek ekstensi file — foto asli berakhiran .jpg/.png',
-      'Matikan "Install dari sumber tidak dikenal" di HP',
-      'Jika sudah terlanjur install, segera factory reset HP',
+      'jangan pernah install file apk dari whatsapp',
+      'cek ekstensi file — foto asli berakhiran .jpg/.png',
+      'matikan "install dari sumber tidak dikenal" di hp',
+      'jika sudah terlanjur install, segera factory reset hp',
     ],
     example:
-      'Pesan WA: "Paket Anda sudah sampai, cek resi di sini" disertai file "Resi_J&T.apk". Jika di-install, saldo m-banking korban terkuras.',
+      'pesan wa: "paket anda sudah sampai, cek resi di sini" disertai file "resi_j&t.apk". jika di-install, saldo m-banking korban terkuras.',
   },
 ];
 
 export default function EdukasiPage() {
   return (
-    <div className="min-h-screen bg-zinc-50">
-      {/* Header (Top Bar Dihapus) */}
-      <div className="bg-white border-b border-zinc-100">
-        <div className="max-w-6xl mx-auto px-4 py-10 sm:py-16 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-5 sm:mb-6">
-            <ShieldAlert className="w-3 h-3" />
-            Edukasi
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-zinc-900 tracking-tight mb-3 sm:mb-4">
-            Kenali Modus Penipuan
+    <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200">
+      
+      {/* header: clean & simple */}
+      <div className="bg-zinc-100/50 pt-20 pb-28 px-4 border-b border-zinc-200/50">
+        <div className="max-w-5xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-black text-zinc-900 tracking-tighter mb-4 uppercase leading-none">
+            kenali modus <br className="hidden sm:block" /> penipuan
           </h1>
-          <p className="text-base sm:text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed px-2">
-            Pelajari berbagai modus penipuan yang marak di Indonesia dan cara
-            melindungi diri Anda serta keluarga.
+          <p className="text-zinc-500 text-sm md:text-lg font-medium max-w-2xl mx-auto leading-relaxed px-2">
+            pelajari berbagai modus penipuan yang marak di indonesia dan cara
+            melindungi diri anda serta keluarga.
           </p>
         </div>
       </div>
 
-      {/* Quick Stats — ✅ FIX: Responsive, no overlap di mobile */}
-      <div className="max-w-6xl mx-auto px-4 py-6 sm:-mt-4 sm:py-0 sm:mb-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* stats section */}
+      <div className="max-w-6xl mx-auto px-4 -mt-12 mb-20">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Modus Terdokumentasi', value: `${modusData.length}+` },
-            { label: 'Korban per Tahun (est.)', value: '300K+' },
-            { label: 'Kerugian Nasional', value: 'Rp 18T+' },
-            { label: 'Kasus Dilaporkan', value: '180K+' },
+            { label: 'modus terdokumentasi', value: `${modusData.length}+` },
+            { label: 'korban per tahun (est.)', value: '300k+' },
+            { label: 'kerugian nasional', value: 'rp 18t+' },
+            { label: 'kasus dilaporkan', value: '180k+' },
           ].map((stat, i) => (
             <div
               key={i}
-              className="bg-white border border-zinc-200 rounded-xl p-4 text-center shadow-sm"
+              className="bg-white border border-zinc-200 rounded-2xl p-6 text-center shadow-xl shadow-zinc-200/20 hover:border-zinc-300 transition-colors"
             >
-              <p className="text-xl sm:text-2xl font-extrabold text-zinc-900">
+              <p className="text-2xl sm:text-3xl font-black text-zinc-900">
                 {stat.value}
               </p>
-              <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider mt-1">
+              <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mt-1">
                 {stat.label}
               </p>
             </div>
@@ -260,55 +257,51 @@ export default function EdukasiPage() {
         </div>
       </div>
 
-      {/* Modus Cards */}
-      <div className="max-w-6xl mx-auto px-4 py-10 sm:py-16">
-        <div className="space-y-6">
+      {/* cards list */}
+      <div className="max-w-6xl mx-auto px-4 pb-24">
+        <div className="space-y-10">
           {modusData.map((modus, i) => {
             const Icon = modus.icon;
             return (
               <div
                 key={modus.slug}
                 id={modus.slug}
-                className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all"
+                className="bg-white border border-zinc-200 rounded-3xl overflow-hidden shadow-lg shadow-zinc-200/30 hover:shadow-xl hover:border-zinc-300 transition-all border-l-[6px] border-l-zinc-900 group"
               >
-                {/* Card Header */}
-                <div className="p-6 sm:p-8 border-b border-zinc-100">
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`w-12 h-12 ${modus.iconBg} rounded-xl flex items-center justify-center shrink-0`}
-                    >
-                      <Icon className="w-6 h-6" />
+                <div className={`${modus.headerBg} p-8 border-b border-zinc-100`}>
+                  <div className="flex items-start gap-6">
+                    <div className={`w-14 h-14 ${modus.iconBg} rounded-2xl flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform`}>
+                      <Icon className="w-7 h-7 text-zinc-900" />
                     </div>
                     <div className="flex-grow">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
                           #{String(i + 1).padStart(2, '0')}
                         </span>
                       </div>
-                      <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 tracking-tight mb-2">
+                      <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tighter uppercase leading-tight">
                         {modus.title}
                       </h2>
-                      <p className="text-sm text-zinc-500 leading-relaxed">
+                      <p className="text-sm sm:text-base text-zinc-600 font-medium leading-relaxed mt-2.5 max-w-2xl">
                         {modus.summary}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Card Body */}
                 <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-zinc-100">
-                  <div className="p-6 sm:p-8">
-                    <div className="flex items-center gap-2 mb-4">
+                  <div className="p-8">
+                    <div className="flex items-center gap-2 mb-6">
                       <AlertTriangle className="w-4 h-4 text-red-500" />
-                      <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
-                        Tanda-Tanda Bahaya
+                      <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-widest">
+                        tanda-tanda bahaya
                       </h3>
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-4">
                       {modus.redFlags.map((flag, j) => (
-                        <div key={j} className="flex items-start gap-2.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
-                          <p className="text-sm text-zinc-600 leading-relaxed">
+                        <div key={j} className="flex items-start gap-3.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 shrink-0 shadow-[0_0_8px_rgba(248,113,113,0.5)]" />
+                          <p className="text-sm text-zinc-600 font-bold uppercase tracking-tight leading-relaxed">
                             {flag}
                           </p>
                         </div>
@@ -316,18 +309,18 @@ export default function EdukasiPage() {
                     </div>
                   </div>
 
-                  <div className="p-6 sm:p-8">
-                    <div className="flex items-center gap-2 mb-4">
+                  <div className="p-8">
+                    <div className="flex items-center gap-2 mb-6">
                       <ShieldAlert className="w-4 h-4 text-emerald-500" />
-                      <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
-                        Cara Melindungi Diri
+                      <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-widest">
+                        cara melindungi diri
                       </h3>
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-4">
                       {modus.tips.map((tip, j) => (
-                        <div key={j} className="flex items-start gap-2.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                          <p className="text-sm text-zinc-600 leading-relaxed">
+                        <div key={j} className="flex items-start gap-3.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                          <p className="text-sm text-zinc-600 font-bold uppercase tracking-tight leading-relaxed">
                             {tip}
                           </p>
                         </div>
@@ -336,13 +329,12 @@ export default function EdukasiPage() {
                   </div>
                 </div>
 
-                {/* Example */}
-                <div className="px-6 sm:px-8 pb-6 sm:pb-8">
-                  <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4">
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                      Contoh Kasus
+                <div className="px-8 pb-8">
+                  <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-6 shadow-inner">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3">
+                      contoh kasus
                     </p>
-                    <p className="text-sm text-zinc-600 leading-relaxed italic">
+                    <p className="text-sm text-zinc-500 font-medium leading-relaxed italic">
                       &quot;{modus.example}&quot;
                     </p>
                   </div>
@@ -353,28 +345,28 @@ export default function EdukasiPage() {
         </div>
       </div>
 
-      {/* Bottom CTA */}
-      <div className="bg-zinc-900 py-12 sm:py-16">
+      {/* footer cta */}
+      <div className="bg-zinc-900 py-20 border-t border-zinc-800">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-4">
-            Sudah Jadi Korban?
+          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tighter mb-4 uppercase leading-none">
+            sudah jadi korban?
           </h2>
-          <p className="text-zinc-400 mb-8 max-w-lg mx-auto leading-relaxed">
-            Laporkan nomor penipu ke database kami untuk membantu melindungi
-            orang lain dari modus yang sama.
+          <p className="text-zinc-400 mb-10 max-w-lg mx-auto font-medium leading-relaxed">
+            laporkan nomor penipu ke database kami untuk membantu melindungi
+            orang lain dari modus yang sama. identitas anda aman 100%.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-3">
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href="/report"
-              className="px-8 py-3.5 bg-white text-zinc-900 font-bold text-sm rounded-xl hover:bg-zinc-100 transition-all active:scale-95"
+              className="px-10 py-4 bg-emerald-600 text-white font-black text-xs rounded-xl hover:bg-emerald-500 transition-all uppercase tracking-[0.2em] shadow-lg active:scale-95"
             >
-              Buat Laporan
+              buat laporan
             </Link>
             <Link
               href="/"
-              className="px-8 py-3.5 bg-zinc-800 text-zinc-300 font-bold text-sm rounded-xl border border-zinc-700 hover:bg-zinc-700 hover:text-white transition-all active:scale-95"
+              className="px-10 py-4 bg-zinc-800 text-zinc-300 font-black text-xs rounded-xl border border-zinc-700 hover:bg-zinc-700 hover:text-white transition-all uppercase tracking-[0.2em] active:scale-95"
             >
-              Cek Nomor
+              cek nomor
             </Link>
           </div>
         </div>

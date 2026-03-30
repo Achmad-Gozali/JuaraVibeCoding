@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, AlertCircle, CheckCircle2, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Mail, Lock, UserPlus, LogIn, ArrowRight } from 'lucide-react';
 
 interface AuthFormProps {
   type: 'login' | 'register';
@@ -54,7 +54,7 @@ function AuthFormInner({ type }: AuthFormProps) {
     });
 
     if (error) {
-      setError(`Gagal login dengan ${provider}.`);
+      setError(`Gagal otentikasi dengan ${provider}.`);
       setOauthLoading(null);
     }
   };
@@ -72,117 +72,134 @@ function AuthFormInner({ type }: AuthFormProps) {
           options: { data: { full_name: fullName } },
         });
         if (signUpError) throw signUpError;
-        setSuccessMessage('Pendaftaran berhasil! Cek email buat verifikasi.');
+        setSuccessMessage('Pendaftaran berhasil! Silakan periksa kotak masuk email Anda untuk instruksi verifikasi.');
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
         
-        // JURUS: Refresh cache router sebelum push
         router.refresh();
         setTimeout(() => router.push(redirectTo), 100);
       }
     } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan.');
+      setError(err.message || 'Terjadi kesalahan sistem.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-[2.5rem] p-10 shadow-2xl shadow-zinc-200/50 border border-zinc-100">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-zinc-900 rounded-2xl mb-6 shadow-xl shadow-zinc-200">
-            {type === 'login' ? <LogIn className="w-8 h-8 text-white" /> : <UserPlus className="w-8 h-8 text-white" />}
-          </div>
-          <h2 className="text-4xl font-black text-zinc-900 mb-3 tracking-tight">
-            {type === 'login' ? 'Selamat Datang' : 'Buat Akun Baru'}
-          </h2>
-          <p className="text-zinc-500 font-medium">
-            {type === 'login' ? 'Masuk untuk mulai melaporkan nomor penipu.' : 'Daftar untuk berkontribusi.'}
-          </p>
+    <div className="w-full">
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 shadow-sm">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-bold">{error}</p>
         </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-700">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <p className="text-sm font-bold">{error}</p>
-          </div>
-        )}
-        {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl flex items-center gap-3 text-green-700">
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <p className="text-sm font-bold">{successMessage}</p>
-          </div>
-        )}
-
-        <div className="space-y-3 mb-8">
-          {oauthProviders.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => handleOAuthLogin(p.id)}
-              disabled={!!oauthLoading || isLoading}
-              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              {oauthLoading === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : p.icon}
-              {type === 'login' ? 'Masuk' : 'Daftar'} dengan {p.label}
-            </button>
-          ))}
+      )}
+      
+      {successMessage && (
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-700 shadow-sm">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-bold">{successMessage}</p>
         </div>
+      )}
 
-        <div className="flex items-center gap-4 mb-8">
-          <div className="flex-1 h-px bg-zinc-100" />
-          <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">atau email</span>
-          <div className="flex-1 h-px bg-zinc-100" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {type === 'register' && (
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Nama Lengkap</label>
-              <div className="relative">
-                <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe"
-                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900" required />
-              </div>
-            </div>
-          )}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@contoh.com"
-                className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900" required />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 6 karakter"
-                className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900" required minLength={6} />
-            </div>
-          </div>
-          <button type="submit" disabled={isLoading || !!oauthLoading}
-            className="w-full py-5 bg-zinc-900 text-white font-black rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-2xl shadow-zinc-900/20 disabled:opacity-50">
-            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>{type === 'login' ? 'MASUK SEKARANG' : 'DAFTAR SEKARANG'}<LogIn className="w-5 h-5 text-zinc-400" /></>}
+      {/* Social Login Button - Kotak & Rapi */}
+      <div className="mb-8">
+        {oauthProviders.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => handleOAuthLogin(p.id)}
+            disabled={!!oauthLoading || isLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border border-slate-200 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+          >
+            {oauthLoading === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : p.icon}
+            Lanjutkan dengan {p.label}
           </button>
-        </form>
-
-        <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
-          <p className="text-sm text-zinc-500 font-medium">
-            {type === 'login' ? <>Belum punya akun? <Link href="/register" className="text-zinc-900 font-black hover:underline underline-offset-4">Daftar di sini</Link></> : <>Sudah punya akun? <Link href="/login" className="text-zinc-900 font-black hover:underline underline-offset-4">Masuk di sini</Link></>}
-          </p>
-        </div>
+        ))}
       </div>
+
+      <div className="flex items-center gap-4 mb-8">
+        <div className="flex-1 h-px bg-slate-200" />
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">atau email</span>
+        <div className="flex-1 h-px bg-slate-200" />
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        
+        {type === 'register' && (
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Nama Lengkap</label>
+            <div className="relative">
+              <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                value={fullName} 
+                onChange={(e) => setFullName(e.target.value)} 
+                placeholder="John Doe"
+                className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm shadow-sm" 
+                required 
+              />
+            </div>
+          </div>
+        )}
+        
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Alamat Email</label>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              placeholder="email@perusahaan.com"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm shadow-sm" 
+              required 
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Kata Sandi</label>
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              placeholder="Minimal 6 karakter"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm shadow-sm" 
+              required 
+              minLength={6} 
+            />
+          </div>
+        </div>
+
+        {/* Tombol Utama - Sharp & Pro */}
+        <button 
+          type="submit" 
+          disabled={isLoading || !!oauthLoading}
+          className={`w-full py-4 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md disabled:opacity-50 text-sm uppercase tracking-widest mt-4 ${
+            type === 'login' ? 'bg-slate-900 hover:bg-slate-800' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+          }`}
+        >
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              {type === 'login' ? 'OTENTIKASI MASUK' : 'BUAT AKUN'}
+              <ArrowRight className="w-4 h-4 opacity-70" />
+            </>
+          )}
+        </button>
+      </form>
     </div>
   );
 }
 
 export default function AuthForm({ type }: AuthFormProps) {
   return (
-    <Suspense fallback={<div className="w-full max-w-md mx-auto p-10 bg-white rounded-[2.5rem] animate-pulse h-96 border border-zinc-100" />}>
+    <Suspense fallback={<div className="w-full max-w-sm mx-auto bg-slate-50 rounded-xl animate-pulse h-64 border border-slate-100" />}>
       <AuthFormInner type={type} />
     </Suspense>
   );

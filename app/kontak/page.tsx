@@ -70,12 +70,12 @@ export default function KontakPage() {
               Respon cepat di jam kerja.
             </p>
             <a
-              href="https://wa.me/6281234567890"
+              href="https://wa.me/6282249244647"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-bold text-zinc-900 hover:text-red-600 transition-colors"
             >
-              +62 812-3456-7890
+              +62 822-4924-4647
             </a>
           </div>
 

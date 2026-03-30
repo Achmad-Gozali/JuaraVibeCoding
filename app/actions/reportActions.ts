@@ -14,6 +14,7 @@ export async function submitReport(formData: {
   loss_amount: number | null;
   incident_date: string | null;
   platform: string | null;
+  link_url: string | null;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -66,7 +67,7 @@ export async function submitReport(formData: {
     bank_name: formData.bank_name || null,
     loss_amount: formData.loss_amount || null,
     incident_date: formData.incident_date || null,
-    platform: formData.platform || null,
+    link_url: formData.link_url || null,
   });
 
 if (error) {
