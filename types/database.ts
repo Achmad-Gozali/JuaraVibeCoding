@@ -1,18 +1,12 @@
 // ============================================
 // 📁 LOKASI: types/database.ts
-// ✅ FIX: Format types yang BENAR untuk Supabase client v2+
-//
-//    ROOT CAUSE semua error "Property does not exist on type 'never'":
-//    Supabase @supabase/ssr client membutuhkan Database type dengan
-//    format PERSIS termasuk Relationships, Views, CompositeTypes.
-//    Kalau salah satu missing → type inference gagal → return 'never'.
-//
-//    PERUBAHAN KUNCI:
-//    1. Enum types diganti string di Row/Insert/Update
-//       (Supabase client ga bisa resolve custom TS types di query)
-//    2. Tambah Relationships: [] di setiap table
-//    3. Tambah Views, CompositeTypes sections (wajib walau kosong)
-//    4. Functions return type pakai undefined bukan void
+// ✅ UPDATE: Tambah kolom baru di reports table:
+//    - link_url
+//    - social_media_accounts
+//    - suspect_photo_url
+//    - has_other_victims
+//    - reported_to
+//    Dan update return type get_reports_admin
 // ============================================
 
 export type TargetType = 'phone' | 'bank_account';
@@ -100,6 +94,12 @@ export interface Database {
           loss_amount: number | null;
           incident_date: string | null;
           platform: string | null;
+          // ── FIELD BARU ──
+          link_url: string | null;
+          social_media_accounts: string[] | null;
+          suspect_photo_url: string | null;
+          has_other_victims: string | null;
+          reported_to: string[] | null;
         };
         Insert: {
           id?: string;
@@ -116,6 +116,12 @@ export interface Database {
           loss_amount?: number | null;
           incident_date?: string | null;
           platform?: string | null;
+          // ── FIELD BARU ──
+          link_url?: string | null;
+          social_media_accounts?: string[] | null;
+          suspect_photo_url?: string | null;
+          has_other_victims?: string | null;
+          reported_to?: string[] | null;
         };
         Update: {
           id?: string;
@@ -132,6 +138,12 @@ export interface Database {
           loss_amount?: number | null;
           incident_date?: string | null;
           platform?: string | null;
+          // ── FIELD BARU ──
+          link_url?: string | null;
+          social_media_accounts?: string[] | null;
+          suspect_photo_url?: string | null;
+          has_other_victims?: string | null;
+          reported_to?: string[] | null;
         };
         Relationships: [];
       };
@@ -160,6 +172,16 @@ export interface Database {
           evidence_url: string | null;
           status: string;
           created_at: string;
+          bank_name: string | null;
+          loss_amount: number | null;
+          incident_date: string | null;
+          platform: string | null;
+          // ── FIELD BARU ──
+          link_url: string | null;
+          social_media_accounts: string[] | null;
+          suspect_photo_url: string | null;
+          has_other_victims: string | null;
+          reported_to: string[] | null;
         }[];
       };
       update_report_status: {

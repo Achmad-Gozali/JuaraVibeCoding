@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, Clock, Eye, ExternalLink,
   Phone, Building2, ChevronDown, ChevronUp, Loader2,
   Search, Users, FileText, DollarSign, X, TrendingUp, ChevronRight,
-  AlertCircle, Download, Globe // ✅ tambah globe buat icon link
+  AlertCircle, Download, Globe, AtSign, ShieldAlert, UserX, Calendar
 } from 'lucide-react';
 import { updateReportStatus, updateUserRole } from './actions';
 import { formatDateID } from '@/lib/utils';
@@ -26,7 +26,12 @@ interface Report {
   loss_amount?: number | string | null;
   incident_date?: string | null;
   platform?: string | null;
-  link_url?: string | null; // ✅ tambahin link_url di interface
+  link_url?: string | null;
+  // ── FIELD BARU ──
+  social_media_accounts?: string[] | null;
+  suspect_photo_url?: string | null;
+  has_other_victims?: string | null;
+  reported_to?: string[] | null;
 }
 
 interface AdminUser {
@@ -47,10 +52,17 @@ function formatRupiah(num: number | string): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(parsedNum);
 }
 
+const reportedToLabel: Record<string, string> = {
+  polisi: '🚔 Polisi',
+  ojk: '🏦 OJK',
+  platform: '📱 Platform',
+  belum: '❌ Belum lapor',
+};
+
 function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Report[]; users: AdminUser[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const currentTab = (searchParams.get('tab') as Tab) || 'dashboard';
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('semua');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -62,9 +74,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   const [bulkLoading, setBulkLoading] = useState(false);
   const [userSearch, setUserSearch] = useState('');
 
-  const setActiveTab = (tab: Tab) => {
-    router.push(`/admin?tab=${tab}`);
-  };
+  const setActiveTab = (tab: Tab) => router.push(`/admin?tab=${tab}`);
 
   const uniqueBanks = useMemo(() => Array.from(new Set(reports.map(r => r.bank_name).filter(Boolean) as string[])).sort(), [reports]);
   const uniquePlatforms = useMemo(() => Array.from(new Set(reports.map(r => r.platform).filter(Boolean) as string[])).sort(), [reports]);
@@ -76,26 +86,26 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
       const matchPlatform = !platformFilter || r.platform === platformFilter;
       const q = searchQuery.toLowerCase();
       const matchSearch = !q || r.target_number.includes(q) || r.category.toLowerCase().includes(q) ||
-        r.reporter_email?.toLowerCase().includes(q) || r.target_name?.toLowerCase().includes(q) || r.bank_name?.toLowerCase().includes(q);
+        r.reporter_email?.toLowerCase().includes(q) || r.target_name?.toLowerCase().includes(q) ||
+        r.bank_name?.toLowerCase().includes(q) ||
+        r.social_media_accounts?.some(a => a.toLowerCase().includes(q));
       return matchStatus && matchBank && matchPlatform && matchSearch;
     });
   }, [reports, statusFilter, searchQuery, bankFilter, platformFilter]);
 
-  const todayStr = new Date().toLocaleDateString('en-CA'); 
-  const todayReports = useMemo(() => reports.filter(r => {
-    return new Date(r.created_at).toLocaleDateString('en-CA') === todayStr;
-  }), [reports, todayStr]);
-
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayReports = useMemo(() => reports.filter(r => new Date(r.created_at).toLocaleDateString('en-CA') === todayStr), [reports, todayStr]);
   const todayVerified = useMemo(() => todayReports.filter(r => r.status === 'verified'), [todayReports]);
   const totalLoss = useMemo(() => reports.reduce((s, r) => s + (Number(r.loss_amount) || 0), 0), [reports]);
+  const multiVictimCount = useMemo(() => reports.filter(r => r.has_other_victims === 'yes').length, [reports]);
 
   const bankStats = useMemo(() => {
     const map: Record<string, { count: number; loss: number }> = {};
-    reports.forEach(r => { 
-        const label = r.bank_name || (r.target_type === 'phone' ? 'Nomor Telepon' : 'Lainnya');
-        if (!map[label]) map[label] = { count: 0, loss: 0 }; 
-        map[label].count++; 
-        map[label].loss += (Number(r.loss_amount) || 0); 
+    reports.forEach(r => {
+      const label = r.bank_name || (r.target_type === 'phone' ? 'Nomor Telepon' : 'Lainnya');
+      if (!map[label]) map[label] = { count: 0, loss: 0 };
+      map[label].count++;
+      map[label].loss += (Number(r.loss_amount) || 0);
     });
     return Object.entries(map).sort((a, b) => b[1].count - a[1].count);
   }, [reports]);
@@ -138,32 +148,45 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     setLoadingId(id);
     try { await updateReportStatus(id, status); router.refresh(); } catch (err) { console.error(err); } finally { setLoadingId(null); }
   };
-  
+
   const handleBulkAction = async (status: 'verified' | 'rejected') => {
     if (selectedIds.size === 0) return; setBulkLoading(true);
     try { await Promise.all([...selectedIds].map(id => updateReportStatus(id, status))); setSelectedIds(new Set()); router.refresh(); } catch (err) { console.error(err); } finally { setBulkLoading(false); }
   };
-  
+
   const toggleSelect = (id: string) => { const n = new Set(selectedIds); n.has(id) ? n.delete(id) : n.add(id); setSelectedIds(n); };
   const selectAll = () => setSelectedIds(selectedIds.size === filteredReports.length ? new Set() : new Set(filteredReports.map(r => r.id)));
-  
+
   const handleExportCSV = () => {
-    // ✅ tambahin link_url ke csv export
-    const rows = [['ID','Nomor','Nama','Tipe','Bank','Kategori','Platform','Link URL','Kerugian','Tgl Kejadian','Status','Pelapor','Tgl Lapor'],
-      ...reports.map(r => [r.id,r.target_number,r.target_name??'',r.target_type,r.bank_name??'',r.category,r.platform??'',r.link_url??'',r.loss_amount?String(r.loss_amount):'',r.incident_date??'',r.status,r.reporter_email,r.created_at])];
+    const rows = [
+      ['ID','Nomor','Nama','Tipe','Bank','Kategori','Platform','Link URL','Sosmed','Korban Lain','Lapor Ke','Kerugian','Tgl Kejadian','Status','Pelapor','Tgl Lapor'],
+      ...reports.map(r => [
+        r.id, r.target_number, r.target_name??'', r.target_type, r.bank_name??'',
+        r.category, r.platform??'', r.link_url??'',
+        (r.social_media_accounts??[]).join(';'),
+        r.has_other_victims??'',
+        (r.reported_to??[]).join(';'),
+        r.loss_amount ? String(r.loss_amount) : '',
+        r.incident_date??'', r.status, r.reporter_email, r.created_at
+      ])
+    ];
     const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `laporan-${todayStr}.csv`; a.click();
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 lg:px-8 py-8 space-y-8">
+    <div className="max-w-[1200px] mx-auto px-4 lg:px-8 py-6 space-y-6">
 
       {/* ===== DASHBOARD ===== */}
       {currentTab === 'dashboard' && (
-        <div className="space-y-8">
-          <div><h1 className="text-xl lg:text-2xl font-semibold text-zinc-900">Dashboard</h1><p className="text-sm text-zinc-400 mt-1">Overview semua laporan</p></div>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-xl lg:text-2xl font-semibold text-zinc-900">Dashboard</h1>
+            <p className="text-sm text-zinc-400 mt-1">Overview semua laporan</p>
+          </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Stats cards — 2 col mobile, 5 col desktop */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             {[
               { label: 'Total Laporan', value: String(stats.total), color: 'text-zinc-900', icon: FileText },
               { label: 'Menunggu', value: String(stats.pending), color: 'text-amber-500', icon: Clock },
@@ -171,27 +194,33 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
               { label: 'Ditolak', value: String(stats.rejected), color: 'text-red-500', icon: XCircle },
               { label: 'Total Kerugian', value: totalLoss > 0 ? formatRupiah(totalLoss) : 'Rp 0', color: 'text-zinc-900', icon: DollarSign },
             ].map((s, i) => (
-              <div key={i} className="bg-white rounded-xl border border-zinc-200/80 p-5 lg:p-6">
-                <s.icon className="w-5 h-5 text-zinc-300 mb-4" />
-                <p className={`text-2xl lg:text-3xl font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-xs text-zinc-400 mt-1">{s.label}</p>
+              <div key={i} className="bg-white rounded-xl border border-zinc-200/80 p-4 lg:p-5">
+                <s.icon className="w-4 h-4 text-zinc-300 mb-3" />
+                <p className={`text-xl lg:text-2xl font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-zinc-200/80 p-5 lg:p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center shrink-0"><TrendingUp className="w-6 h-6 text-blue-500" /></div>
-              <div><p className="text-2xl lg:text-3xl font-bold text-zinc-900">{todayReports.length}</p><p className="text-xs text-zinc-400 mt-0.5">Laporan masuk hari ini</p></div>
+          {/* Today stats + multi korban */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded-xl border border-zinc-200/80 p-4 flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center shrink-0"><TrendingUp className="w-4 h-4 text-blue-500" /></div>
+              <div><p className="text-xl font-bold text-zinc-900">{todayReports.length}</p><p className="text-[11px] text-zinc-400">Masuk hari ini</p></div>
             </div>
-            <div className="bg-white rounded-xl border border-zinc-200/80 p-5 lg:p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0"><CheckCircle2 className="w-6 h-6 text-emerald-500" /></div>
-              <div><p className="text-2xl lg:text-3xl font-bold text-zinc-900">{todayVerified.length}</p><p className="text-xs text-zinc-400 mt-0.5">Verified hari ini</p></div>
+            <div className="bg-white rounded-xl border border-zinc-200/80 p-4 flex items-center gap-3">
+              <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></div>
+              <div><p className="text-xl font-bold text-zinc-900">{todayVerified.length}</p><p className="text-[11px] text-zinc-400">Verified hari ini</p></div>
+            </div>
+            {/* BARU: Multi korban */}
+            <div className="bg-white rounded-xl border border-zinc-200/80 p-4 flex items-center gap-3">
+              <div className="w-9 h-9 bg-orange-50 rounded-lg flex items-center justify-center shrink-0"><Users className="w-4 h-4 text-orange-500" /></div>
+              <div><p className="text-xl font-bold text-zinc-900">{multiVictimCount}</p><p className="text-[11px] text-zinc-400">Multi korban</p></div>
             </div>
           </div>
 
           {stats.pending > 0 && (
-            <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl px-5 py-4 flex items-center gap-3">
+            <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl px-4 py-3 flex items-center gap-3">
               <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
               <p className="text-sm text-amber-700"><span className="font-medium">{stats.pending}</span> laporan menunggu review</p>
               <button onClick={() => { setActiveTab('laporan'); setStatusFilter('pending'); }} className="ml-auto text-xs font-medium text-amber-700 hover:text-amber-900 flex items-center gap-1">Review <ChevronRight className="w-3 h-3" /></button>
@@ -199,29 +228,29 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           )}
 
           <div className="grid lg:grid-cols-2 gap-4">
-            <div className="bg-white border border-zinc-200/80 rounded-xl p-5 lg:p-6">
-              <h3 className="text-sm font-medium text-zinc-900 mb-6">7 hari terakhir</h3>
-              <div className="flex items-end gap-3 h-36">
+            <div className="bg-white border border-zinc-200/80 rounded-xl p-4 lg:p-5">
+              <h3 className="text-sm font-medium text-zinc-900 mb-5">7 hari terakhir</h3>
+              <div className="flex items-end gap-2 h-32">
                 {dailyStats.map(([date, count]) => (
                   <div key={date} className="flex-1 flex flex-col items-center gap-1.5">
-                    <span className="text-[11px] text-zinc-400 font-medium">{count}</span>
-                    <div className="w-full bg-zinc-900 rounded-md hover:bg-zinc-700 transition-colors" style={{ height: `${Math.max((count / maxDaily) * 100, 6)}%` }} />
+                    <span className="text-[10px] text-zinc-400 font-medium">{count}</span>
+                    <div className="w-full bg-zinc-900 rounded-sm hover:bg-zinc-700 transition-colors" style={{ height: `${Math.max((count / maxDaily) * 100, 6)}%` }} />
                     <span className="text-[9px] text-zinc-400">{new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-white border border-zinc-200/80 rounded-xl p-5 lg:p-6">
+            <div className="bg-white border border-zinc-200/80 rounded-xl p-4 lg:p-5">
               <h3 className="text-sm font-medium text-zinc-900 mb-4">Bank terbanyak dilaporkan</h3>
               {bankStats.length === 0 ? <p className="text-sm text-zinc-400 text-center py-8">Belum ada data</p> : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {bankStats.slice(0, 5).map(([label, data]) => (
                     <div key={label} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {label === 'Nomor Telepon' ? <Phone className="w-3.5 h-3.5 text-zinc-400" /> : <Building2 className="w-3.5 h-3.5 text-zinc-400" />}
                         <span className="text-sm text-zinc-700">{label}</span>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {data.loss > 0 && <span className="text-[11px] text-red-500">{formatRupiah(data.loss)}</span>}
                         <span className="text-xs bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded">{data.count}</span>
                       </div>
@@ -236,103 +265,307 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
 
       {/* ===== LAPORAN ===== */}
       {currentTab === 'laporan' && (
-        <div className="space-y-5">
-          <div className="flex items-center justify-between"><h1 className="text-xl lg:text-2xl font-semibold text-zinc-900">Laporan</h1>
-            <button onClick={handleExportCSV} className="flex items-center gap-2 px-3 py-2 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-600 hover:border-zinc-300"><Download className="w-4 h-4" />Export</button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl lg:text-2xl font-semibold text-zinc-900">Laporan</h1>
+            <button onClick={handleExportCSV} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-600 hover:border-zinc-300">
+              <Download className="w-4 h-4" /><span className="hidden sm:inline">Export</span>
+            </button>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-grow"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input type="text" placeholder="Cari..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:border-zinc-400" />
+
+          {/* Search + filter */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <input type="text" placeholder="Cari nomor, nama, sosmed..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:border-zinc-400" />
             </div>
-            <div className="flex gap-2">
-              {uniqueBanks.length > 0 && <select value={bankFilter} onChange={(e) => setBankFilter(e.target.value)} className={`px-3 py-2.5 border rounded-lg text-sm appearance-none cursor-pointer ${bankFilter ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-600'}`}><option value="">Bank</option>{uniqueBanks.map(b => <option key={b} value={b}>{b}</option>)}</select>}
-              {uniquePlatforms.length > 0 && <select value={platformFilter} onChange={(e) => setPlatformFilter(e.target.value)} className={`px-3 py-2.5 border rounded-lg text-sm appearance-none cursor-pointer ${platformFilter ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-600'}`}><option value="">Platform</option>{uniquePlatforms.map(p => <option key={p} value={p}>{p}</option>)}</select>}
-              {(bankFilter || platformFilter) && <button onClick={() => { setBankFilter(''); setPlatformFilter(''); }} className="text-xs text-zinc-400 hover:text-zinc-700 px-2"><X className="w-3.5 h-3.5" /></button>}
+            <div className="flex gap-2 overflow-x-auto">
+              {uniqueBanks.length > 0 && (
+                <select value={bankFilter} onChange={(e) => setBankFilter(e.target.value)}
+                  className={`px-3 py-2.5 border rounded-lg text-sm appearance-none cursor-pointer whitespace-nowrap ${bankFilter ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-600'}`}>
+                  <option value="">Bank</option>
+                  {uniqueBanks.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              )}
+              {uniquePlatforms.length > 0 && (
+                <select value={platformFilter} onChange={(e) => setPlatformFilter(e.target.value)}
+                  className={`px-3 py-2.5 border rounded-lg text-sm appearance-none cursor-pointer whitespace-nowrap ${platformFilter ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-600'}`}>
+                  <option value="">Platform</option>
+                  {uniquePlatforms.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              )}
+              {(bankFilter || platformFilter) && (
+                <button onClick={() => { setBankFilter(''); setPlatformFilter(''); }} className="text-xs text-zinc-400 hover:text-zinc-700 px-2">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
-          <div className="flex gap-2">
-            {(['semua','pending','verified','rejected'] as StatusFilter[]).map(f => {
+
+          {/* Status tabs — scrollable on mobile */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {(['semua', 'pending', 'verified', 'rejected'] as StatusFilter[]).map(f => {
               const count = f === 'semua' ? reports.length : reports.filter(r => r.status === f).length;
-              return <button key={f} onClick={() => setStatusFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${statusFilter === f ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}>{f} ({count})</button>;
+              return (
+                <button key={f} onClick={() => setStatusFilter(f)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize whitespace-nowrap ${statusFilter === f ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}>
+                  {f} ({count})
+                </button>
+              );
             })}
           </div>
+
+          {/* Bulk action bar */}
           {selectedIds.size > 0 && (
             <div className="bg-zinc-900 text-white rounded-xl px-4 py-3 flex items-center justify-between">
               <span className="text-sm">{selectedIds.size} dipilih</span>
               <div className="flex gap-2">
-                <button onClick={() => handleBulkAction('verified')} disabled={bulkLoading} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-xs rounded-lg disabled:opacity-50">{bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}Approve</button>
-                <button onClick={() => handleBulkAction('rejected')} disabled={bulkLoading} className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-xs rounded-lg disabled:opacity-50">{bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}Reject</button>
+                <button onClick={() => handleBulkAction('verified')} disabled={bulkLoading} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-xs rounded-lg disabled:opacity-50">
+                  {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}Approve
+                </button>
+                <button onClick={() => handleBulkAction('rejected')} disabled={bulkLoading} className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-xs rounded-lg disabled:opacity-50">
+                  {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}Reject
+                </button>
                 <button onClick={() => setSelectedIds(new Set())} className="text-xs text-zinc-400 px-2">Batal</button>
               </div>
             </div>
           )}
-          {filteredReports.length > 0 && <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={selectedIds.size === filteredReports.length} onChange={selectAll} className="w-3.5 h-3.5 accent-zinc-900" /><span className="text-xs text-zinc-400">Pilih semua ({filteredReports.length})</span></label>}
+
+          {filteredReports.length > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={selectedIds.size === filteredReports.length} onChange={selectAll} className="w-3.5 h-3.5 accent-zinc-900" />
+              <span className="text-xs text-zinc-400">Pilih semua ({filteredReports.length})</span>
+            </label>
+          )}
 
           {filteredReports.length === 0 ? (
-            <div className="bg-white border border-zinc-200 rounded-xl p-16 text-center"><Search className="w-8 h-8 text-zinc-200 mx-auto mb-3" /><p className="text-sm text-zinc-400">Tidak ada laporan.</p></div>
+            <div className="bg-white border border-zinc-200 rounded-xl p-16 text-center">
+              <Search className="w-8 h-8 text-zinc-200 mx-auto mb-3" />
+              <p className="text-sm text-zinc-400">Tidak ada laporan.</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {filteredReports.map(report => {
                 const st = statusConfig[report.status as keyof typeof statusConfig] ?? statusConfig.pending;
-                const StIcon = st.icon; const isExp = expandedId === report.id; const isLd = loadingId === report.id; const isSel = selectedIds.has(report.id);
+                const StIcon = st.icon;
+                const isExp = expandedId === report.id;
+                const isLd = loadingId === report.id;
+                const isSel = selectedIds.has(report.id);
+                const hasSocmed = (report.social_media_accounts ?? []).filter(Boolean).length > 0;
+                const hasReportedTo = (report.reported_to ?? []).filter(Boolean).length > 0;
+
                 return (
                   <div key={report.id} className={`bg-white border rounded-xl overflow-hidden transition-all ${isSel ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-300'}`}>
-                    <div className="px-4 py-3.5 lg:py-4">
-                      <div className="flex items-center gap-3">
-                        <input type="checkbox" checked={isSel} onChange={() => toggleSelect(report.id)} className="w-3.5 h-3.5 accent-zinc-900 shrink-0" />
+                    {/* ── Card header ── */}
+                    <div className="px-3 py-3 sm:px-4 sm:py-3.5">
+                      <div className="flex items-start gap-2.5 sm:gap-3">
+                        <input type="checkbox" checked={isSel} onChange={() => toggleSelect(report.id)} className="w-3.5 h-3.5 accent-zinc-900 shrink-0 mt-1" />
                         <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center shrink-0">
                           {report.target_type === 'phone' ? <Phone className="w-3.5 h-3.5 text-zinc-400" /> : <Building2 className="w-3.5 h-3.5 text-zinc-400" />}
                         </div>
                         <div className="flex-grow min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <span className="font-medium text-zinc-900 text-sm font-mono">{report.target_number}</span>
-                            {report.target_name && <span className="text-xs text-zinc-400">· {report.target_name}</span>}
-                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${st.color}`}><StIcon className="w-2.5 h-2.5" />{st.label}</span>
-                            {report.bank_name && <span className="text-[10px] px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded">{report.bank_name}</span>}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mt-0.5">
-                            <span>{report.category}</span><span>·</span><span>{formatDateID(report.created_at)}</span>
-                            {report.loss_amount ? <><span>·</span><span className="text-red-500 font-medium">{formatRupiah(report.loss_amount)}</span></> : null}
-                            {report.platform ? <><span>·</span><span>{report.platform}</span></> : null}
-                            {/* ✅ tampilin link_url di baris metadata kalo ada */}
-                            {report.link_url && (
-                              <>
-                                <span>·</span>
-                                <span className="flex items-center gap-1 text-blue-500 font-medium truncate max-w-[150px]">
-                                  <Globe className="w-2.5 h-2.5" /> {report.link_url}
-                                </span>
-                              </>
+                            {report.target_name && <span className="text-xs text-zinc-400 hidden sm:inline">· {report.target_name}</span>}
+                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${st.color}`}>
+                              <StIcon className="w-2.5 h-2.5" />{st.label}
+                            </span>
+                            {report.bank_name && <span className="text-[10px] px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded hidden sm:inline">{report.bank_name}</span>}
+                            {/* Badge multi korban */}
+                            {report.has_other_victims === 'yes' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 rounded font-medium">
+                                👥 Multi korban
+                              </span>
                             )}
                           </div>
+                          <div className="flex flex-wrap items-center gap-1 text-[11px] text-zinc-400 mt-0.5">
+                            <span>{report.category}</span>
+                            <span>·</span>
+                            <span>{formatDateID(report.created_at)}</span>
+                            {report.loss_amount ? <><span>·</span><span className="text-red-500 font-medium">{formatRupiah(report.loss_amount)}</span></> : null}
+                            {report.platform ? <><span>·</span><span>{report.platform}</span></> : null}
+                            {report.link_url && (
+                              <><span>·</span><span className="flex items-center gap-0.5 text-blue-500 font-medium truncate max-w-[120px]"><Globe className="w-2.5 h-2.5" />{report.link_url}</span></>
+                            )}
+                          </div>
+                          {/* Sosmed preview — BARU */}
+                          {hasSocmed && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {(report.social_media_accounts ?? []).filter(Boolean).slice(0, 2).map((acc, i) => (
+                                <span key={i} className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-mono border border-slate-200">
+                                  @{acc.replace(/^@/, '')}
+                                </span>
+                              ))}
+                              {(report.social_media_accounts ?? []).filter(Boolean).length > 2 && (
+                                <span className="text-[10px] text-zinc-400">+{(report.social_media_accounts ?? []).filter(Boolean).length - 2}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
+
+                        {/* Action buttons */}
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {report.status === 'pending' && (<>
-                            <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd} className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-500 text-white text-xs rounded-lg hover:bg-emerald-600 disabled:opacity-50">{isLd ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}<span className="hidden sm:inline">Approve</span></button>
-                            <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd} className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 text-zinc-600 text-xs rounded-lg hover:bg-red-50 hover:text-red-500 disabled:opacity-50">{isLd ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}<span className="hidden sm:inline">Reject</span></button>
-                          </>)}
-                          {report.status === 'verified' && <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd} className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 text-zinc-500 text-xs rounded-lg hover:bg-red-50 hover:text-red-500 disabled:opacity-50"><XCircle className="w-3 h-3" /><span className="hidden sm:inline">Reject</span></button>}
-                          {report.status === 'rejected' && <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd} className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 text-zinc-500 text-xs rounded-lg hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50"><CheckCircle2 className="w-3 h-3" /><span className="hidden sm:inline">Approve</span></button>}
-                          <button onClick={() => setExpandedId(isExp ? null : report.id)} className="w-7 h-7 bg-zinc-100 rounded-lg flex items-center justify-center hover:bg-zinc-200">
+                          {report.status === 'pending' && (
+                            <>
+                              <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd}
+                                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-emerald-500 text-white text-xs rounded-lg hover:bg-emerald-600 disabled:opacity-50">
+                                {isLd ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                                <span className="hidden sm:inline">Approve</span>
+                              </button>
+                              <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd}
+                                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-zinc-100 text-zinc-600 text-xs rounded-lg hover:bg-red-50 hover:text-red-500 disabled:opacity-50">
+                                {isLd ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                                <span className="hidden sm:inline">Reject</span>
+                              </button>
+                            </>
+                          )}
+                          {report.status === 'verified' && (
+                            <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd}
+                              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-zinc-100 text-zinc-500 text-xs rounded-lg hover:bg-red-50 hover:text-red-500 disabled:opacity-50">
+                              <XCircle className="w-3 h-3" /><span className="hidden sm:inline">Reject</span>
+                            </button>
+                          )}
+                          {report.status === 'rejected' && (
+                            <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd}
+                              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-zinc-100 text-zinc-500 text-xs rounded-lg hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50">
+                              <CheckCircle2 className="w-3 h-3" /><span className="hidden sm:inline">Approve</span>
+                            </button>
+                          )}
+                          <button onClick={() => setExpandedId(isExp ? null : report.id)}
+                            className="w-7 h-7 bg-zinc-100 rounded-lg flex items-center justify-center hover:bg-zinc-200">
                             {isExp ? <ChevronUp className="w-3.5 h-3.5 text-zinc-400" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />}
                           </button>
                         </div>
                       </div>
                     </div>
+
+                    {/* ── Expanded detail ── */}
                     {isExp && (
-                      <div className="border-t border-zinc-100 px-4 py-4 bg-zinc-50/50 space-y-3">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                          <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Pelapor</p><p className="text-sm font-medium text-zinc-700 truncate">{report.reporter_email}</p></div>
-                          {report.bank_name && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Bank</p><p className="text-sm font-medium text-zinc-700">{report.bank_name}</p></div>}
-                          {report.loss_amount && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Kerugian</p><p className="text-sm font-semibold text-red-600">{formatRupiah(report.loss_amount)}</p></div>}
-                          {report.incident_date && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Tgl Kejadian</p><p className="text-sm font-medium text-zinc-700">{formatDateID(report.incident_date)}</p></div>}
-                          {report.platform && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Platform</p><p className="text-sm font-medium text-zinc-700">{report.platform}</p></div>}
-                          {/* ✅ tambahin box Link URL di expanded view */}
-                          {report.link_url && <div className="bg-white rounded-lg border border-zinc-100 p-3"><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Link URL</p><a href={report.link_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1 truncate">{report.link_url} <ExternalLink className="w-3 h-3" /></a></div>}
+                      <div className="border-t border-zinc-100 px-3 sm:px-4 py-4 bg-zinc-50/50 space-y-4">
+
+                        {/* Foto penipu — BARU */}
+                        {report.suspect_photo_url && (
+                          <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+                            <img src={report.suspect_photo_url} alt="Foto penipu" className="w-16 h-16 object-cover rounded-lg border-2 border-red-200 shrink-0" />
+                            <div>
+                              <p className="text-[10px] font-black text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <UserX className="w-3 h-3" /> Foto Profil Penipu
+                              </p>
+                              <a href={report.suspect_photo_url} target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-red-600 hover:underline flex items-center gap-1">
+                                Lihat ukuran penuh <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Grid info */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                          <div className="bg-white rounded-lg border border-zinc-100 p-3">
+                            <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Pelapor</p>
+                            <p className="text-xs font-medium text-zinc-700 truncate">{report.reporter_email}</p>
+                          </div>
+                          {report.bank_name && (
+                            <div className="bg-white rounded-lg border border-zinc-100 p-3">
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Bank</p>
+                              <p className="text-xs font-medium text-zinc-700">{report.bank_name}</p>
+                            </div>
+                          )}
+                          {report.loss_amount && (
+                            <div className="bg-white rounded-lg border border-zinc-100 p-3">
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Kerugian</p>
+                              <p className="text-xs font-semibold text-red-600">{formatRupiah(report.loss_amount)}</p>
+                            </div>
+                          )}
+                          {report.incident_date && (
+                            <div className="bg-white rounded-lg border border-zinc-100 p-3">
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Tgl Kejadian</p>
+                              <p className="text-xs font-medium text-zinc-700">{formatDateID(report.incident_date)}</p>
+                            </div>
+                          )}
+                          {report.platform && (
+                            <div className="bg-white rounded-lg border border-zinc-100 p-3">
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Platform</p>
+                              <p className="text-xs font-medium text-zinc-700">{report.platform}</p>
+                            </div>
+                          )}
+                          {report.link_url && (
+                            <div className="bg-white rounded-lg border border-zinc-100 p-3 col-span-2">
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Link URL</p>
+                              <a href={report.link_url} target="_blank" rel="noopener noreferrer"
+                                className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1 truncate">
+                                {report.link_url} <ExternalLink className="w-3 h-3 shrink-0" />
+                              </a>
+                            </div>
+                          )}
+                          {/* has_other_victims — BARU */}
+                          {report.has_other_victims && (
+                            <div className={`bg-white rounded-lg border p-3 ${report.has_other_victims === 'yes' ? 'border-orange-200' : 'border-zinc-100'}`}>
+                              <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-0.5">Korban Lain</p>
+                              <p className={`text-xs font-semibold ${report.has_other_victims === 'yes' ? 'text-orange-600' : 'text-zinc-600'}`}>
+                                {report.has_other_victims === 'yes' ? '⚠ Ada korban lain' : 'Hanya pelapor'}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        <div><p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5">Kronologi</p><div className="bg-white border border-zinc-100 rounded-lg p-3"><p className="text-sm text-zinc-600 leading-relaxed">{report.chronology}</p></div></div>
+
+                        {/* Sosmed — BARU */}
+                        {hasSocmed && (
+                          <div>
+                            <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                              <AtSign className="w-3 h-3" /> Akun Media Sosial Penipu
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(report.social_media_accounts ?? []).filter(Boolean).map((acc, i) => (
+                                <span key={i} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700">
+                                  {acc.startsWith('http') ? (
+                                    <a href={acc} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                                      {acc} <ExternalLink className="w-2.5 h-2.5 inline" />
+                                    </a>
+                                  ) : `@${acc.replace(/^@/, '')}`}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reported to — BARU */}
+                        {hasReportedTo && (
+                          <div>
+                            <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                              <ShieldAlert className="w-3 h-3" /> Sudah Lapor Ke
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(report.reported_to ?? []).filter(Boolean).map((v) => (
+                                <span key={v} className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${v === 'belum' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                                  {reportedToLabel[v] ?? v}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Kronologi */}
+                        <div>
+                          <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5">Kronologi</p>
+                          <div className="bg-white border border-zinc-100 rounded-lg p-3">
+                            <p className="text-sm text-zinc-600 leading-relaxed">{report.chronology}</p>
+                          </div>
+                        </div>
+
+                        {/* Footer links */}
                         <div className="flex gap-3">
-                          {report.evidence_url && <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 hover:text-zinc-900 flex items-center gap-1"><Eye className="w-3.5 h-3.5" />Bukti<ExternalLink className="w-3 h-3" /></a>}
-                          <a href={`/check/${report.target_number}`} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-zinc-900 flex items-center gap-1"><ExternalLink className="w-3.5 h-3.5" />Publik</a>
+                          {report.evidence_url && (
+                            <a href={report.evidence_url} target="_blank" rel="noopener noreferrer"
+                              className="text-xs text-zinc-500 hover:text-zinc-900 flex items-center gap-1">
+                              <Eye className="w-3.5 h-3.5" />Bukti<ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                          <a href={`/check/${report.target_number}`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-zinc-400 hover:text-zinc-900 flex items-center gap-1">
+                            <ExternalLink className="w-3.5 h-3.5" />Publik
+                          </a>
                         </div>
                       </div>
                     )}
@@ -349,20 +582,37 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
         <div className="space-y-6">
           <h1 className="text-xl lg:text-2xl font-semibold text-zinc-900">Statistik</h1>
           <div className="grid lg:grid-cols-2 gap-4">
-            <div className="bg-white border border-zinc-200/80 rounded-xl p-5 lg:p-6">
-              <h3 className="text-sm font-medium text-zinc-900 mb-6">7 hari terakhir</h3>
-              <div className="flex items-end gap-3 h-36">{dailyStats.map(([d, c]) => (<div key={d} className="flex-1 flex flex-col items-center gap-1.5"><span className="text-[11px] text-zinc-400">{c}</span><div className="w-full bg-zinc-900 rounded-md hover:bg-zinc-700" style={{ height: `${Math.max((c / maxDaily) * 100, 6)}%` }} /><span className="text-[9px] text-zinc-400">{new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span></div>))}</div>
+            <div className="bg-white border border-zinc-200/80 rounded-xl p-4 lg:p-5">
+              <h3 className="text-sm font-medium text-zinc-900 mb-5">7 hari terakhir</h3>
+              <div className="flex items-end gap-2 h-32">
+                {dailyStats.map(([d, c]) => (
+                  <div key={d} className="flex-1 flex flex-col items-center gap-1.5">
+                    <span className="text-[10px] text-zinc-400">{c}</span>
+                    <div className="w-full bg-zinc-900 rounded-sm hover:bg-zinc-700" style={{ height: `${Math.max((c / maxDaily) * 100, 6)}%` }} />
+                    <span className="text-[9px] text-zinc-400">{new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="bg-white border border-zinc-200/80 rounded-xl p-5 lg:p-6">
-              <h3 className="text-sm font-medium text-zinc-900 mb-5">Kategori</h3>
-              {categoryStats.length === 0 ? <p className="text-sm text-zinc-400 text-center py-8">Belum ada</p> : <div className="space-y-2.5">{categoryStats.map(([cat, count]) => (<div key={cat}><div className="flex justify-between mb-1"><span className="text-xs text-zinc-700">{cat}</span><span className="text-[11px] text-zinc-400">{count}</span></div><div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-zinc-900 rounded-full" style={{ width: `${(count / maxCat) * 100}%` }} /></div></div>))}</div>}
+            <div className="bg-white border border-zinc-200/80 rounded-xl p-4 lg:p-5">
+              <h3 className="text-sm font-medium text-zinc-900 mb-4">Kategori</h3>
+              {categoryStats.length === 0 ? <p className="text-sm text-zinc-400 text-center py-8">Belum ada</p> : (
+                <div className="space-y-2.5">
+                  {categoryStats.map(([cat, count]) => (
+                    <div key={cat}>
+                      <div className="flex justify-between mb-1"><span className="text-xs text-zinc-700">{cat}</span><span className="text-[11px] text-zinc-400">{count}</span></div>
+                      <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-zinc-900 rounded-full" style={{ width: `${(count / maxCat) * 100}%` }} /></div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="bg-white border border-zinc-200/80 rounded-xl p-5 lg:p-6">
+            <div className="bg-white border border-zinc-200/80 rounded-xl p-4 lg:p-5">
               <h3 className="text-sm font-medium text-zinc-900 mb-4">Bank / E-Wallet</h3>
               {bankStats.length === 0 ? <p className="text-sm text-zinc-400 text-center py-8">Belum ada</p> : (
                 <div className="space-y-2.5">
                   {bankStats.map(([label, data]) => (
-                    <div key={label} className="flex items-center justify-between py-1.5">
+                    <div key={label} className="flex items-center justify-between py-1">
                       <div className="flex items-center gap-2">
                         {label === 'Nomor Telepon' ? <Phone className="w-3.5 h-3.5 text-zinc-400" /> : <Building2 className="w-3.5 h-3.5 text-zinc-400" />}
                         <span className="text-sm text-zinc-700">{label}</span>
@@ -376,31 +626,89 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                 </div>
               )}
             </div>
-            <div className="bg-white border border-zinc-200/80 rounded-xl p-5 lg:p-6">
-              <h3 className="text-sm font-medium text-zinc-900 mb-5">Platform</h3>
-              {platformStats.length === 0 ? <p className="text-sm text-zinc-400 text-center py-8">Belum ada</p> : <div className="space-y-2.5">{platformStats.map(([p, c]) => (<div key={p}><div className="flex justify-between mb-1"><span className="text-xs text-zinc-700">{p}</span><span className="text-[11px] text-zinc-400">{c}</span></div><div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-zinc-700 rounded-full" style={{ width: `${(c / maxPlat) * 100}%` }} /></div></div>))}</div>}
+            <div className="bg-white border border-zinc-200/80 rounded-xl p-4 lg:p-5">
+              <h3 className="text-sm font-medium text-zinc-900 mb-4">Platform</h3>
+              {platformStats.length === 0 ? <p className="text-sm text-zinc-400 text-center py-8">Belum ada</p> : (
+                <div className="space-y-2.5">
+                  {platformStats.map(([p, c]) => (
+                    <div key={p}>
+                      <div className="flex justify-between mb-1"><span className="text-xs text-zinc-700">{p}</span><span className="text-[11px] text-zinc-400">{c}</span></div>
+                      <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden"><div className="h-full bg-zinc-700 rounded-full" style={{ width: `${(c / maxPlat) * 100}%` }} /></div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            {[{ label: 'Approval Rate', value: stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0, color: 'text-emerald-500' },
+
+          {/* Rates */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Approval Rate', value: stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0, color: 'text-emerald-500' },
               { label: 'Rejection Rate', value: stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0, color: 'text-red-500' },
               { label: 'Pending Rate', value: stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0, color: 'text-amber-500' },
-            ].map(s => (<div key={s.label} className="bg-white border border-zinc-200/80 rounded-xl p-5 lg:p-6 text-center"><p className={`text-2xl lg:text-3xl font-bold ${s.color}`}>{s.value}%</p><p className="text-xs text-zinc-400 mt-1">{s.label}</p></div>))}
+            ].map(s => (
+              <div key={s.label} className="bg-white border border-zinc-200/80 rounded-xl p-4 text-center">
+                <p className={`text-2xl lg:text-3xl font-bold ${s.color}`}>{s.value}%</p>
+                <p className="text-xs text-zinc-400 mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Multi korban stat — BARU */}
+          <div className="bg-white border border-zinc-200/80 rounded-xl p-4 lg:p-5">
+            <h3 className="text-sm font-medium text-zinc-900 mb-4">Info Tambahan</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                <p className="text-xl font-bold text-orange-600">{multiVictimCount}</p>
+                <p className="text-xs text-orange-500 mt-0.5">Laporan multi korban</p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <p className="text-xl font-bold text-slate-700">
+                  {reports.filter(r => (r.social_media_accounts ?? []).filter(Boolean).length > 0).length}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">Laporan ada data sosmed</p>
+              </div>
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                <p className="text-xl font-bold text-emerald-600">
+                  {reports.filter(r => (r.reported_to ?? []).some(v => v !== 'belum')).length}
+                </p>
+                <p className="text-xs text-emerald-600 mt-0.5">Sudah lapor ke instansi</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* ===== PENGGUNA ===== */}
       {currentTab === 'pengguna' && (
-        <div className="space-y-5">
-          <div><h1 className="text-xl lg:text-2xl font-semibold text-zinc-900">Pengguna</h1><p className="text-sm text-zinc-400 mt-1">{users.length} total</p></div>
-          <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" /><input type="text" placeholder="Cari nama..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:border-zinc-400" /></div>
-          {filteredUsers.length === 0 ? <div className="bg-white border border-zinc-200 rounded-xl p-16 text-center"><Users className="w-8 h-8 text-zinc-200 mx-auto mb-3" /><p className="text-sm text-zinc-400">Tidak ada pengguna.</p></div> : (
-            <div className="space-y-2">{filteredUsers.map(u => {
-              const rc = { admin: { l: 'Admin', c: 'bg-red-50 text-red-600 border-red-200' }, moderator: { l: 'Mod', c: 'bg-blue-50 text-blue-600 border-blue-200' }, user: { l: 'User', c: 'bg-zinc-100 text-zinc-500 border-zinc-200' } };
-              const role = rc[u.role as keyof typeof rc] ?? rc.user;
-              return <UserRow key={u.id} user={u} role={role} onRefresh={() => router.refresh()} />;
-            })}</div>
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-xl lg:text-2xl font-semibold text-zinc-900">Pengguna</h1>
+            <p className="text-sm text-zinc-400 mt-1">{users.length} total</p>
+          </div>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <input type="text" placeholder="Cari nama..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:border-zinc-400" />
+          </div>
+          {filteredUsers.length === 0 ? (
+            <div className="bg-white border border-zinc-200 rounded-xl p-16 text-center">
+              <Users className="w-8 h-8 text-zinc-200 mx-auto mb-3" />
+              <p className="text-sm text-zinc-400">Tidak ada pengguna.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredUsers.map(u => {
+                const rc = {
+                  admin: { l: 'Admin', c: 'bg-red-50 text-red-600 border-red-200' },
+                  moderator: { l: 'Mod', c: 'bg-blue-50 text-blue-600 border-blue-200' },
+                  user: { l: 'User', c: 'bg-zinc-100 text-zinc-500 border-zinc-200' }
+                };
+                const role = rc[u.role as keyof typeof rc] ?? rc.user;
+                return <UserRow key={u.id} user={u} role={role} onRefresh={() => router.refresh()} />;
+              })}
+            </div>
           )}
         </div>
       )}
@@ -416,19 +724,43 @@ function UserRow({ user, role, onRefresh }: { user: AdminUser; role: { l: string
     try { await updateUserRole(user.id, r); onRefresh(); } catch (e) { console.error(e); } finally { setLoading(false); setAction(null); }
   };
   return (
-    <div className="bg-white border border-zinc-200 rounded-xl px-4 py-3.5 flex items-center gap-3">
-      <div className="w-9 h-9 bg-zinc-900 rounded-lg flex items-center justify-center shrink-0"><span className="text-white text-xs font-medium">{(user.full_name || 'U').charAt(0).toUpperCase()}</span></div>
-      <div className="flex-grow min-w-0"><p className="text-sm font-medium text-zinc-900 truncate">{user.full_name || 'Tanpa Nama'}</p><p className="text-[11px] text-zinc-400">{user.updated_at ? formatDateID(user.updated_at) : '-'}</p></div>
-      <div className="flex items-center gap-2 shrink-0">
+    <div className="bg-white border border-zinc-200 rounded-xl px-3 sm:px-4 py-3 flex items-center gap-3">
+      <div className="w-9 h-9 bg-zinc-900 rounded-lg flex items-center justify-center shrink-0">
+        <span className="text-white text-xs font-medium">{(user.full_name || 'U').charAt(0).toUpperCase()}</span>
+      </div>
+      <div className="flex-grow min-w-0">
+        <p className="text-sm font-medium text-zinc-900 truncate">{user.full_name || 'Tanpa Nama'}</p>
+        <p className="text-[11px] text-zinc-400">{user.updated_at ? formatDateID(user.updated_at) : '-'}</p>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${role.c}`}>{role.l}</span>
-        {user.role !== 'admin' && <button onClick={() => handleRole('admin')} disabled={loading} className="text-[11px] px-2.5 py-1 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-zinc-200 disabled:opacity-50">{loading && action === 'admin' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Admin'}</button>}
-        {user.role === 'admin' && <button onClick={() => handleRole('user')} disabled={loading} className="text-[11px] px-2.5 py-1 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-red-50 hover:text-red-500 disabled:opacity-50">{loading && action === 'user' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cabut'}</button>}
-        {user.role !== 'moderator' && user.role !== 'admin' && <button onClick={() => handleRole('moderator')} disabled={loading} className="text-[11px] px-2.5 py-1 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-blue-50 hover:text-blue-600 disabled:opacity-50">{loading && action === 'moderator' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Mod'}</button>}
+        {user.role !== 'admin' && (
+          <button onClick={() => handleRole('admin')} disabled={loading}
+            className="text-[11px] px-2.5 py-1 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-zinc-200 disabled:opacity-50">
+            {loading && action === 'admin' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Admin'}
+          </button>
+        )}
+        {user.role === 'admin' && (
+          <button onClick={() => handleRole('user')} disabled={loading}
+            className="text-[11px] px-2.5 py-1 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-red-50 hover:text-red-500 disabled:opacity-50">
+            {loading && action === 'user' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cabut'}
+          </button>
+        )}
+        {user.role !== 'moderator' && user.role !== 'admin' && (
+          <button onClick={() => handleRole('moderator')} disabled={loading}
+            className="text-[11px] px-2.5 py-1 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-blue-50 hover:text-blue-600 disabled:opacity-50">
+            {loading && action === 'moderator' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Mod'}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
 export default function AdminDashboard(props: { stats: Stats; reports: Report[]; users: AdminUser[] }) {
-  return <Suspense fallback={<div className="p-8"><div className="h-8 w-32 bg-zinc-200 rounded animate-pulse" /></div>}><DashboardInner {...props} /></Suspense>;
+  return (
+    <Suspense fallback={<div className="p-8"><div className="h-8 w-32 bg-zinc-200 rounded animate-pulse" /></div>}>
+      <DashboardInner {...props} />
+    </Suspense>
+  );
 }

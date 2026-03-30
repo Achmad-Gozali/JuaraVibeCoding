@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import ReportForm from '@/components/ReportForm';
-import { ShieldCheck, FileText, Send, Zap, ArrowRight, ShieldAlert, Lock, Activity } from 'lucide-react';
+import { ShieldCheck, FileText, Lock, Activity, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import * as motion from 'motion/react-client';
 
@@ -16,9 +16,6 @@ export default async function ReportPage() {
       <div className="min-h-screen bg-slate-50 pb-24 font-sans text-slate-900">
         <div className="max-w-5xl mx-auto px-6 pt-12 sm:pt-20">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center sm:text-left">
-             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-bold uppercase tracking-[0.2em] mb-4 shadow-sm">
-               <ShieldCheck className="w-3.5 h-3.5" /> Akses Pelapor Terverifikasi
-             </div>
              <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-slate-900 uppercase mb-3">
                Entri Laporan <span className="text-emerald-600 italic">Baru.</span>
              </h1>
@@ -72,7 +69,7 @@ export default async function ReportPage() {
         </div>
       </section>
 
-      {/* How it Works - Grid Kotak Tajam */}
+      {/* How it Works */}
       <section className="py-24 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase mb-4">Protokol Pelaporan</h2>
@@ -108,7 +105,7 @@ export default async function ReportPage() {
         </div>
       </section>
 
-      {/* CTA Bottom - Kotak Elegan */}
+      {/* CTA Bottom */}
       <section className="pb-24 px-6 max-w-5xl mx-auto">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 sm:p-20 text-center relative overflow-hidden shadow-xl">
            <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
