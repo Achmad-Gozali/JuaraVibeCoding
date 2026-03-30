@@ -24,25 +24,20 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  // Logika Proteksi
-  if (['/dashboard', '/admin'].some(path => pathname.startsWith(path)) && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
+  // Proteksi Halaman
+  if (['/dashboard', '/admin', '/report'].some(path => pathname.startsWith(path)) && !user) {
+    const url = new URL('/login', request.url);
     url.searchParams.set('redirectTo', pathname);
-    
-    // ✅ FIX: Pindahkan cookies ke redirect response
-    const redirectRes = NextResponse.redirect(url);
-    supabaseResponse.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value));
-    return redirectRes;
+    return NextResponse.redirect(url);
   }
 
+  // Redirect kalau sudah login
   if (['/login', '/register'].some(path => pathname.startsWith(path)) && user) {
-    const redirectRes = NextResponse.redirect(new URL('/admin', request.url));
-    supabaseResponse.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value));
-    return redirectRes;
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const dest = profile?.role === 'admin' ? '/admin' : '/';
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
-  supabaseResponse.headers.set('x-pathname', pathname);
   return supabaseResponse;
 }
 

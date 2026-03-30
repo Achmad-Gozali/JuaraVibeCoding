@@ -44,8 +44,7 @@ function AuthFormInner({ type }: AuthFormProps) {
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     setOauthLoading(provider);
     setError(null);
-
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const siteUrl = window.location.origin;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -55,8 +54,7 @@ function AuthFormInner({ type }: AuthFormProps) {
     });
 
     if (error) {
-      console.error(`OAuth ${provider} error:`, error);
-      setError(`Gagal login dengan ${provider}. Silakan coba lagi.`);
+      setError(`Gagal login dengan ${provider}.`);
       setOauthLoading(null);
     }
   };
@@ -67,12 +65,6 @@ function AuthFormInner({ type }: AuthFormProps) {
     setError(null);
     setSuccessMessage(null);
 
-    if (password.length < 6) {
-      setError('Password minimal 6 karakter.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
       if (type === 'register') {
         const { error: signUpError } = await supabase.auth.signUp({
@@ -81,17 +73,17 @@ function AuthFormInner({ type }: AuthFormProps) {
           options: { data: { full_name: fullName } },
         });
         if (signUpError) throw signUpError;
-        setSuccessMessage('Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi.');
-        setTimeout(() => router.push('/login'), 3000);
+        setSuccessMessage('Pendaftaran berhasil! Cek email buat verifikasi.');
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        router.push(redirectTo);
+        
+        // FIX: Refresh dulu biar middleware dapet cookie terbaru, baru pindah
         router.refresh();
+        setTimeout(() => router.push(redirectTo), 100);
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Terjadi kesalahan autentikasi.';
-      setError(message);
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan autentikasi.');
     } finally {
       setIsLoading(false);
     }
@@ -108,9 +100,7 @@ function AuthFormInner({ type }: AuthFormProps) {
             {type === 'login' ? 'Selamat Datang' : 'Buat Akun Baru'}
           </h2>
           <p className="text-zinc-500 font-medium">
-            {type === 'login'
-              ? 'Masuk untuk mulai melaporkan nomor penipu.'
-              : 'Daftar untuk berkontribusi dalam komunitas.'}
+            {type === 'login' ? 'Masuk untuk mulai melapor.' : 'Daftar untuk bergabung.'}
           </p>
         </div>
 
@@ -128,67 +118,62 @@ function AuthFormInner({ type }: AuthFormProps) {
         )}
 
         <div className="space-y-3 mb-8">
-          {oauthProviders.map((provider) => (
+          {oauthProviders.map((p) => (
             <button
-              key={provider.id}
+              key={p.id}
               type="button"
-              onClick={() => handleOAuthLogin(provider.id)}
+              onClick={() => handleOAuthLogin(p.id)}
               disabled={!!oauthLoading || isLoading}
-              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm text-zinc-700 hover:bg-zinc-100 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              {oauthLoading === provider.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                provider.icon
-              )}
-              {type === 'login' ? 'Masuk' : 'Daftar'} dengan {provider.label}
+              {oauthLoading === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : p.icon}
+              {type === 'login' ? 'Masuk' : 'Daftar'} dengan {p.label}
             </button>
           ))}
         </div>
 
         <div className="flex items-center gap-4 mb-8">
           <div className="flex-1 h-px bg-zinc-100" />
-          <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">atau dengan email</span>
+          <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">atau email</span>
           <div className="flex-1 h-px bg-zinc-100" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {type === 'register' && (
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Nama Lengkap</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Nama Lengkap</label>
               <div className="relative">
                 <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe"
-                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900 placeholder:text-zinc-300" required />
+                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nama Anda"
+                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900" required />
               </div>
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Email</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@contoh.com"
-                className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900 placeholder:text-zinc-300" required />
+                className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900" required />
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Password</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Password</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 6 karakter"
-                className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900 placeholder:text-zinc-300" required minLength={6} />
+                className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900" required minLength={6} />
             </div>
-            {type === 'register' && <p className="text-xs text-zinc-400 ml-1 mt-1">Minimal 6 karakter</p>}
           </div>
           <button type="submit" disabled={isLoading || !!oauthLoading}
-            className="w-full py-5 bg-zinc-900 text-white font-black rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-50 mt-4 active:scale-[0.98] shadow-2xl shadow-zinc-900/20">
+            className="w-full py-5 bg-zinc-900 text-white font-black rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-2xl shadow-zinc-900/20 disabled:opacity-50">
             {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>{type === 'login' ? 'MASUK SEKARANG' : 'DAFTAR SEKARANG'}<LogIn className="w-5 h-5 text-zinc-400" /></>}
           </button>
         </form>
 
         <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
           <p className="text-sm text-zinc-500 font-medium">
-            {type === 'login' ? <>Belum punya akun?{' '}<Link href="/register" className="text-zinc-900 font-black hover:underline underline-offset-4">Daftar di sini</Link></> : <>Sudah punya akun?{' '}<Link href="/login" className="text-zinc-900 font-black hover:underline underline-offset-4">Masuk di sini</Link></>}
+            {type === 'login' ? <>Belum punya akun? <Link href="/register" className="text-zinc-900 font-black hover:underline">Daftar</Link></> : <>Sudah punya akun? <Link href="/login" className="text-zinc-900 font-black hover:underline">Masuk</Link></>}
           </p>
         </div>
       </div>
@@ -198,18 +183,7 @@ function AuthFormInner({ type }: AuthFormProps) {
 
 export default function AuthForm({ type }: AuthFormProps) {
   return (
-    <Suspense fallback={
-      <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-[2.5rem] p-10 animate-pulse border border-zinc-100">
-          <div className="h-16 w-16 bg-zinc-100 rounded-2xl mx-auto mb-6" />
-          <div className="h-8 bg-zinc-100 rounded-xl mb-3" />
-          <div className="space-y-3 mt-10">
-            <div className="h-14 bg-zinc-50 rounded-2xl" />
-            <div className="h-14 bg-zinc-50 rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div className="w-full max-w-md mx-auto p-10 bg-white rounded-[2.5rem] animate-pulse h-96 border border-zinc-100" />}>
       <AuthFormInner type={type} />
     </Suspense>
   );
