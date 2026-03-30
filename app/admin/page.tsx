@@ -1,6 +1,6 @@
 // ============================================
 // 📁 LOKASI: app/admin/page.tsx
-// ✅ FIX: Ganti RPC dengan standar SELECT agar semua kolom kebaca
+// ✅ FIX: Balik pake RPC karena fungsi get_reports_admin di Supabase lu UDAH SUKSES DI-UPGRADE
 // ============================================
 
 import { Suspense } from 'react';
@@ -17,23 +17,16 @@ export default async function AdminPage() {
     { count: pendingCount },
     { count: verifiedCount },
     { count: rejectedCount },
-    { data: rawReports }, // Ganti nama variabel sementra
+    { data: reports }, // ✅ Balik ke nama variabel normal
     { data: users },
   ] = await Promise.all([
     supabase.from('reports').select('*', { count: 'exact', head: true }),
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-    // ✅ FIX: Pake SELECT langsung, gabungin tabel profiles buat ambil email
-    supabase.from('reports').select('*, profiles(email)').order('created_at', { ascending: false }),
+    supabase.rpc('get_reports_admin'), // ✅ KITA PAKE RPC LAGI KARENA UDAH LU BENERIN DI SQL EDITOR
     supabase.from('profiles').select('id, full_name, role, updated_at'),
   ]);
-
-  // ✅ FIX: Mapping data biar emailnya masuk ke `reporter_email`
-  const reports = (rawReports || []).map((r: any) => ({
-    ...r,
-    reporter_email: r.profiles?.email || 'Unknown Email',
-  }));
 
   const stats = {
     total: totalReports || 0,
@@ -55,7 +48,7 @@ export default async function AdminPage() {
     }>
       <AdminDashboard
         stats={stats}
-        reports={reports}
+        reports={reports ?? []}
         users={users ?? []}
       />
     </Suspense>
