@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShieldCheck, Instagram, Facebook } from 'lucide-react';
+import { Instagram, Facebook } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -8,12 +8,12 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-8 mb-16">
           
-          {/* BRANDING KIRI */}
+          {/* branding kiri */}
           <div className="md:col-span-5 lg:col-span-4">
             <Link href="/" className="flex items-center gap-3.5 group shrink-0 mb-6">
               <div className="relative">
                 <Image 
-                  src="/logo.png?v=2" 
+                  src="/logo.png?v=2"  
                   alt="Logo KawalTransaksi" 
                   width={48} 
                   height={48} 
@@ -27,12 +27,9 @@ export default function Footer() {
             <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-sm mb-6">
               Membangun benteng pertahanan komunitas terhadap tindak penipuan digital di Indonesia. Cepat, Terbuka, & Terpercaya.
             </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-[0.2em] shadow-sm">
-                <ShieldCheck className="w-3.5 h-3.5" /> 100% Platform Gratis
-            </div>
           </div>
 
-          {/* LAYANAN UTAMA */}
+          {/* layanan utama */}
           <div className="md:col-span-3 lg:col-span-3">
             <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-6">Layanan Utama</h4>
             <ul className="space-y-4">
@@ -49,7 +46,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* BANTUAN */}
+          {/* bantuan */}
           <div className="md:col-span-4 lg:col-span-3">
             <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-6">Bantuan & Legal</h4>
             <ul className="space-y-4">
@@ -71,12 +68,11 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* ✅ SOCIAL CONNECT - LINKS UPDATED ✅ */}
           <div className="md:col-span-12 lg:col-span-2">
             <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-6 lg:text-right">Social Connect</h4>
             <div className="flex gap-4 lg:justify-end">
               
-              {/* TIKTOK */}
+              {/* tiktok */}
               <a 
                 href="https://www.tiktok.com/@alieee27_" 
                 target="_blank" 
@@ -88,7 +84,7 @@ export default function Footer() {
                 </svg>
               </a>
 
-              {/* INSTAGRAM */}
+              {/* instagram */}
               <a 
                 href="https://www.instagram.com/achmadgozali27_/" 
                 target="_blank" 
@@ -98,7 +94,7 @@ export default function Footer() {
                 <Instagram className="w-4 h-4" />
               </a>
 
-              {/* FACEBOOK */}
+              {/* facebook */}
               <a 
                 href="https://www.facebook.com/ali.gntng201" 
                 target="_blank" 
@@ -112,18 +108,11 @@ export default function Footer() {
 
         </div>
 
-        {/* BOTTOM BAR */}
+        {/* bottom bar */}
         <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            © 2026 KAWALTRANSAKSI — INFORMATICS STUDENT PROJECT
+            © 2026 KAWALTRANSAKSI
           </p>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">System Online</p>
-          </div>
         </div>
       </div>
     </footer>

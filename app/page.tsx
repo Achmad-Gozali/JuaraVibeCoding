@@ -33,36 +33,31 @@ export default async function HomePage() {
   const recentReports = rawRecentReports ?? [];
 
   return (
-    <main className="bg-slate-50 text-slate-900 overflow-hidden font-sans">
+    <main className="bg-slate-50 text-slate-900 overflow-hidden font-sans selection:bg-emerald-100">
       
-      {/* SECTION 1: HERO - Clean Enterprise */}
+      {/* section 1: hero */}
       <section className="relative pt-24 pb-28 border-b border-slate-200 bg-white overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-[400px] bg-emerald-100/30 rounded-full blur-[120px] -z-10" />
-        
         <div className="max-w-5xl mx-auto px-6 text-center">
-          {/* ✅ BADGE RISIH SUDAH DIHAPUS MAD ✅ */}
-          
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-8 uppercase text-slate-900">
-            TRANSAKSI <span className="text-emerald-600 italic underline decoration-emerald-200 decoration-8 underline-offset-8">AMAN</span>,<br />
-            HATI TENANG.
+            transaksi <span className="text-emerald-600 italic underline decoration-emerald-200 decoration-8 underline-offset-8">aman</span>,<br />
+            hati tenang.
           </h1>
-          
           <div className="text-slate-500 text-base md:text-lg max-w-2xl mx-auto font-medium leading-relaxed mb-10">
-            Verifikasi nomor identitas atau rekening bank dalam hitungan detik. Gabung bersama komunitas untuk memberantas kejahatan siber.
+            verifikasi nomor identitas atau rekening bank dalam hitungan detik. gabung bersama komunitas untuk memberantas kejahatan siber.
           </div>
-
           <div className="flex flex-col sm:flex-row justify-center gap-4 px-4">
             <Link href="/cek-nomor" className="group px-8 py-4 bg-slate-900 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-md active:scale-95 uppercase tracking-widest">
-              <Phone className="w-4 h-4 text-emerald-400 group-hover:text-white transition-colors" /> CEK NOMOR HP
+              <Phone className="w-4 h-4 text-emerald-400 group-hover:text-white transition-colors" /> cek nomor hp
             </Link>
             <Link href="/cek-rekening" className="group px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-xl font-bold text-sm flex items-center justify-center gap-3 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm active:scale-95 uppercase tracking-widest">
-              <Building2 className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" /> CEK REKENING
+              <Building2 className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" /> cek rekening
             </Link>
           </div>
         </div>
       </section>
 
-      {/* SECTION 2: BENTO DASHBOARD */}
+      {/* section 2: bento dashboard */}
       <section className="max-w-6xl mx-auto px-6 pt-16 mb-24">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
           <div className="md:col-span-8 bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm relative overflow-hidden group">
@@ -71,20 +66,20 @@ export default async function HomePage() {
             </div>
             <div className="relative z-10 h-full flex flex-col justify-between">
               <div>
-                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 text-left">Statistik Registry</h3>
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 text-left">statistik registry</h3>
                 <p className="text-2xl sm:text-3xl font-black leading-tight max-w-md text-left text-slate-900">
-                  Kami mengawasi <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-4">setiap laporan</span> untuk keamanan Anda.
+                  kami mengawasi <span className="text-emerald-600 underline decoration-emerald-200 underline-offset-4">setiap laporan</span> untuk keamanan anda.
                 </p>
               </div>
               <div className="flex gap-10 mt-12 border-t border-slate-100 pt-8">
                 <div className="text-left">
                   <p className="text-5xl font-black tracking-tighter text-slate-900">{totalReports || 0}</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Total Entri</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">total entri</p>
                 </div>
                 <div className="w-px h-16 bg-slate-200" />
                 <div className="text-left">
                   <p className="text-5xl font-black text-red-600 tracking-tighter">{verifiedCount || 0}</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Verified Scam</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">verified scam</p>
                 </div>
               </div>
             </div>
@@ -93,40 +88,31 @@ export default async function HomePage() {
           <div className="md:col-span-4 space-y-5">
             <div className="bg-emerald-600 rounded-2xl p-8 text-white shadow-md h-[200px] flex flex-col justify-between group overflow-hidden relative border border-emerald-700">
                <ShieldCheck className="w-20 h-20 absolute -right-4 -top-4 opacity-10 group-hover:scale-125 transition-transform" />
-               <h4 className="text-lg font-black leading-tight text-left">Verifikasi Komunitas</h4>
-               <p className="text-xs text-emerald-50/80 font-medium leading-relaxed text-left">Laporan divalidasi secara transparan oleh sistem moderator untuk menjaga akurasi.</p>
+               <h4 className="text-lg font-black leading-tight text-left">verifikasi komunitas</h4>
+               <p className="text-xs text-emerald-50/80 font-medium leading-relaxed text-left">laporan divalidasi secara transparan oleh sistem moderator untuk menjaga akurasi.</p>
             </div>
             <div className="bg-slate-900 rounded-2xl p-8 text-white h-[200px] flex flex-col justify-between group shadow-md border border-slate-800">
                <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
                    <Lock className="w-5 h-5 text-emerald-400" />
                  </div>
-                 <h4 className="text-lg font-black">Enkripsi 24/7</h4>
+                 <h4 className="text-lg font-black">enkripsi 24/7</h4>
                </div>
                <div className="text-left">
-                 <p className="text-xs text-slate-400 font-medium mt-2 leading-relaxed">Sistem keamanan berjalan tanpa henti memantau anomali transaksi digital.</p>
+                 <p className="text-xs text-slate-400 font-medium mt-2 leading-relaxed">sistem keamanan berjalan tanpa henti memantau anomali transaksi digital.</p>
                </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION 3: LIVE FEED ACTIVITY */}
+      {/* section 3: live feed activity */}
       <section className="max-w-6xl mx-auto px-6 mb-24">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-slate-200 pb-4">
           <div className="text-left">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Live Activity Feed</span>
-            </div>
-            <h2 className="text-2xl font-black tracking-tighter uppercase text-slate-900">Log Laporan Terkini</h2>
+            <h2 className="text-2xl font-black tracking-tighter uppercase text-slate-900">log laporan terkini</h2>
           </div>
-          <Link href="/report" className="px-5 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-emerald-600 hover:border-emerald-200 transition-all flex items-center gap-2 shadow-sm uppercase tracking-widest">
-            Entri Laporan <PlusCircle className="w-3.5 h-3.5" />
-          </Link>
+          {/* ✅ tombol entri laporan di kanan udah diapus mad jir */}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -149,7 +135,7 @@ export default async function HomePage() {
                 </div>
                 <div className="mb-5 text-left">
                   <p className="text-xl font-black font-mono tracking-tighter text-slate-900 group-hover:text-emerald-600 transition-colors">{maskNumber(report.target_number)}</p>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">a.n. {report.target_name || 'Anonymous'}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">a.n. {report.target_name || 'anonymous'}</p>
                 </div>
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -164,21 +150,21 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 4: FINAL CTA */}
+      {/* section 4: final cta */}
       <section className="max-w-5xl mx-auto px-6 pb-20">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 md:p-16 text-center text-white relative overflow-hidden shadow-xl">
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4 uppercase">Berikan Kontribusi Anda.</h2>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4 uppercase">berikan kontribusi anda.</h2>
             <p className="text-slate-400 text-sm max-w-xl mx-auto mb-10 font-medium leading-relaxed">
-              Jangan biarkan pelaku mencari korban berikutnya. Laporkan nomor mencurigakan sekarang untuk ekosistem digital yang lebih aman.
+              jangan biarkan pelaku mencari korban berikutnya. laporkan nomor mencurigakan sekarang untuk ekosistem digital yang lebih aman.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/report" className="w-full sm:w-auto px-8 py-4 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-500 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest">
-                <PlusCircle className="w-4 h-4" /> Entri Laporan Baru
+                <PlusCircle className="w-4 h-4" /> entri laporan baru
               </Link>
               <Link href="/register" className="w-full sm:w-auto px-8 py-4 bg-transparent border border-slate-700 text-white font-bold text-sm rounded-xl hover:bg-slate-800 hover:border-slate-600 transition-all uppercase tracking-widest">
-                Gabung Komunitas
+                gabung komunitas
               </Link>
             </div>
           </div>
