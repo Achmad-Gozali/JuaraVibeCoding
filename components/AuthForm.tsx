@@ -63,7 +63,6 @@ function AuthFormInner({ type }: AuthFormProps) {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setSuccessMessage(null);
 
     try {
       if (type === 'register') {
@@ -78,12 +77,12 @@ function AuthFormInner({ type }: AuthFormProps) {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
         
-        // FIX: Refresh dulu biar middleware dapet cookie terbaru, baru pindah
+        // JURUS: Refresh cache router sebelum push
         router.refresh();
         setTimeout(() => router.push(redirectTo), 100);
       }
     } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan autentikasi.');
+      setError(err.message || 'Terjadi kesalahan.');
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +99,7 @@ function AuthFormInner({ type }: AuthFormProps) {
             {type === 'login' ? 'Selamat Datang' : 'Buat Akun Baru'}
           </h2>
           <p className="text-zinc-500 font-medium">
-            {type === 'login' ? 'Masuk untuk mulai melapor.' : 'Daftar untuk bergabung.'}
+            {type === 'login' ? 'Masuk untuk mulai melaporkan nomor penipu.' : 'Daftar untuk berkontribusi.'}
           </p>
         </div>
 
@@ -124,7 +123,7 @@ function AuthFormInner({ type }: AuthFormProps) {
               type="button"
               onClick={() => handleOAuthLogin(p.id)}
               disabled={!!oauthLoading || isLoading}
-              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm text-zinc-700 hover:bg-zinc-100 transition-all active:scale-[0.98] disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 transition-all active:scale-[0.98] disabled:opacity-50"
             >
               {oauthLoading === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : p.icon}
               {type === 'login' ? 'Masuk' : 'Daftar'} dengan {p.label}
@@ -141,16 +140,16 @@ function AuthFormInner({ type }: AuthFormProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {type === 'register' && (
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Nama Lengkap</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Nama Lengkap</label>
               <div className="relative">
                 <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nama Anda"
+                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe"
                   className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-zinc-900 focus:bg-white outline-none transition-all font-bold text-zinc-900" required />
               </div>
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Email</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@contoh.com"
@@ -158,7 +157,7 @@ function AuthFormInner({ type }: AuthFormProps) {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Password</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Password</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 6 karakter"
@@ -173,7 +172,7 @@ function AuthFormInner({ type }: AuthFormProps) {
 
         <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
           <p className="text-sm text-zinc-500 font-medium">
-            {type === 'login' ? <>Belum punya akun? <Link href="/register" className="text-zinc-900 font-black hover:underline">Daftar</Link></> : <>Sudah punya akun? <Link href="/login" className="text-zinc-900 font-black hover:underline">Masuk</Link></>}
+            {type === 'login' ? <>Belum punya akun? <Link href="/register" className="text-zinc-900 font-black hover:underline underline-offset-4">Daftar di sini</Link></> : <>Sudah punya akun? <Link href="/login" className="text-zinc-900 font-black hover:underline underline-offset-4">Masuk di sini</Link></>}
           </p>
         </div>
       </div>

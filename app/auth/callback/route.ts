@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies();
-    const response = NextResponse.redirect(`${origin}${next}`);
-
+    
+    // Default response, tapi nanti kita suntik header di bawah
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,10 +19,11 @@ export async function GET(request: NextRequest) {
         cookies: {
           getAll() { return cookieStore.getAll(); },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-              response.cookies.set(name, value, options);
-            });
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch { /* Handle in middleware */ }
           },
         },
       }
@@ -31,9 +32,23 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data?.user) {
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
       const finalUrl = profile?.role === 'admin' ? `${origin}/admin` : `${origin}${next}`;
-      return NextResponse.redirect(finalUrl, { headers: response.headers });
+      
+      // ✅ FIX: Buat response baru dan suntik cookie store secara manual agar sinkron
+      const redirectResponse = NextResponse.redirect(finalUrl);
+      
+      // Copy cookies dari store ke response redirect
+      cookieStore.getAll().forEach(cookie => {
+          redirectResponse.cookies.set(cookie.name, cookie.value);
+      });
+
+      return redirectResponse;
     }
   }
 
