@@ -5,7 +5,7 @@ import { maskNumber, formatDateID } from '@/lib/utils';
 import BankPageClient from './BankPageClient';
 
 // ── DATA BANK (hardcode, statis) ──────────────────────────────────────────────
-export const bankData: Record<string, {
+const bankData: Record<string, {
   name: string;
   fullName: string;
   logo: string;
