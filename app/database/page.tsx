@@ -64,12 +64,13 @@ function getTargetMeta(type: string, bankName: string | null) {
 export default async function DatabasePage({
   searchParams,
 }: {
-  searchParams: { type?: string; page?: string };
+  searchParams: Promise<{ type?: string; page?: string }>;
 }) {
   const supabase = await createClient();
+  const params = await searchParams;
 
-  const type = searchParams.type ?? 'all';
-  const page = parseInt(searchParams.page ?? '1');
+  const type = params.type ?? 'all';
+  const page = parseInt(params.page ?? '1');
   const perPage = 12;
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
@@ -88,8 +89,8 @@ export default async function DatabasePage({
   const { data: reports, count } = await query;
   const totalPages = Math.ceil((count ?? 0) / perPage);
 
-  const buildUrl = (params: Record<string, string>) => {
-    const p = new URLSearchParams({ type, page: '1', ...params });
+  const buildUrl = (newParams: Record<string, string>) => {
+    const p = new URLSearchParams({ type, page: '1', ...newParams });
     return `/database?${p.toString()}`;
   };
 
