@@ -25,8 +25,8 @@ export default function Navbar() {
   const supabase = useRef(createClient()).current;
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setIsLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -47,6 +47,16 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) => pathname === path;
+
+  const firstName = user
+    ? (
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.user_metadata?.preferred_username ||
+        user.email?.split('@')[0] ||
+        'Pengguna'
+      ).split(' ')[0]
+    : null;
 
   return (
     <nav className="bg-white sticky top-0 z-50 border-b border-slate-200 font-sans">
@@ -93,6 +103,9 @@ export default function Navbar() {
               <div className="w-24 h-9 bg-slate-100 animate-pulse rounded-lg" />
             ) : user ? (
               <>
+                <span className="text-xs text-slate-500 px-2">
+                  Hi, <span className="font-bold text-slate-800">{firstName}</span>
+                </span>
                 <Link
                   href="/dashboard"
                   className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg uppercase tracking-widest transition-colors"
@@ -161,7 +174,10 @@ export default function Navbar() {
               <div className="space-y-1">
                 <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-lg mb-2">
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Akun</p>
-                  <p className="text-xs font-black text-slate-900 truncate mt-0.5">{user.email}</p>
+                  <p className="text-xs font-black text-slate-900 truncate mt-0.5">
+                    Hi, {firstName} 👋
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
                 </div>
                 <Link
                   href="/dashboard"
