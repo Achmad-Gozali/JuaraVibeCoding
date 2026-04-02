@@ -7,7 +7,8 @@ import {
   ExternalLink,
   Globe, PlusCircle,
 } from 'lucide-react';
-import { formatDateID, formatNum } from '@/lib/utils';
+// ✅ Added decodeSlug to imports
+import { formatDateID, formatNum, decodeSlug } from '@/lib/utils';
 import ShareButtons from './ShareButtons';
 
 export const revalidate = 60;
@@ -18,9 +19,11 @@ interface CheckPageProps {
 
 export async function generateMetadata({ params }: CheckPageProps): Promise<Metadata> {
   const { slug } = await params;
+  // ✅ Decode untuk metadata title/description
+  const realNumber = decodeSlug(slug);
   return {
-    title: `cek nomor ${slug} - kawaltransaksi`,
-    description: `hasil pengecekan nomor ${slug} di database laporan komunitas kawaltransaksi.`,
+    title: `cek nomor ${realNumber} - kawaltransaksi`,
+    description: `hasil pengecekan nomor ${realNumber} di database laporan komunitas kawaltransaksi.`,
   };
 }
 
@@ -36,7 +39,11 @@ function formatSosmed(acc: string): { label: string; isUrl: boolean; href: strin
 export default async function CheckPage({ params }: CheckPageProps) {
   const { slug } = await params;
 
-  if (!slug || !/^[0-9a-zA-Z\-]+$/.test(slug) || slug.length > 20) {
+  // ✅ 1. Decode slug untuk dapet nomor HP aslinya
+  const realNumber = decodeSlug(slug);
+
+  // ✅ 2. Update validasi length karena base64 slug lebih panjang
+  if (!slug || slug.length > 50) {
     notFound();
   }
 
@@ -45,7 +52,8 @@ export default async function CheckPage({ params }: CheckPageProps) {
   const { data, error } = await supabase
     .from('reports')
     .select('*')
-    .eq('target_number', slug)
+    // ✅ 3. Query pake realNumber aslinya
+    .eq('target_number', realNumber)
     .order('created_at', { ascending: false });
 
   if (error) console.error('error fetching reports:', error);
@@ -123,11 +131,12 @@ export default async function CheckPage({ params }: CheckPageProps) {
 
   const config = statusConfig[status];
 
+  // ✅ 4. Gunakan formatNum(realNumber) buat teks share
   const shareText = status === 'danger'
-    ? `⚠️ waspada! nomor ${formatNum(slug)} terindikasi penipu dengan ${verifiedCount} laporan terverifikasi. cek di kawaltransaksi:`
+    ? `⚠️ waspada! nomor ${formatNum(realNumber)} terindikasi penipu dengan ${verifiedCount} laporan terverifikasi. cek di kawaltransaksi:`
     : status === 'warning'
-      ? `⚠️ nomor ${formatNum(slug)} sedang dalam proses verifikasi laporan penipuan. cek di kawaltransaksi:`
-      : `✅ nomor ${formatNum(slug)} aman — belum ada laporan penipuan di kawaltransaksi:`;
+      ? `⚠️ nomor ${formatNum(realNumber)} sedang dalam proses verifikasi laporan penipuan. cek di kawaltransaksi:`
+      : `✅ nomor ${formatNum(realNumber)} aman — belum ada laporan penipuan di kawaltransaksi:`;
 
   const verificationSteps = [
     { label: 'Laporan diterima', done: true },
@@ -232,7 +241,8 @@ export default async function CheckPage({ params }: CheckPageProps) {
                       className="text-[2rem] sm:text-5xl font-medium text-slate-900 tracking-tight break-all leading-none mb-4"
                       style={{ fontFamily: "'DM Mono', monospace" }}
                     >
-                      {formatNum(slug)}
+                      {/* ✅ 5. Tampilkan realNumber yang asli */}
+                      {formatNum(realNumber)}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <span className={`text-[11px] px-3 py-1 rounded-full font-medium border ${config.nameBadgeBg} ${config.nameBadgeText} ${config.nameBadgeBorder}`}>
@@ -466,7 +476,7 @@ export default async function CheckPage({ params }: CheckPageProps) {
               </div>
             )}
 
-{/* STATUS VERIFIKASI */}
+            {/* STATUS VERIFIKASI */}
             {reports.length > 0 && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-2.5 font-medium px-0.5">
@@ -525,6 +535,7 @@ export default async function CheckPage({ params }: CheckPageProps) {
               <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-3 font-medium">
                 Sebarkan peringatan
               </p>
+              {/* ✅ 6. ShareButtons tetep pake slug (base64) biar link yang di-copy juga rapi */}
               <ShareButtons slug={slug} shareText={shareText} />
             </div>
 

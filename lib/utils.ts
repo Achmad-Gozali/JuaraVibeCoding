@@ -1,11 +1,3 @@
-// ============================================
-// 📁 LOKASI: lib/utils.ts
-// ✅ FIX: Konsolidasi semua helper functions di sini
-//    - maskNumber() dipindah dari 3 file berbeda
-//    - formatNum() dipindah dari check/[slug]/page.tsx
-//    - Semua pakai implementasi yang konsisten
-// ============================================
-
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -57,4 +49,27 @@ export function formatDateID(dateStr: string): string {
     month: 'long',
     day: 'numeric',
   });
+}
+
+/**
+ * ✅ NEW: Encode string ke Base64 URL-safe (masking url)
+ */
+export function encodeSlug(text: string): string {
+  return Buffer.from(text).toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * ✅ NEW: Balikin Base64 URL-safe ke string asli
+ */
+export function decodeSlug(slug: string): string {
+  let base64 = slug.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) base64 += '=';
+  try {
+    return Buffer.from(base64, 'base64').toString('ascii');
+  } catch (e) {
+    return slug; // fallback kalo gagal decode
+  }
 }

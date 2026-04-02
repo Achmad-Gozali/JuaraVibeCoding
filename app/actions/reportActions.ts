@@ -87,7 +87,6 @@ export async function submitReport(formData: {
     has_concrete_evidence: boolean;
     is_likely_authentic: boolean;
   } | null;
-  // ── FIELD BARU ──
   social_media_accounts?: string[];
   has_other_victims?: string | null;
   reported_to?: string[];
@@ -161,9 +160,8 @@ export async function submitReport(formData: {
     console.error('[AUTO-VERIFY] error, fallback ke pending:', err);
   }
 
-  // ── insert ke database
-  const dbTargetType =
-    formData.target_type === 'ewallet' ? 'bank_account' : formData.target_type;
+  // ✅ FINAL FIX: Gunakan target_type asli dari form (support 'ewallet')
+  const dbTargetType = formData.target_type;
 
   const { error } = await supabase.from('reports').insert({
     reporter_id: user.id,
@@ -179,7 +177,6 @@ export async function submitReport(formData: {
     incident_date: formData.incident_date || null,
     platform: formData.platform || null,
     link_url: formData.link_url || null,
-    // ── FIELD BARU ──
     social_media_accounts: formData.social_media_accounts?.filter(Boolean) ?? [],
     has_other_victims: formData.has_other_victims || null,
     reported_to: formData.reported_to ?? [],

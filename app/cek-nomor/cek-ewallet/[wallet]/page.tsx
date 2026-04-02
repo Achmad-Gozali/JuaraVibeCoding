@@ -276,6 +276,8 @@ export default async function EwalletDetailPage({ params }: PageProps) {
 
   const supabase = await createClient();
 
+  // FIX: Filter target_type dibuat lebih fleksibel (phone, bank_account, atau ewallet)
+  // Biar lebih clean, kita filter berdasarkan bank_name saja karena ini halaman spesifik provider
   const [
     { data: recentReports },
     { count: totalCount },
@@ -283,40 +285,34 @@ export default async function EwalletDetailPage({ params }: PageProps) {
     { count: pendingCount },
     { data: categoryData },
   ] = await Promise.all([
-    // ✅ UPDATED: tambah filter target_type = 'phone' di semua query
     supabase
       .from('reports')
       .select('target_number, target_name, status, created_at')
       .ilike('bank_name', `%${data.dbName}%`)
-      .eq('target_type', 'phone') // ✅ filter baru
       .order('created_at', { ascending: false })
       .limit(6),
 
     supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
-      .ilike('bank_name', `%${data.dbName}%`)
-      .eq('target_type', 'phone'), // ✅ filter baru
+      .ilike('bank_name', `%${data.dbName}%`),
 
     supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
       .ilike('bank_name', `%${data.dbName}%`)
-      .eq('target_type', 'phone') // ✅ filter baru
       .eq('status', 'verified'),
 
     supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
       .ilike('bank_name', `%${data.dbName}%`)
-      .eq('target_type', 'phone') // ✅ filter baru
       .eq('status', 'pending'),
 
     supabase
       .from('reports')
       .select('category')
-      .ilike('bank_name', `%${data.dbName}%`)
-      .eq('target_type', 'phone'), // ✅ filter baru
+      .ilike('bank_name', `%${data.dbName}%`),
   ]);
 
   const reports = (recentReports ?? []).map((r) => ({
@@ -349,4 +345,4 @@ export default async function EwalletDetailPage({ params }: PageProps) {
       categoryBreakdown={categoryBreakdown}
     />
   );
-} 
+}

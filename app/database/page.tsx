@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase-server';
-import { formatDateID } from '@/lib/utils';
+import { formatDateID, encodeSlug } from '@/lib/utils'; // ✅ Added encodeSlug
 import { Phone, Building2, Wallet, ArrowUpRight, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -164,7 +164,8 @@ export default async function DatabasePage({
                 return (
                   <Link
                     key={report.id}
-                    href={`/check/${report.target_number}`}
+                    // ✅ FIX: Masking nomor dengan encodeSlug
+                    href={`/check/${encodeSlug(report.target_number)}`}
                     className="block bg-white border border-slate-200 p-5 rounded-lg hover:border-slate-300 hover:shadow-md transition-all group"
                   >
                     {/* Top row */}
