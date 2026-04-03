@@ -2,12 +2,16 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import EditReportForm from "./EditReportForm";
 
+// 1. Ubah tipe data params menjadi Promise
 export default async function EditReportPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const supabase = await createClient(); // ✅ tambah await di sini
+  // 2. Lakukan await params untuk mengambil id
+  const { id } = await params;
+
+  const supabase = await createClient();
 
   const {
     data: { user },
@@ -17,7 +21,7 @@ export default async function EditReportPage({
   const { data: report } = await supabase
     .from("reports")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id) // 3. Gunakan id yang sudah di-await tadi
     .eq("reporter_id", user.id)
     .single();
 
