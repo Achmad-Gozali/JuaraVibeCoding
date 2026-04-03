@@ -203,7 +203,7 @@ export default async function CekNomorPage() {
             </div>
             <div className="bg-emerald-50 rounded-xl px-6 sm:px-8 py-6 sm:py-7">
               <p className="text-slate-800 text-sm sm:text-base font-bold leading-relaxed text-center">
-                "KawalTransaksi hadir untuk melindungi masyarakat Indonesia dari ancaman penipuan digital yang terus berkembang setiap harinya."
+                &quot;KawalTransaksi hadir untuk melindungi masyarakat Indonesia dari ancaman penipuan digital yang terus berkembang setiap harinya.&quot;
               </p>
             </div>
           </div>

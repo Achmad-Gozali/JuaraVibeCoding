@@ -61,7 +61,7 @@ export default function ReportList({ reports }: Props) {
               </div>
 
               <div className="px-4 py-4">
-                <p className="text-sm text-slate-600 leading-relaxed italic">"{report.chronology}"</p>
+                <p className="text-sm text-slate-600 leading-relaxed italic">&quot;{report.chronology}&quot;</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2.5 border-t border-slate-100 bg-slate-50/40">

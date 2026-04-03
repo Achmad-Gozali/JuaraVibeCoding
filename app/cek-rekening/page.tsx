@@ -206,7 +206,7 @@ export default async function CekRekeningPage() {
             </div>
             <div className="bg-emerald-50 rounded-xl px-6 sm:px-8 py-6 sm:py-7">
               <p className="text-slate-800 text-sm sm:text-base font-bold leading-relaxed text-center">
-                "Sebelum transfer, selalu verifikasi rekening tujuan. Satu langkah kecil yang bisa menyelamatkan uang Anda dari tangan penipu."
+                &quot;Sebelum transfer, selalu verifikasi rekening tujuan. Satu langkah kecil yang bisa menyelamatkan uang Anda dari tangan penipu.&quot;
               </p>
             </div>
           </div>

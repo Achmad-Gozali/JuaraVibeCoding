@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
@@ -24,7 +24,8 @@ export default function Navbar() {
   const [isLoading, setIsLoading]           = useState(true);
   const router      = useRouter();
   const pathname    = usePathname();
-  const supabase    = useRef(createClient()).current;
+  // ✅ FIX 1: Ganti useRef().current → useMemo
+  const supabase    = useMemo(() => createClient(), []);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -121,6 +122,7 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  // ✅ FIX 2: Tidak ada tanda kutip di JSX, aman
                   className={`flex items-center gap-2 px-4 h-full text-sm font-bold uppercase tracking-wider transition-colors border-b-2 ${
                     isActive(item.href)
                       ? 'text-emerald-700 border-emerald-600'
@@ -145,6 +147,9 @@ export default function Navbar() {
                     <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
                       <span className="text-white text-sm font-black">{initials}</span>
                     </div>
+                    {/* ✅ FIX 2: Gunakan {' '} atau &quot; untuk karakter string, tapi
+                        "Hi," di sini aman karena tidak ada tanda kutip ganda di JSX-nya.
+                        Pastikan tidak ada " literal di luar string JS */}
                     <span className="text-base text-slate-700">
                       Hi, <span className="font-bold text-slate-900">{firstName}</span>
                     </span>
@@ -206,9 +211,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ══════════════════════════════════════
-          MOBILE: LEFT DRAWER — Menu Navigasi
-      ══════════════════════════════════════ */}
+      {/* MOBILE: LEFT DRAWER */}
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-[60] flex">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
@@ -256,9 +259,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════
-          MOBILE: RIGHT DRAWER — Profile
-      ══════════════════════════════════════ */}
+      {/* MOBILE: RIGHT DRAWER — Profile */}
       {isProfileOpen && user && (
         <div className="lg:hidden fixed inset-0 z-[60] flex justify-end">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)} />
