@@ -10,8 +10,22 @@ function formatSosmed(acc: string): { label: string; isUrl: boolean; href: strin
   return { label: `@${withoutAt}`, isUrl: false, href: '' };
 }
 
+interface ReportItem {
+  id: string;
+  status: string;
+  category: string;
+  chronology: string;
+  created_at: string;
+  platform?: string | null;
+  loss_amount?: number | string | null;
+  incident_date?: string | null;
+  has_other_victims?: string | null;
+  evidence_url?: string | null;
+  social_media_accounts?: string[] | null;
+}
+
 interface Props {
-  reports: any[];
+  reports: ReportItem[];
 }
 
 export default function ReportList({ reports }: Props) {
@@ -32,7 +46,11 @@ export default function ReportList({ reports }: Props) {
             <div key={report.id} className="bg-white rounded-lg border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50/60">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold border ${report.status === 'verified' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold border ${
+                    report.status === 'verified'
+                      ? 'bg-red-50 text-red-700 border-red-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}>
                     {report.status === 'verified' ? 'Terverifikasi' : 'Pending'}
                   </span>
                   <span className="text-[11px] text-slate-600 font-medium uppercase tracking-tight">
@@ -47,44 +65,68 @@ export default function ReportList({ reports }: Props) {
               </div>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2.5 border-t border-slate-100 bg-slate-50/40">
-                {report.platform && <div className="text-[10px] text-slate-500 uppercase">{report.platform}</div>}
+                {report.platform && (
+                  <div className="text-[10px] text-slate-500 uppercase">{report.platform}</div>
+                )}
                 {report.loss_amount && (
                   <div className="text-[10px] font-semibold text-red-600 uppercase">
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(report.loss_amount))}
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      maximumFractionDigits: 0,
+                    }).format(Number(report.loss_amount))}
                   </div>
                 )}
                 {report.incident_date && (
                   <div className="text-[10px] text-slate-400 uppercase">
-                    Kejadian: {new Date(report.incident_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    Kejadian: {new Date(report.incident_date).toLocaleDateString('id-ID', {
+                      day: 'numeric', month: 'short', year: 'numeric',
+                    })}
                   </div>
                 )}
                 {report.has_other_victims === 'yes' && (
                   <div className="text-[10px] font-semibold text-amber-600 uppercase">Ada korban lain</div>
                 )}
                 {report.evidence_url && (
-                  <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] text-emerald-600 hover:text-emerald-700 uppercase tracking-wide transition-colors ml-auto font-medium">
+                  <a
+                    href={report.evidence_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[10px] text-emerald-600 hover:text-emerald-700 uppercase tracking-wide transition-colors ml-auto font-medium"
+                  >
                     Lampiran <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
 
-              {Array.isArray(report.social_media_accounts) && report.social_media_accounts.filter(Boolean).length > 0 && (
-                <div className="px-4 py-2.5 border-t border-slate-100 flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-widest mr-1">Sosmed:</span>
-                  {report.social_media_accounts.filter(Boolean).map((acc: string, i: number) => {
-                    const fmt = formatSosmed(acc);
-                    return (
-                      <span key={i} className="text-[10px] px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-md" style={{ fontFamily: "'DM Mono', monospace" }}>
-                        {fmt.isUrl ? (
-                          <a href={fmt.href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
-                            {fmt.label} <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
-                        ) : fmt.label}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
+              {Array.isArray(report.social_media_accounts) &&
+                report.social_media_accounts.filter(Boolean).length > 0 && (
+                  <div className="px-4 py-2.5 border-t border-slate-100 flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-widest mr-1">Sosmed:</span>
+                    {report.social_media_accounts.filter(Boolean).map((acc, i) => {
+                      const fmt = formatSosmed(acc);
+                      return (
+                        <span
+                          key={i}
+                          className="text-[10px] px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-md"
+                          style={{ fontFamily: "'DM Mono', monospace" }}
+                        >
+                          {fmt.isUrl ? (
+                            <a
+                              href={fmt.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              {fmt.label.length > 40 ? fmt.label.slice(0, 40) + '...' : fmt.label}
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          ) : fmt.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
             </div>
           ))}
         </div>

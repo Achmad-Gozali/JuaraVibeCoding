@@ -1,13 +1,8 @@
-// ============================================
-// 📁 LOKASI: app/admin/page.tsx
-// ✅ FIX: Balik pake RPC karena fungsi get_reports_admin di Supabase lu UDAH SUKSES DI-UPGRADE
-// ============================================
-
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase-server';
 import AdminDashboard from './AdminDashboard';
 
-export const revalidate = 0;
+export const revalidate = 30;
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -17,14 +12,14 @@ export default async function AdminPage() {
     { count: pendingCount },
     { count: verifiedCount },
     { count: rejectedCount },
-    { data: reports }, // ✅ Balik ke nama variabel normal
+    { data: reports },
     { data: users },
   ] = await Promise.all([
     supabase.from('reports').select('*', { count: 'exact', head: true }),
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-    supabase.rpc('get_reports_admin'), // ✅ KITA PAKE RPC LAGI KARENA UDAH LU BENERIN DI SQL EDITOR
+    supabase.rpc('get_reports_admin'),
     supabase.from('profiles').select('id, full_name, role, updated_at'),
   ]);
 

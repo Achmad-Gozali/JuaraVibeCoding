@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { maskNumber, formatDateID } from '@/lib/utils';
 import BankPageClient from './BankPageClient';
 
-// ── DATA BANK ─────────────────────────────────────────────────────────────────
 const bankData: Record<string, {
   name: string;
   fullName: string;
@@ -40,10 +39,10 @@ const bankData: Record<string, {
       'Gunakan hanya aplikasi myBCA resmi untuk transaksi digital.',
     ],
     faqs: [
-      { question: 'Cara cek rekening BCA dari penipuan?', answer: 'Masukkan nomor rekening BCA yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan nomor tersebut dengan database laporan komunitas KawalTransaksi.' },
-      { question: 'Cara melaporkan rekening BCA penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini atau buka menu Laporkan. Isi nomor rekening, nama bank (BCA), kronologi penipuan, dan unggah bukti transfer. Laporan akan diverifikasi oleh tim moderator.' },
-      { question: 'Cara menghubungi BCA untuk lapor penipuan?', answer: 'Hubungi Halo BCA di 1500888 (24 jam) atau datang langsung ke kantor cabang BCA terdekat dengan membawa bukti transaksi. BCA juga memiliki fitur pelaporan melalui aplikasi myBCA.' },
-      { question: 'Berapa kode bank BCA untuk transfer?', answer: 'Kode bank BCA adalah 014. Kode ini digunakan saat transfer antar bank dari bank lain ke rekening BCA.' },
+      { question: 'Cara cek rekening BCA dari penipuan?', answer: 'Masukkan nomor rekening BCA yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
+      { question: 'Cara melaporkan rekening BCA penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening, nama bank (BCA), kronologi penipuan, dan unggah bukti transfer.' },
+      { question: 'Cara menghubungi BCA untuk lapor penipuan?', answer: 'Hubungi Halo BCA di 1500888 (24 jam) atau datang langsung ke kantor cabang BCA terdekat.' },
+      { question: 'Berapa kode bank BCA untuk transfer?', answer: 'Kode bank BCA adalah 014.' },
     ],
   },
   bri: {
@@ -68,10 +67,10 @@ const bankData: Record<string, {
       'Laporkan transaksi mencurigakan ke BRI Contact 14017.',
     ],
     faqs: [
-      { question: 'Cara cek rekening BRI dari penipuan?', answer: 'Masukkan nomor rekening BRI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan nomor tersebut dengan database laporan komunitas KawalTransaksi.' },
-      { question: 'Cara melaporkan rekening BRI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BRI, kronologi penipuan, dan lampirkan bukti. Tim moderator akan memverifikasi laporan dalam 1x24 jam.' },
-      { question: 'Cara menghubungi BRI untuk lapor penipuan?', answer: 'Hubungi Contact BRI di 14017 atau (021) 500017 (24 jam). Kamu juga bisa melapor melalui aplikasi BRImo atau datang ke kantor cabang BRI terdekat dengan membawa bukti transaksi.' },
-      { question: 'Berapa kode bank BRI untuk transfer?', answer: 'Kode bank BRI adalah 002. Kode ini digunakan saat transfer antar bank dari bank lain ke rekening BRI.' },
+      { question: 'Cara cek rekening BRI dari penipuan?', answer: 'Masukkan nomor rekening BRI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
+      { question: 'Cara melaporkan rekening BRI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BRI, kronologi penipuan, dan lampirkan bukti.' },
+      { question: 'Cara menghubungi BRI untuk lapor penipuan?', answer: 'Hubungi Contact BRI di 14017 atau (021) 500017 (24 jam).' },
+      { question: 'Berapa kode bank BRI untuk transfer?', answer: 'Kode bank BRI adalah 002.' },
     ],
   },
   bni: {
@@ -96,10 +95,10 @@ const bankData: Record<string, {
       'Gunakan hanya website resmi bni.co.id untuk internet banking.',
     ],
     faqs: [
-      { question: 'Cara cek rekening BNI dari penipuan?', answer: 'Masukkan nomor rekening BNI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan nomor tersebut dengan database laporan komunitas KawalTransaksi.' },
-      { question: 'Cara melaporkan rekening BNI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BNI, kronologi kejadian, dan unggah bukti. Laporan akan masuk ke database dan diverifikasi oleh moderator KawalTransaksi.' },
-      { question: 'Cara menghubungi BNI untuk lapor penipuan?', answer: 'Hubungi BNI Call di 1500046 (24 jam) atau (021) 1500046. Laporan juga bisa disampaikan melalui aplikasi BNI Mobile Banking atau datang ke kantor cabang BNI terdekat.' },
-      { question: 'Berapa kode bank BNI untuk transfer?', answer: 'Kode bank BNI adalah 009. Kode ini digunakan saat transfer antar bank dari bank lain ke rekening BNI.' },
+      { question: 'Cara cek rekening BNI dari penipuan?', answer: 'Masukkan nomor rekening BNI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
+      { question: 'Cara melaporkan rekening BNI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BNI, kronologi kejadian, dan unggah bukti.' },
+      { question: 'Cara menghubungi BNI untuk lapor penipuan?', answer: 'Hubungi BNI Call di 1500046 (24 jam) atau (021) 1500046.' },
+      { question: 'Berapa kode bank BNI untuk transfer?', answer: 'Kode bank BNI adalah 009.' },
     ],
   },
   mandiri: {
@@ -110,7 +109,7 @@ const bankData: Record<string, {
     callCenter: '14000',
     website: 'https://www.bankmandiri.co.id',
     websiteLabel: 'www.bankmandiri.co.id',
-    description: 'PT Bank Mandiri (Persero) Tbk adalah bank terbesar di Indonesia berdasarkan total aset. Didirikan pada 2 Oktober 1998 sebagai hasil merger empat bank BUMN, Bank Mandiri kini melayani segmen retail, komersial, dan korporasi.',
+    description: 'PT Bank Mandiri (Persero) Tbk adalah bank terbesar di Indonesia berdasarkan total aset. Didirikan pada 2 Oktober 1998 sebagai hasil merger empat bank BUMN.',
     transferTips: [
       'Gunakan kode bank Mandiri 008 saat transfer dari bank lain.',
       'Nomor rekening Mandiri terdiri dari 13 digit angka.',
@@ -124,10 +123,10 @@ const bankData: Record<string, {
       'Pastikan URL internet banking adalah bankmandiri.co.id.',
     ],
     faqs: [
-      { question: 'Cara cek rekening Mandiri dari penipuan?', answer: 'Masukkan nomor rekening Mandiri yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan nomor tersebut dengan database laporan komunitas KawalTransaksi.' },
-      { question: 'Cara melaporkan rekening Mandiri penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Lengkapi form dengan nomor rekening Mandiri, kronologi penipuan, dan bukti pendukung. Laporan akan diverifikasi dalam 1x24 jam.' },
-      { question: 'Cara menghubungi Bank Mandiri untuk lapor penipuan?', answer: "Hubungi Mandiri Call di 14000 atau (021) 5299-7777 (24 jam). Pelaporan juga bisa dilakukan melalui aplikasi Livin' by Mandiri atau di kantor cabang terdekat." },
-      { question: 'Berapa kode bank Mandiri untuk transfer?', answer: 'Kode bank Mandiri adalah 008. Kode ini digunakan saat transfer antar bank dari bank lain ke rekening Bank Mandiri.' },
+      { question: 'Cara cek rekening Mandiri dari penipuan?', answer: 'Masukkan nomor rekening Mandiri yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
+      { question: 'Cara melaporkan rekening Mandiri penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Lengkapi form dengan nomor rekening Mandiri, kronologi penipuan, dan bukti pendukung.' },
+      { question: 'Cara menghubungi Bank Mandiri untuk lapor penipuan?', answer: "Hubungi Mandiri Call di 14000 atau (021) 5299-7777 (24 jam)." },
+      { question: 'Berapa kode bank Mandiri untuk transfer?', answer: 'Kode bank Mandiri adalah 008.' },
     ],
   },
   cimb: {
@@ -138,7 +137,7 @@ const bankData: Record<string, {
     callCenter: '14041',
     website: 'https://www.cimbniaga.co.id',
     websiteLabel: 'www.cimbniaga.co.id',
-    description: 'PT Bank CIMB Niaga Tbk adalah bank swasta terbesar kedua di Indonesia. Merupakan bagian dari grup CIMB Malaysia, bank ini menawarkan layanan perbankan ritel, syariah, dan korporasi yang lengkap.',
+    description: 'PT Bank CIMB Niaga Tbk adalah bank swasta terbesar kedua di Indonesia. Merupakan bagian dari grup CIMB Malaysia.',
     transferTips: [
       'Gunakan kode bank CIMB Niaga 022 saat transfer dari bank lain.',
       'Nomor rekening CIMB Niaga terdiri dari 13-16 digit angka.',
@@ -152,10 +151,10 @@ const bankData: Record<string, {
       'Gunakan hanya aplikasi OCTO Mobile resmi dari Play Store/App Store.',
     ],
     faqs: [
-      { question: 'Cara cek rekening CIMB Niaga dari penipuan?', answer: 'Masukkan nomor rekening CIMB Niaga yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan nomor tersebut dengan database laporan komunitas KawalTransaksi.' },
-      { question: 'Cara melaporkan rekening CIMB Niaga penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening CIMB Niaga, kronologi penipuan, dan lampirkan bukti transfer. Tim moderator KawalTransaksi akan memproses laporan kamu.' },
-      { question: 'Cara menghubungi CIMB Niaga untuk lapor penipuan?', answer: 'Hubungi Phone Banking CIMB Niaga di 14041 atau (021) 2997-9999 (24 jam). Laporan juga bisa disampaikan melalui aplikasi OCTO Mobile atau kantor cabang CIMB Niaga terdekat.' },
-      { question: 'Berapa kode bank CIMB Niaga untuk transfer?', answer: 'Kode bank CIMB Niaga adalah 022. Kode ini digunakan saat transfer antar bank dari bank lain ke rekening CIMB Niaga.' },
+      { question: 'Cara cek rekening CIMB Niaga dari penipuan?', answer: 'Masukkan nomor rekening CIMB Niaga yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
+      { question: 'Cara melaporkan rekening CIMB Niaga penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening CIMB Niaga, kronologi penipuan, dan lampirkan bukti transfer.' },
+      { question: 'Cara menghubungi CIMB Niaga untuk lapor penipuan?', answer: 'Hubungi Phone Banking CIMB Niaga di 14041 atau (021) 2997-9999 (24 jam).' },
+      { question: 'Berapa kode bank CIMB Niaga untuk transfer?', answer: 'Kode bank CIMB Niaga adalah 022.' },
     ],
   },
   bsi: {
@@ -166,7 +165,7 @@ const bankData: Record<string, {
     callCenter: '14040',
     website: 'https://www.bankbsi.co.id',
     websiteLabel: 'www.bankbsi.co.id',
-    description: 'PT Bank Syariah Indonesia Tbk (BSI) adalah bank syariah terbesar di Indonesia, hasil merger Bank BRI Syariah, Bank BNI Syariah, dan Bank Syariah Mandiri pada 1 Februari 2021. BSI melayani perbankan berbasis prinsip syariah Islam.',
+    description: 'PT Bank Syariah Indonesia Tbk (BSI) adalah bank syariah terbesar di Indonesia, hasil merger Bank BRI Syariah, Bank BNI Syariah, dan Bank Syariah Mandiri pada 1 Februari 2021.',
     transferTips: [
       'Gunakan kode bank BSI 451 saat transfer dari bank lain.',
       'Nomor rekening BSI terdiri dari 10-13 digit angka.',
@@ -180,10 +179,10 @@ const bankData: Record<string, {
       'Pastikan hanya menggunakan aplikasi BSI Mobile resmi.',
     ],
     faqs: [
-      { question: 'Cara cek rekening BSI dari penipuan?', answer: 'Masukkan nomor rekening BSI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan nomor tersebut dengan database laporan komunitas KawalTransaksi.' },
-      { question: 'Cara melaporkan rekening BSI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BSI, kronologi penipuan, dan unggah bukti. Laporan akan diverifikasi oleh tim moderator KawalTransaksi.' },
-      { question: 'Cara menghubungi BSI untuk lapor penipuan?', answer: 'Hubungi BSI Call di 14040 (24 jam). Pelaporan juga bisa dilakukan melalui aplikasi BSI Mobile atau datang langsung ke kantor cabang BSI terdekat dengan membawa bukti transaksi.' },
-      { question: 'Berapa kode bank BSI untuk transfer?', answer: 'Kode bank BSI adalah 451. Kode ini digunakan saat transfer antar bank dari bank lain ke rekening Bank Syariah Indonesia.' },
+      { question: 'Cara cek rekening BSI dari penipuan?', answer: 'Masukkan nomor rekening BSI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
+      { question: 'Cara melaporkan rekening BSI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BSI, kronologi penipuan, dan unggah bukti.' },
+      { question: 'Cara menghubungi BSI untuk lapor penipuan?', answer: 'Hubungi BSI Call di 14040 (24 jam).' },
+      { question: 'Berapa kode bank BSI untuk transfer?', answer: 'Kode bank BSI adalah 451.' },
     ],
   },
 };
@@ -242,9 +241,9 @@ export default async function BankDetailPage({ params }: PageProps) {
     dateFormatted: formatDateID(r.created_at as string),
   }));
 
-  // Hitung breakdown kategori
+  // ✅ FIX: ganti any dengan type yang proper
   const categoryMap: Record<string, number> = {};
-  (categoryData ?? []).forEach((r: any) => {
+  (categoryData ?? []).forEach((r: { category: string | null }) => {
     if (r.category) categoryMap[r.category] = (categoryMap[r.category] || 0) + 1;
   });
   const categoryBreakdown = Object.entries(categoryMap)

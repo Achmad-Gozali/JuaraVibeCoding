@@ -24,11 +24,11 @@ const banks = [
 const articles = [
   {
     title: 'Cek Rekening Penjual Online',
-    desc: 'Jadilah smart shopper dengan melakukan pengecekan apakah seorang penjual berpotensi melakukan penipuan atau tidak sebelum berbelanja online. Dengan begitu Anda dapat meminimalisir peluang tertipu ketika berbelanja online.',
+    desc: 'Jadilah smart shopper dengan melakukan pengecekan apakah seorang penjual berpotensi melakukan penipuan atau tidak sebelum berbelanja online.',
   },
   {
     title: 'Rekening Bank Mencurigakan',
-    desc: 'Temukan riwayat laporan dari rekening bank yang mencurigakan. Kunjungi halaman database kami untuk mengetahui kredibilitas sebuah rekening dan melihat laporan yang telah diverifikasi oleh komunitas.',
+    desc: 'Temukan riwayat laporan dari rekening bank yang mencurigakan. Kunjungi halaman database kami untuk mengetahui kredibilitas sebuah rekening.',
   },
   {
     title: 'Cek Rekening Bank Terlengkap',
@@ -36,7 +36,7 @@ const articles = [
   },
   {
     title: 'Cara Cek Nomor Rekening',
-    desc: 'Untuk mengecek nomor rekening apakah seseorang berpotensi melakukan penipuan atau tidak, Anda hanya perlu memasukkan nomor rekening yang ingin dicek pada kolom pencarian di atas. Kemudian Anda akan mendapatkan hasilnya.',
+    desc: 'Untuk mengecek nomor rekening apakah seseorang berpotensi melakukan penipuan atau tidak, Anda hanya perlu memasukkan nomor rekening yang ingin dicek pada kolom pencarian di atas.',
   },
   {
     title: 'Laporkan Rekening Penipu',
@@ -44,7 +44,7 @@ const articles = [
   },
   {
     title: 'Sudah Terlanjur Transfer ke Penipu?',
-    desc: 'Jika Anda sudah terlanjur transfer ke rekening penipu, segera hubungi bank Anda untuk memblokir transaksi. Laporkan juga nomor rekening tersebut ke KawalTransaksi agar korban lain dapat terhindar.',
+    desc: 'Jika Anda sudah terlanjur transfer ke rekening penipu, segera hubungi bank Anda untuk memblokir transaksi. Laporkan juga nomor rekening tersebut ke KawalTransaksi.',
   },
 ];
 
@@ -64,21 +64,18 @@ async function getStats() {
   try {
     const supabase = await createClient();
 
-    // Total laporan rekening terverifikasi
     const { count: totalLaporan } = await supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'verified')
       .eq('target_type', 'bank_account');
 
-    // Total nomor rekening unik di database
     const { count: totalRekening } = await supabase
       .from('reports')
       .select('target_number', { count: 'exact', head: true })
       .eq('target_type', 'bank_account')
       .not('target_number', 'is', null);
 
-    // Total kerugian dari laporan rekening sejak 1 Januari 2018
     const { data: kerugianData } = await supabase
       .from('reports')
       .select('loss_amount')
@@ -104,14 +101,15 @@ async function getStats() {
 export default async function CekRekeningPage() {
   const { totalLaporan, totalRekening, totalKerugian } = await getStats();
 
-const stats = [
+  const stats = [
     {
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
         </svg>
       ),
-      value: totalLaporan > 0 ? `${totalLaporan.toLocaleString('id-ID')}+` : '500+',
+      // ✅ FIX: hapus hardcoded fallback
+      value: totalLaporan > 0 ? `${totalLaporan.toLocaleString('id-ID')}+` : 'Belum ada data',
       desc: 'Laporan rekening penipu yang telah diverifikasi komunitas',
     },
     {
@@ -120,7 +118,7 @@ const stats = [
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
       ),
-      value: totalRekening > 0 ? `${totalRekening.toLocaleString('id-ID')}+` : '400+',
+      value: totalRekening > 0 ? `${totalRekening.toLocaleString('id-ID')}+` : 'Belum ada data',
       desc: 'Nomor rekening penipu dalam database kami',
     },
     {
@@ -129,7 +127,7 @@ const stats = [
           <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>
         </svg>
       ),
-      value: Number(totalKerugian) > 0 ? `${formatRupiah(Number(totalKerugian))}+` : 'Rp50 Jt+',
+      value: Number(totalKerugian) > 0 ? `${formatRupiah(Number(totalKerugian))}+` : 'Belum ada data',
       desc: 'Total kerugian yang dilaporkan sejak 1 Maret 2026',
     },
   ];
@@ -142,7 +140,6 @@ const stats = [
         <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-8 sm:gap-10 pb-14 sm:pb-24">
 
-            {/* KIRI: Teks + Form */}
             <div className="flex-1 text-center md:text-left w-full">
               <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-3 sm:mb-6 uppercase leading-tight">
                 Cek Rekening Bank. <br />
@@ -154,7 +151,6 @@ const stats = [
               <RekeningSearchForm />
             </div>
 
-            {/* KANAN: Foto Hero — sembunyikan di mobile kecil */}
             <div className="hidden sm:flex flex-1 justify-center md:justify-end">
               <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md aspect-square">
                 <Image
@@ -170,7 +166,6 @@ const stats = [
           </div>
         </div>
 
-        {/* WAVE SEPARATOR */}
         <div className="w-full overflow-hidden leading-none">
           <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-12 sm:h-20 block">
             <path d="M0,20 C360,80 1080,0 1440,60 L1440,80 L0,80 Z" fill="#f8fafc" />
@@ -178,7 +173,7 @@ const stats = [
         </div>
       </section>
 
-      {/* STATS CARD — overlap ke atas wave pake negative margin */}
+      {/* STATS CARD */}
       <section className="bg-slate-50 pb-10 sm:pb-12">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-10 sm:-mt-14 relative z-10">
           <div className="bg-white border border-slate-200 rounded-xl shadow-md overflow-hidden">
@@ -203,22 +198,17 @@ const stats = [
       <section className="bg-slate-50 py-10 sm:py-12">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center text-left">
-
-            {/* KIRI: penjelasan */}
             <div>
               <h2 className="text-lg sm:text-xl font-black text-slate-900 mb-3">Apa itu Cek Rekening?</h2>
               <p className="text-slate-500 text-sm leading-relaxed">
                 Cek Rekening adalah layanan dari KawalTransaksi yang dapat mengidentifikasi apakah sebuah nomor rekening bank berpotensi digunakan untuk penipuan atau tidak, berdasarkan keluhan dan laporan pengguna yang pernah bertransaksi dengan rekening tersebut.
               </p>
             </div>
-
-            {/* KANAN: quote */}
             <div className="bg-emerald-50 rounded-xl px-6 sm:px-8 py-6 sm:py-7">
               <p className="text-slate-800 text-sm sm:text-base font-bold leading-relaxed text-center">
                 "Sebelum transfer, selalu verifikasi rekening tujuan. Satu langkah kecil yang bisa menyelamatkan uang Anda dari tangan penipu."
               </p>
             </div>
-
           </div>
         </div>
       </section>

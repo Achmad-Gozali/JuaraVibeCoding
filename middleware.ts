@@ -2,11 +2,8 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  // 1. Inisialisasi response
   let supabaseResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   });
 
   const supabase = createServerClient(
@@ -18,10 +15,8 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -30,21 +25,23 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // 2. Penting: Refresh session biar data user terbaru dapet
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  // 3. Logika Proteksi Halaman
-  // ✅ FIX: '/report' GUA HAPUS dari sini biar Gateway lu bisa kebuka bebas!
+  // Proteksi route yang butuh login
   if (['/dashboard', '/admin'].some(path => pathname.startsWith(path)) && !user) {
     const url = new URL('/login', request.url);
     url.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(url);
   }
 
-  // 4. Redirect kalau sudah login (ke /admin atau /)
+  // Redirect kalau sudah login dan akses halaman auth
   if (['/login', '/register'].some(path => pathname.startsWith(path)) && user) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
     const dest = profile?.role === 'admin' ? '/admin' : '/';
     return NextResponse.redirect(new URL(dest, request.url));
   }

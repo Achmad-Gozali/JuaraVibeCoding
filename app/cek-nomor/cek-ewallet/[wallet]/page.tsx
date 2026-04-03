@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { maskNumber, formatDateID } from '@/lib/utils';
 import EwalletPageClient from './EwalletPageClient';
 
-// ── DATA E-WALLET ─────────────────────────────────────────────────────────────
 const ewalletData: Record<string, {
   name: string;
   fullName: string;
@@ -45,23 +44,19 @@ const ewalletData: Record<string, {
     faqs: [
       {
         question: 'Cara cek akun GoPay dari penipuan?',
-        answer:
-          'Masukkan nomor HP yang terdaftar di GoPay ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan dengan laporan komunitas KawalTransaksi.',
+        answer: 'Masukkan nomor HP yang terdaftar di GoPay ke kolom pencarian di atas, lalu klik "Cek Database".',
       },
       {
         question: 'Cara melaporkan akun GoPay penipu?',
-        answer:
-          'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP GoPay penipu, kronologi penipuan, dan lampirkan bukti transaksi. Laporan akan diverifikasi oleh tim moderator.',
+        answer: 'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP GoPay penipu, kronologi penipuan, dan lampirkan bukti transaksi.',
       },
       {
         question: 'Cara menghubungi GoPay untuk lapor penipuan?',
-        answer:
-          'Hubungi CS Gojek di 1500321 atau melalui fitur "Bantuan" di aplikasi Gojek. Kamu juga bisa melaporkan melalui help.gojek.com.',
+        answer: 'Hubungi CS Gojek di 1500321 atau melalui fitur "Bantuan" di aplikasi Gojek.',
       },
       {
         question: 'Bagaimana cara blokir akun GoPay penipu?',
-        answer:
-          'Laporkan langsung ke CS Gojek di 1500321 dengan menyertakan bukti transaksi dan kronologi kejadian. Tim Gojek akan memproses pemblokiran akun yang terbukti melakukan penipuan.',
+        answer: 'Laporkan langsung ke CS Gojek di 1500321 dengan menyertakan bukti transaksi dan kronologi kejadian.',
       },
     ],
   },
@@ -75,7 +70,7 @@ const ewalletData: Record<string, {
     helpUrl: 'https://www.dana.id/pusat-bantuan',
     dbName: 'Dana',
     description:
-      'DANA adalah dompet digital Indonesia yang menyediakan layanan pembayaran, transfer uang, dan berbagai fitur keuangan digital. DANA berkomitmen pada keamanan transaksi penggunanya.',
+      'DANA adalah dompet digital Indonesia yang menyediakan layanan pembayaran, transfer uang, dan berbagai fitur keuangan digital.',
     transferTips: [
       'Buka aplikasi DANA dan pilih menu "Kirim".',
       'Masukkan nomor HP atau scan QR code penerima.',
@@ -91,23 +86,19 @@ const ewalletData: Record<string, {
     faqs: [
       {
         question: 'Cara cek akun DANA dari penipuan?',
-        answer:
-          'Masukkan nomor HP yang terdaftar di DANA ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan dengan laporan komunitas KawalTransaksi.',
+        answer: 'Masukkan nomor HP yang terdaftar di DANA ke kolom pencarian di atas, lalu klik "Cek Database".',
       },
       {
         question: 'Cara melaporkan akun DANA penipu?',
-        answer:
-          'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP DANA penipu, kronologi penipuan, dan lampirkan bukti. Laporan akan masuk ke database dan diverifikasi moderator.',
+        answer: 'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP DANA penipu, kronologi penipuan, dan lampirkan bukti.',
       },
       {
         question: 'Cara menghubungi DANA untuk lapor penipuan?',
-        answer:
-          'Hubungi CS DANA di 1500 445 atau melalui fitur "Bantuan" di aplikasi DANA. Laporan juga bisa disampaikan melalui dana.id/pusat-bantuan.',
+        answer: 'Hubungi CS DANA di 1500 445 atau melalui fitur "Bantuan" di aplikasi DANA.',
       },
       {
         question: 'Bagaimana cara blokir akun DANA penipu?',
-        answer:
-          'Laporkan ke CS DANA di 1500 445 dengan menyertakan nomor HP penipu dan bukti transaksi. Tim DANA akan memverifikasi dan memproses pemblokiran akun.',
+        answer: 'Laporkan ke CS DANA di 1500 445 dengan menyertakan nomor HP penipu dan bukti transaksi.',
       },
     ],
   },
@@ -121,7 +112,7 @@ const ewalletData: Record<string, {
     helpUrl: 'https://www.ovo.id/bantuan',
     dbName: 'OVO',
     description:
-      'OVO adalah platform pembayaran digital terkemuka di Indonesia yang menawarkan layanan pembayaran, transfer, investasi, dan pinjaman dalam satu aplikasi terintegrasi.',
+      'OVO adalah platform pembayaran digital terkemuka di Indonesia yang menawarkan layanan pembayaran, transfer, investasi, dan pinjaman dalam satu aplikasi.',
     transferTips: [
       'Buka aplikasi OVO dan pilih menu "Transfer".',
       'Masukkan nomor HP terdaftar OVO penerima.',
@@ -137,23 +128,19 @@ const ewalletData: Record<string, {
     faqs: [
       {
         question: 'Cara cek akun OVO dari penipuan?',
-        answer:
-          'Masukkan nomor HP yang terdaftar di OVO ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan dengan laporan komunitas KawalTransaksi.',
+        answer: 'Masukkan nomor HP yang terdaftar di OVO ke kolom pencarian di atas, lalu klik "Cek Database".',
       },
       {
         question: 'Cara melaporkan akun OVO penipu?',
-        answer:
-          'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP OVO penipu, kronologi kejadian, dan lampirkan bukti. Laporan akan diverifikasi oleh moderator KawalTransaksi.',
+        answer: 'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP OVO penipu, kronologi kejadian, dan lampirkan bukti.',
       },
       {
         question: 'Cara menghubungi OVO untuk lapor penipuan?',
-        answer:
-          'Hubungi CS OVO di 1500 696 atau melalui fitur "Help" di aplikasi OVO. Laporan juga bisa disampaikan melalui ovo.id/bantuan.',
+        answer: 'Hubungi CS OVO di 1500 696 atau melalui fitur "Help" di aplikasi OVO.',
       },
       {
         question: 'Bagaimana cara blokir akun OVO penipu?',
-        answer:
-          'Laporkan ke CS OVO di 1500 696 dengan bukti transaksi dan kronologi kejadian. Tim OVO akan memproses laporan dan mengambil tindakan terhadap akun yang terbukti menipu.',
+        answer: 'Laporkan ke CS OVO di 1500 696 dengan bukti transaksi dan kronologi kejadian.',
       },
     ],
   },
@@ -183,23 +170,19 @@ const ewalletData: Record<string, {
     faqs: [
       {
         question: 'Cara cek akun ShopeePay dari penipuan?',
-        answer:
-          'Masukkan nomor HP yang terdaftar di ShopeePay ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan dengan laporan komunitas KawalTransaksi.',
+        answer: 'Masukkan nomor HP yang terdaftar di ShopeePay ke kolom pencarian di atas, lalu klik "Cek Database".',
       },
       {
         question: 'Cara melaporkan akun ShopeePay penipu?',
-        answer:
-          'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP ShopeePay penipu, kronologi penipuan, dan lampirkan bukti transaksi. Laporan akan diverifikasi moderator.',
+        answer: 'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP ShopeePay penipu, kronologi penipuan, dan lampirkan bukti transaksi.',
       },
       {
         question: 'Cara menghubungi ShopeePay untuk lapor penipuan?',
-        answer:
-          'Hubungi CS Shopee di 1500 702 atau melalui fitur "Bantuan" di aplikasi Shopee. Laporan juga bisa disampaikan melalui help.shopee.co.id.',
+        answer: 'Hubungi CS Shopee di 1500 702 atau melalui fitur "Bantuan" di aplikasi Shopee.',
       },
       {
         question: 'Bagaimana cara blokir akun ShopeePay penipu?',
-        answer:
-          'Laporkan ke CS Shopee di 1500 702 dengan menyertakan bukti transaksi. Tim Shopee akan memverifikasi laporan dan memproses pemblokiran akun penipu.',
+        answer: 'Laporkan ke CS Shopee di 1500 702 dengan menyertakan bukti transaksi.',
       },
     ],
   },
@@ -229,23 +212,19 @@ const ewalletData: Record<string, {
     faqs: [
       {
         question: 'Cara cek akun LinkAja dari penipuan?',
-        answer:
-          'Masukkan nomor HP yang terdaftar di LinkAja ke kolom pencarian di atas, lalu klik "Cek Database". Sistem akan mencocokkan dengan laporan komunitas KawalTransaksi.',
+        answer: 'Masukkan nomor HP yang terdaftar di LinkAja ke kolom pencarian di atas, lalu klik "Cek Database".',
       },
       {
         question: 'Cara melaporkan akun LinkAja penipu?',
-        answer:
-          'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP LinkAja penipu, kronologi kejadian, dan lampirkan bukti. Laporan akan diverifikasi oleh moderator KawalTransaksi.',
+        answer: 'Klik tombol "Lapor Akun" di halaman ini. Isi nomor HP LinkAja penipu, kronologi kejadian, dan lampirkan bukti.',
       },
       {
         question: 'Cara menghubungi LinkAja untuk lapor penipuan?',
-        answer:
-          'Hubungi CS LinkAja di 1500 911 atau melalui fitur "Bantuan" di aplikasi LinkAja. Laporan juga bisa disampaikan melalui linkaja.id/bantuan.',
+        answer: 'Hubungi CS LinkAja di 1500 911 atau melalui fitur "Bantuan" di aplikasi LinkAja.',
       },
       {
         question: 'Bagaimana cara blokir akun LinkAja penipu?',
-        answer:
-          'Laporkan ke CS LinkAja di 1500 911 dengan menyertakan bukti transaksi dan nomor HP penipu. Tim LinkAja akan memproses laporan dan memblokir akun yang terbukti melakukan penipuan.',
+        answer: 'Laporkan ke CS LinkAja di 1500 911 dengan menyertakan bukti transaksi dan nomor HP penipu.',
       },
     ],
   },
@@ -276,8 +255,6 @@ export default async function EwalletDetailPage({ params }: PageProps) {
 
   const supabase = await createClient();
 
-  // FIX: Filter target_type dibuat lebih fleksibel (phone, bank_account, atau ewallet)
-  // Biar lebih clean, kita filter berdasarkan bank_name saja karena ini halaman spesifik provider
   const [
     { data: recentReports },
     { count: totalCount },
@@ -291,24 +268,20 @@ export default async function EwalletDetailPage({ params }: PageProps) {
       .ilike('bank_name', `%${data.dbName}%`)
       .order('created_at', { ascending: false })
       .limit(6),
-
     supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
       .ilike('bank_name', `%${data.dbName}%`),
-
     supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
       .ilike('bank_name', `%${data.dbName}%`)
       .eq('status', 'verified'),
-
     supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
       .ilike('bank_name', `%${data.dbName}%`)
       .eq('status', 'pending'),
-
     supabase
       .from('reports')
       .select('category')
@@ -324,9 +297,9 @@ export default async function EwalletDetailPage({ params }: PageProps) {
     dateFormatted: formatDateID(r.created_at as string),
   }));
 
-  // Hitung breakdown kategori
+  // ✅ FIX: ganti any dengan type yang proper
   const categoryMap: Record<string, number> = {};
-  (categoryData ?? []).forEach((r: any) => {
+  (categoryData ?? []).forEach((r: { category: string | null }) => {
     if (r.category) {
       categoryMap[r.category] = (categoryMap[r.category] || 0) + 1;
     }

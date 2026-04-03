@@ -10,8 +10,22 @@ function formatSosmed(acc: string): { label: string; isUrl: boolean; href: strin
   return { label: `@${withoutAt}`, isUrl: false, href: '' };
 }
 
+function truncateUrl(url: string, maxLen = 50): string {
+  if (url.length <= maxLen) return url;
+  return url.slice(0, maxLen) + '...';
+}
+
+interface ReportItem {
+  target_name?: string | null;
+  bank_name?: string | null;
+  suspect_photo_url?: string | null;
+  social_media_accounts?: string[] | null;
+  link_url?: string | null;
+  reported_to?: string[] | null;
+}
+
 interface Props {
-  reports: any[];
+  reports: ReportItem[];
   realNumber: string;
   config: {
     nameBadgeBg: string;
@@ -24,7 +38,7 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
   const allSocialAccounts: string[] = [];
   reports.forEach((r) => {
     if (Array.isArray(r.social_media_accounts)) {
-      r.social_media_accounts.forEach((acc: string) => {
+      r.social_media_accounts.forEach((acc) => {
         if (acc && !allSocialAccounts.includes(acc)) allSocialAccounts.push(acc);
       });
     }
@@ -33,14 +47,17 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
   const allReportedTo: string[] = [];
   reports.forEach((r) => {
     if (Array.isArray(r.reported_to)) {
-      r.reported_to.forEach((v: string) => {
+      r.reported_to.forEach((v) => {
         if (v && !allReportedTo.includes(v)) allReportedTo.push(v);
       });
     }
   });
 
   const reportedToLabel: Record<string, string> = {
-    polisi: 'Polisi', ojk: 'OJK', platform: 'Platform terkait', belum: 'Belum lapor',
+    polisi: 'Polisi',
+    ojk: 'OJK',
+    platform: 'Platform terkait',
+    belum: 'Belum lapor',
   };
 
   const suspectPhotoUrl = reports.find((r) => r.suspect_photo_url)?.suspect_photo_url ?? null;
@@ -105,10 +122,20 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
               {allSocialAccounts.map((acc, i) => {
                 const fmt = formatSosmed(acc);
                 return (
-                  <span key={i} className="text-[11px] px-2.5 py-1 border border-slate-200 bg-white text-slate-700 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  <span
+                    key={i}
+                    className="text-[11px] px-2.5 py-1 border border-slate-200 bg-white text-slate-700 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all"
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                  >
                     {fmt.isUrl ? (
-                      <a href={fmt.href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
-                        {fmt.label} <ExternalLink className="w-2.5 h-2.5" />
+                      <a
+                        href={fmt.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                      >
+                        {truncateUrl(fmt.label, 35)}
+                        <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     ) : fmt.label}
                   </span>
@@ -124,8 +151,12 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
               Tautan berbahaya terdeteksi
             </p>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] text-red-700 bg-white border border-red-100 px-2.5 py-1.5 rounded-lg break-all shadow-sm" style={{ fontFamily: "'DM Mono', monospace" }}>
-                {dangerLink}
+              {/* Tampilkan sebagai teks saja, bukan link — tidak bisa diklik */}
+              <span
+                className="text-[11px] text-red-700 bg-white border border-red-100 px-2.5 py-1.5 rounded-lg break-all shadow-sm select-all"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                {truncateUrl(dangerLink, 60)}
               </span>
               <span className="text-[10px] font-semibold px-2.5 py-1.5 bg-red-600 text-white rounded-lg uppercase tracking-wider shrink-0 shadow-sm">
                 High risk
@@ -141,7 +172,14 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
             </p>
             <div className="flex flex-wrap gap-2">
               {allReportedTo.map((v) => (
-                <span key={v} className={`text-[11px] px-3 py-1 rounded-full font-medium border ${v === 'belum' ? 'bg-white text-slate-500 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                <span
+                  key={v}
+                  className={`text-[11px] px-3 py-1 rounded-full font-medium border ${
+                    v === 'belum'
+                      ? 'bg-white text-slate-500 border-slate-200'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}
+                >
                   {reportedToLabel[v] ?? v}
                 </span>
               ))}
