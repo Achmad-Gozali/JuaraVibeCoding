@@ -5,24 +5,27 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
-import { LogOut, LayoutDashboard, Menu, X } from 'lucide-react';
-import type { User } from '@supabase/supabase-js';
+import { LogOut, Menu, X, User, FileText, ChevronDown, Home, Phone, Building2, Flag, BookOpen } from 'lucide-react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const menuItems = [
-  { href: '/',              label: 'Beranda' },
-  { href: '/cek-nomor',     label: 'Cek Nomor' },
-  { href: '/cek-rekening',  label: 'Cek Rekening' },
-  { href: '/report',        label: 'Laporkan' },
-  { href: '/edukasi',       label: 'Edukasi' },
+  { href: '/',             label: 'Beranda',      icon: Home      },
+  { href: '/cek-nomor',    label: 'Cek Nomor',    icon: Phone     },
+  { href: '/cek-rekening', label: 'Cek Rekening', icon: Building2 },
+  { href: '/report',       label: 'Laporkan',     icon: Flag      },
+  { href: '/edukasi',      label: 'Edukasi',      icon: BookOpen  },
 ];
 
 export default function Navbar() {
-  const [user, setUser]             = useState<User | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoading, setIsLoading]   = useState(true);
-  const router   = useRouter();
-  const pathname = usePathname();
-  const supabase = useRef(createClient()).current;
+  const [user, setUser]                     = useState<SupabaseUser | null>(null);
+  const [isMenuOpen, setIsMenuOpen]         = useState(false);
+  const [isProfileOpen, setIsProfileOpen]   = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading]           = useState(true);
+  const router      = useRouter();
+  const pathname    = usePathname();
+  const supabase    = useRef(createClient()).current;
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,185 +39,276 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  useEffect(() => { setIsMenuOpen(false); }, [pathname]);
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
+    setIsDropdownOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isMenuOpen || isProfileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMenuOpen, isProfileOpen]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setIsMenuOpen(false);
+    setIsProfileOpen(false);
+    setIsDropdownOpen(false);
     router.push('/');
     router.refresh();
   };
 
   const isActive = (path: string) => pathname === path;
 
-  const firstName = user
-    ? (
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.user_metadata?.preferred_username ||
-        user.email?.split('@')[0] ||
-        'Pengguna'
-      ).split(' ')[0]
-    : null;
+  const fullName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.user_metadata?.preferred_username ||
+    user?.email?.split('@')[0] ||
+    'Pengguna';
+
+  const firstName = fullName.split(' ')[0];
+
+  const initials = fullName
+    .split(' ')
+    .slice(0, 2)
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase();
 
   return (
-    <nav className="bg-white sticky top-0 z-50 border-b border-slate-200 font-sans">
+    <>
+      <nav className="bg-white sticky top-0 z-50 border-b border-slate-200 font-sans">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center h-16">
 
-      {/* ── MAIN BAR ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex justify-between items-center h-16 sm:h-18">
-
-          {/* LOGO */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <Image
-              src="/logo.png"
-              alt="KawalTransaksi"
-              width={36}
-              height={36}
-              className="rounded-lg"
-              priority
-            />
-            <span className="text-sm sm:text-base font-black tracking-tighter text-slate-900 uppercase">
-              Kawal<span className="text-emerald-600">Transaksi</span>
-            </span>
-          </Link>
-
-          {/* DESKTOP MENU */}
-          <div className="hidden lg:flex items-center gap-0.5">
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${
-                  isActive(item.href)
-                    ? 'text-emerald-700 bg-emerald-50'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* DESKTOP AUTH */}
-          <div className="hidden lg:flex items-center gap-2 shrink-0">
-            {isLoading ? (
-              <div className="w-24 h-9 bg-slate-100 animate-pulse rounded-lg" />
-            ) : user ? (
-              <>
-                <span className="text-xs text-slate-500 px-2">
-                  Hi, <span className="font-bold text-slate-800">{firstName}</span>
-                </span>
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg uppercase tracking-widest transition-colors"
-                >
-                  <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                  Dashboard
-                </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg uppercase tracking-widest transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Keluar
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="px-5 py-2.5 bg-slate-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-600 transition-colors"
-              >
-                Masuk Portal
-              </Link>
-            )}
-          </div>
-
-          {/* MOBILE TOGGLE */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden p-2.5 text-slate-700 hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors"
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-
-        </div>
-      </div>
-
-      {/* ── MOBILE MENU ── */}
-      <div
-        className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white ${
-          isMenuOpen
-            ? 'max-h-[600px] border-b border-slate-200 opacity-100'
-            : 'max-h-0 opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="px-4 py-4 space-y-1">
-
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block px-4 py-3 text-sm font-bold uppercase tracking-wide rounded-lg transition-colors ${
-                isActive(item.href)
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-700 hover:bg-slate-50'
-              }`}
+            {/* MOBILE: Hamburger kiri */}
+            <button
+              onClick={() => { setIsMenuOpen(true); setIsProfileOpen(false); }}
+              className="lg:hidden p-2 text-slate-700 hover:bg-slate-50 rounded-lg transition-colors mr-2"
+              aria-label="Buka menu"
             >
-              {item.label}
-            </Link>
-          ))}
+              <Menu className="w-5 h-5" />
+            </button>
 
-          <div className="pt-3 mt-3 border-t border-slate-100">
-            {isLoading ? (
-              <div className="h-12 bg-slate-100 animate-pulse rounded-lg" />
-            ) : user ? (
-              <div className="space-y-1">
-                <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-lg mb-2">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Akun</p>
-                  <p className="text-xs font-black text-slate-900 truncate mt-0.5">
-                    Hi, {firstName} 👋
-                  </p>
-                  <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
-                </div>
+            {/* LOGO — kiri */}
+            <Link href="/" className="flex items-center gap-2.5 shrink-0">
+              <Image src="/logo.png" alt="KawalTransaksi" width={32} height={32} className="rounded-lg" priority />
+              <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
+                Kawal<span className="text-emerald-600">Transaksi</span>
+              </span>
+            </Link>
+
+            {/* MENU NAVIGASI — tengah (desktop only) */}
+            <div className="hidden lg:flex flex-1 items-center justify-center gap-0 h-16">
+              {menuItems.map((item) => (
                 <Link
-                  href="/dashboard"
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-2 px-4 h-full text-sm font-bold uppercase tracking-wider transition-colors border-b-2 ${
+                    isActive(item.href)
+                      ? 'text-emerald-700 border-emerald-600'
+                      : 'text-slate-500 border-transparent hover:text-slate-900 hover:border-slate-300'
+                  }`}
                 >
-                  <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                  Dashboard
+                  {item.label}
                 </Link>
+              ))}
+            </div>
+
+            {/* AUTH — kanan (desktop) */}
+            <div className="hidden lg:flex items-center gap-2 shrink-0 ml-auto">
+              {isLoading ? (
+                <div className="w-24 h-9 bg-slate-100 animate-pulse rounded-lg" />
+              ) : user ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
+                      <span className="text-white text-sm font-black">{initials}</span>
+                    </div>
+                    <span className="text-base text-slate-700">
+                      Hi, <span className="font-bold text-slate-900">{firstName}</span>
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 z-50">
+                      <div className="px-4 py-2 border-b border-slate-100 mb-1">
+                        <p className="text-xs font-bold text-slate-900 truncate">{fullName}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                      </div>
+                      <Link href="/dashboard/laporan" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <FileText className="w-4 h-4 text-slate-400" />
+                        Laporan Saya
+                      </Link>
+                      <Link href="/dashboard/profil" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <User className="w-4 h-4 text-slate-400" />
+                        Profil Saya
+                      </Link>
+                      <div className="border-t border-slate-100 mt-1 pt-1">
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Keluar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link href="/login" className="px-5 py-2.5 bg-slate-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-600 transition-colors">
+                  Masuk Portal
+                </Link>
+              )}
+            </div>
+
+            {/* MOBILE: Avatar kanan */}
+            <div className="lg:hidden ml-auto">
+              {isLoading ? (
+                <div className="w-8 h-8 bg-slate-100 rounded-full animate-pulse" />
+              ) : user ? (
                 <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  onClick={() => { setIsProfileOpen(true); setIsMenuOpen(false); }}
+                  className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center"
                 >
-                  <LogOut className="w-4 h-4" />
-                  Keluar Akun
+                  <span className="text-white text-xs font-black">{initials}</span>
                 </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              ) : (
+                <Link href="/login" className="text-xs font-bold text-slate-900 px-3 py-2 bg-slate-100 rounded-lg">
+                  Masuk
+                </Link>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </nav>
+
+      {/* ══════════════════════════════════════
+          MOBILE: LEFT DRAWER — Menu Navigasi
+      ══════════════════════════════════════ */}
+      {isMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-[60] flex">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
+          <div className="relative w-72 bg-white h-full shadow-2xl flex flex-col animate-slide-in-left">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <Link href="/" className="flex items-center gap-2">
+                <Image src="/logo.png" alt="KawalTransaksi" width={28} height={28} className="rounded-lg" />
+                <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
+                  Kawal<span className="text-emerald-600">Transaksi</span>
+                </span>
+              </Link>
+              <button onClick={() => setIsMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100">
+                <X className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+              {menuItems.map(({ href, label, icon: Icon }) => (
                 <Link
-                  href="/register"
-                  className="py-3 text-center text-xs font-bold uppercase tracking-widest border border-slate-200 text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                    isActive(href)
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
                 >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="text-sm font-bold">{label}</span>
+                </Link>
+              ))}
+            </div>
+
+            {!user && (
+              <div className="px-4 pb-8 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                <Link href="/register" className="py-3 text-center text-xs font-bold uppercase tracking-widest border border-slate-200 text-slate-900 rounded-xl hover:bg-slate-50 transition-colors">
                   Daftar
                 </Link>
-                <Link
-                  href="/login"
-                  className="py-3 text-center text-xs font-bold uppercase tracking-widest bg-slate-900 text-white rounded-lg hover:bg-black transition-colors"
-                >
+                <Link href="/login" className="py-3 text-center text-xs font-bold uppercase tracking-widest bg-slate-900 text-white rounded-xl hover:bg-black transition-colors">
                   Masuk
                 </Link>
               </div>
             )}
           </div>
-
         </div>
-      </div>
+      )}
 
-    </nav>
+      {/* ══════════════════════════════════════
+          MOBILE: RIGHT DRAWER — Profile
+      ══════════════════════════════════════ */}
+      {isProfileOpen && user && (
+        <div className="lg:hidden fixed inset-0 z-[60] flex justify-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)} />
+          <div className="relative w-72 bg-white h-full shadow-2xl flex flex-col animate-slide-in-right">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <span className="text-base font-black text-slate-900">Akun</span>
+              <button onClick={() => setIsProfileOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100">
+                <X className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100">
+              <div className="w-12 h-12 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
+                <span className="text-white text-sm font-black">{initials}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-slate-900 truncate">{fullName}</p>
+                <p className="text-xs text-slate-400 truncate">{user.email}</p>
+              </div>
+            </div>
+
+            <div className="flex-1 px-3 py-4 space-y-1">
+              <Link href="/dashboard/laporan" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-slate-500" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">Laporan Saya</span>
+              </Link>
+              <Link href="/dashboard/profil" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <User className="w-4 h-4 text-slate-500" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">Profil Saya</span>
+              </Link>
+            </div>
+
+            <div className="px-3 pb-8 pt-1 border-t border-slate-100">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 transition-colors"
+              >
+                <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                  <LogOut className="w-4 h-4 text-red-500" />
+                </div>
+                <span className="text-sm font-bold text-red-600">Keluar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

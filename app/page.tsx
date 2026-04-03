@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Phone, Building2, Wallet, ArrowUpRight,
-} from 'lucide-react';
+import { Phone, Landmark, Wallet, ArrowUpRight } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import { createClient } from '@/lib/supabase-server';
-import { formatDateID, encodeSlug } from '@/lib/utils'; // ✅ Added encodeSlug
+import { formatDateID, encodeSlug } from '@/lib/utils';
 
 export const revalidate = 60;
 
@@ -50,7 +48,7 @@ function getTargetMeta(type: string, bankName: string | null) {
   }
   if (type === 'bank_account') {
     return {
-      icon: Building2,
+      icon: Landmark,
       label: bankName ?? 'Rekening Bank',
       color: 'text-blue-600',
       bg: 'bg-blue-50',
@@ -107,7 +105,7 @@ export default async function HomePage() {
               href="/cek-rekening"
               className="px-6 py-3.5 border-2 border-slate-200 text-slate-900 font-bold text-sm tracking-widest uppercase rounded-xl flex items-center justify-center gap-2 hover:border-slate-900 transition-colors"
             >
-              <Building2 className="w-4 h-4" />
+              <Landmark className="w-4 h-4" />
               cek rekening
             </Link>
           </div>

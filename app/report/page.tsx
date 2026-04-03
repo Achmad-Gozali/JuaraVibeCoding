@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import ReportForm from '@/components/ReportForm';
-import { ShieldCheck, FileText, Lock, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import * as motion from 'motion/react-client';
 
 export default async function ReportPage() {
   const supabase = await createClient();
@@ -12,14 +10,13 @@ export default async function ReportPage() {
     return (
       <div className="min-h-screen bg-slate-50 pb-24 font-sans text-slate-900">
         <div className="max-w-5xl mx-auto px-6 pt-12 sm:pt-20">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center sm:text-left">
+          <div className="mb-10 text-center sm:text-left">
             <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-slate-900 uppercase mb-3">
               Entri Laporan <span className="text-emerald-600 italic">Baru.</span>
             </h1>
             <p className="text-sm text-slate-500 font-medium">Lengkapi formulir di bawah ini dengan data yang valid beserta bukti digital.</p>
-          </motion.div>
-
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 shadow-sm relative overflow-hidden">
+          </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-8 sm:p-12 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600" />
             <ReportForm />
           </div>
@@ -29,127 +26,178 @@ export default async function ReportPage() {
   }
 
   const steps = [
-    { icon: Lock, title: 'Validasi Akses', desc: 'Login untuk memastikan laporan tidak dibuat oleh bot.' },
-    { icon: FileText, title: 'Entri Data', desc: 'Masukkan nomor rekening/HP beserta screenshot bukti transaksi.' },
-    { icon: ShieldCheck, title: 'Verifikasi & Rilis', desc: 'Auditor meninjau dan merilis laporan ke database publik.' },
+    {
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+      ),
+      title: 'Login Untuk Melapor',
+      desc: 'Sebelum melapor, pastikan Anda sudah login pada akun KawalTransaksi Anda. Bila belum punya akun, buat sekarang, gratis!',
+    },
+    {
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+      ),
+      title: 'Isi Form Laporan',
+      desc: 'Laporkan nomor rekening atau nomor telepon terduga pelaku penipuan, isi formulir dengan informasi sebenar-benarnya.',
+    },
+    {
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      ),
+      title: 'Kirim Laporan',
+      desc: 'Setelah semua bidang di dalam formulir Anda isi, saatnya mengklik tombol "Laporkan" untuk mengirim laporan.',
+    },
+  ];
+
+  const infos = [
+    {
+      title: 'Lapor Penipuan Online',
+      desc: 'Pernah tertipu saat berbelanja atau bertransaksi online? Laporkan nomor pelaku di KawalTransaksi agar tidak ada lagi korban berikutnya. Dengan melaporkan penipuan, Anda turut membantu masyarakat terhindar dari kejahatan digital yang sama.',
+    },
+    {
+      title: 'Laporkan Rekening Penipu',
+      desc: 'Anda dapat melaporkan nomor rekening bank yang pernah digunakan untuk penipuan, baik online maupun offline. Kami akan memverifikasi laporan dan memasukkannya ke blacklist database publik KawalTransaksi.',
+    },
+    {
+      title: 'Cara Melaporkan Penipu',
+      desc: 'Untuk melaporkan seseorang terkait penipuan online, Anda hanya perlu mengisi form laporan di halaman ini. Setelah laporan dikirim, tim kami akan meninjau dan memverifikasi sebelum dipublikasikan ke database.',
+    },
+    {
+      title: 'Lindungi Orang Lain dari Penipuan',
+      desc: 'Jika Anda telah menjadi korban penipuan saat bertransaksi secara online, segera laporkan kejadian tersebut di KawalTransaksi. Satu laporan dari Anda bisa mencegah ribuan orang menjadi korban pelaku yang sama.',
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900 font-sans overflow-hidden">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
 
-      {/* Hero Section */}
-      <section className="relative pt-24 pb-20 sm:pt-32 sm:pb-32 px-6 bg-white">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-emerald-100/30 rounded-full blur-[120px] -z-10" />
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-tighter leading-[0.9] text-slate-900 mb-8 uppercase">
-            JANGAN DIAM. <br />
-            <span className="text-emerald-600 italic">LAPORKAN</span> PENIPUNYA.
-          </h1>
-          <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed max-w-2xl mx-auto mb-10">
-            Satu laporan tervalidasi dari Anda hari ini dapat mencegah ribuan orang kehilangan asetnya esok hari. Proses pelaporan dienkripsi dan anonim.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+      {/* ── BAGIAN ATAS: 2 kolom ── */}
+      <div className="max-w-5xl mx-auto px-6 py-16 sm:py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+
+          {/* KIRI — steps */}
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 mb-4 leading-snug">
+              Laporkan Nomor Rekening Atau Nomor Telepon Penipuan
+            </h1>
+            <p className="text-slate-500 text-base leading-relaxed mb-12">
+              Laporan kamu sangat berarti untuk mencegah terjadinya penipuan di masa mendatang oleh pelaku yang sama.
+            </p>
+
+            <div className="space-y-10">
+              {steps.map((item, i) => (
+                <div key={i} className="flex gap-5 items-start">
+                  <div className="w-12 h-12 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base mb-1.5">{item.title}</h3>
+                    <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* KANAN — card auth */}
+          <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+            <h2 className="text-xl font-black text-slate-900 text-center mb-2">
+              Login Akun KawalTransaksi Dulu!
+            </h2>
+            <p className="text-slate-500 text-sm text-center mb-8 leading-relaxed">
+              Anda perlu login ke akun KawalTransaksi terlebih dahulu untuk mulai membuat laporan.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="border border-slate-200 rounded-lg p-5 text-center">
+                <div className="flex justify-center mb-3 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <p className="font-bold text-sm text-slate-900 mb-1">Login</p>
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">Login ke akun KawalTransaksi yang Anda miliki.</p>
+                <Link
+                  href="/login?redirectTo=%2Freport"
+                  className="block w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors text-center uppercase tracking-wider"
+                >
+                  Login
+                </Link>
+              </div>
+
+              <div className="border border-slate-200 rounded-lg p-5 text-center">
+                <div className="flex justify-center mb-3 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="19" y1="8" x2="19" y2="14"/>
+                    <line x1="22" y1="11" x2="16" y2="11"/>
+                  </svg>
+                </div>
+                <p className="font-bold text-sm text-slate-900 mb-1">Register</p>
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">Buat akun KawalTransaksi Anda sekarang, gratis!</p>
+                <Link
+                  href="/register"
+                  className="block w-full py-2.5 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors text-center uppercase tracking-wider"
+                >
+                  Register
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Login Dengan</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+
             <Link
               href="/login?redirectTo=%2Freport"
-              className="px-8 py-4 bg-emerald-600 text-white rounded-md font-bold text-sm hover:bg-emerald-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest"
+              className="flex items-center justify-center gap-3 w-full py-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              MULAI BUAT LAPORAN <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/database"
-              className="px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-md font-bold text-sm hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm active:scale-95 uppercase tracking-widest"
-            >
-              CEK DATABASE
+              <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.6-8 19.6-20 0-1.3-.1-2.7-.4-4z"/>
+                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+                <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5L31.8 33c-2 1.4-4.6 2.3-7.8 2.3-5.2 0-9.6-3.5-11.2-8.2l-6.6 5.1C9.5 39.5 16.2 44 24 44z"/>
+                <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.5-2.6 4.6-4.9 6l5.7 5c3.4-3.1 5.9-7.7 5.9-13.4 0-1.3-.1-2.7-.4-4z"/>
+              </svg>
+              Login With Google
             </Link>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Wave: white → slate-50 */}
-      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full block -mt-1 bg-white" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,40 C320,-20 800,80 1440,20 L1440,80 L0,80 Z" fill="#f8fafc" />
-      </svg>
+      {/* ── WAVE PEMISAH FULL WIDTH ── */}
+      <div className="w-full overflow-hidden leading-none">
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full block" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,0 C360,80 1080,0 1440,60 L1440,80 L0,80 Z" fill="white" />
+        </svg>
+      </div>
 
-      {/* Protokol Pelaporan */}
-      <section className="py-24 px-6 bg-slate-50">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase mb-4">Protokol Pelaporan</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">3 Langkah sistematis menghentikan penipu</p>
-          </div>
-
-          <div className="hidden md:flex items-center mb-8 px-[calc(100%/6)]">
-            {steps.map((_, i) => (
-              <div key={i} className="contents">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.15 }}
-                  className="shrink-0 w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-sm z-10"
-                >
-                  {i + 1}
-                </motion.div>
-                {i < steps.length - 1 && (
-                  <div className="flex-1 h-px bg-slate-200" />
-                )}
+      {/* ── BAGIAN BAWAH: penjelasan ── */}
+      <div className="bg-white">
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-14">
+            {infos.map((item, i) => (
+              <div key={i}>
+                <h2 className="text-lg font-black text-slate-900 mb-3">{item.title}</h2>
+                <p className="text-slate-500 text-base leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 pt-4">
-            {steps.map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="text-center px-2"
-              >
-                <div className="md:hidden w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs mx-auto mb-5">
-                  {i + 1}
-                </div>
-                <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mb-5 mx-auto">
-                  <item.icon className="w-6 h-6 text-emerald-600" />
-                </div>
-                <h3 className="text-base font-black uppercase tracking-tight text-slate-900 mb-2.5">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-[260px] mx-auto">
-                  {item.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
         </div>
-      </section>
-
-      {/* Wave: slate-50 → white */}
-      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full block bg-slate-50" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,0 C360,80 1080,0 1440,80 L1440,80 L0,80 Z" fill="#ffffff" />
-      </svg>
-
-      {/* CTA Berkontribusi */}
-      <section className="bg-white py-24 px-6">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-slate-900 uppercase mb-4">Siap Berkontribusi?</h2>
-          <p className="text-slate-500 mb-10 max-w-lg mx-auto font-medium text-sm leading-relaxed">
-            Daftarkan akun Anda secara gratis sekarang dan mulailah melindungi ekosistem digital dari kejahatan siber.
-          </p>
-          <Link
-            href="/register"
-            className="px-8 py-4 bg-emerald-600 text-white font-bold text-sm rounded-md hover:bg-emerald-500 transition-all uppercase tracking-widest shadow-md"
-          >
-            DAFTAR AKUN BARU
-          </Link>
-        </div>
-      </section>
-
-{/* Wave: white → footer */}
-      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full block bg-white" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,40 C360,-20 1080,80 1440,20 L1440,80 L0,80 Z" fill="#ffffff" />
-      </svg>
+      </div>
 
     </div>
   );

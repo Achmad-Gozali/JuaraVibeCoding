@@ -1,14 +1,18 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { Loader2, AlertCircle, CheckCircle2, Mail, Lock, UserPlus, LogIn, ArrowRight } from 'lucide-react';
+import {
+  Loader2, AlertCircle, CheckCircle2, Mail, Lock,
+  UserPlus, ArrowRight, Eye, EyeOff, ShieldCheck
+} from 'lucide-react';
 
 interface AuthFormProps {
   type: 'login' | 'register';
 }
+
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
 
 const oauthProviders = [
   {
@@ -27,32 +31,68 @@ const oauthProviders = [
 
 type OAuthProvider = typeof oauthProviders[number]['id'];
 
+function getPasswordStrength(password: string): { label: string; color: string; width: string } {
+  if (password.length === 0) return { label: '', color: '', width: '0%' };
+  if (password.length < 6) return { label: 'Lemah', color: 'bg-red-400', width: '25%' };
+  if (password.length < 8) return { label: 'Cukup', color: 'bg-yellow-400', width: '50%' };
+  if (password.length < 12 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return { label: 'Baik', color: 'bg-blue-400', width: '75%' };
+  }
+  return { label: 'Kuat', color: 'bg-emerald-500', width: '100%' };
+}
+
+function useRecaptcha() {
+  useEffect(() => {
+    if (document.getElementById('recaptcha-script')) return;
+    const script = document.createElement('script');
+    script.id = 'recaptcha-script';
+    script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+
+  const getToken = useCallback((action: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!window.grecaptcha) return reject('reCAPTCHA belum siap.');
+      window.grecaptcha.ready(() => {
+        window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action }).then(resolve).catch(reject);
+      });
+    });
+  }, []);
+
+  return { getToken };
+}
+
 function AuthFormInner({ type }: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
+  const { getToken } = useRecaptcha();
 
   const redirectTo = searchParams.get('redirectTo') || '/';
+  const strength = type === 'register' ? getPasswordStrength(password) : { label: '', color: '', width: '0%' };
+  const passwordMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     setOauthLoading(provider);
     setError(null);
     const siteUrl = window.location.origin;
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
       },
     });
-
     if (error) {
       setError(`Gagal otentikasi dengan ${provider}.`);
       setOauthLoading(null);
@@ -61,10 +101,36 @@ function AuthFormInner({ type }: AuthFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
 
+    if (type === 'register' && password !== confirmPassword) {
+      setError('Kata sandi dan konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+    if (type === 'register' && password.length < 6) {
+      setError('Kata sandi minimal 6 karakter.');
+      return;
+    }
+
+    setIsLoading(true);
     try {
+      // reCAPTCHA v3 verification
+      const action = type === 'register' ? 'register' : 'login';
+      const token = await getToken(action);
+
+      const verifyRes = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyData.success) {
+        setError(verifyData.message || 'Verifikasi keamanan gagal. Coba lagi.');
+        return;
+      }
+
+      // Auth
       if (type === 'register') {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
@@ -72,11 +138,11 @@ function AuthFormInner({ type }: AuthFormProps) {
           options: { data: { full_name: fullName } },
         });
         if (signUpError) throw signUpError;
-        setSuccessMessage('Pendaftaran berhasil! Silakan periksa kotak masuk email Anda untuk instruksi verifikasi.');
+        router.refresh();
+        setTimeout(() => router.push(redirectTo), 100);
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        
         router.refresh();
         setTimeout(() => router.push(redirectTo), 100);
       }
@@ -90,116 +156,203 @@ function AuthFormInner({ type }: AuthFormProps) {
   return (
     <div className="w-full">
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 shadow-sm">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <p className="text-sm font-bold">{error}</p>
-        </div>
-      )}
-      
-      {successMessage && (
-        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-700 shadow-sm">
-          <CheckCircle2 className="w-5 h-5 shrink-0" />
-          <p className="text-sm font-bold">{successMessage}</p>
+        <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 shadow-sm">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <p className="text-xs font-semibold leading-relaxed">{error}</p>
         </div>
       )}
 
-      {/* Social Login Button - Kotak & Rapi */}
-      <div className="mb-8">
+      <form onSubmit={handleSubmit} className="space-y-4">
+
+        {type === 'register' && (
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              Nama Lengkap
+            </label>
+            <div className="relative">
+              <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Nama lengkap Anda"
+                className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm"
+                required
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+            Alamat Email
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@contoh.com"
+              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm"
+              required
+              autoComplete="email"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+            Kata Sandi
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={type === 'register' ? 'Minimal 6 karakter' : '••••••••'}
+              className="w-full pl-10 pr-11 py-3 bg-white border border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm"
+              required
+              minLength={6}
+              autoComplete={type === 'login' ? 'current-password' : 'new-password'}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {type === 'register' && password.length > 0 && (
+            <div className="space-y-1 pt-1">
+              <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+                  style={{ width: strength.width }}
+                />
+              </div>
+              <p className="text-[10px] font-semibold text-slate-400">
+                Kekuatan: <span className="text-slate-600">{strength.label}</span>
+                <span className="ml-2 text-slate-300">· Gunakan huruf besar & angka untuk kata sandi kuat</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {type === 'register' && (
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              Konfirmasi Kata Sandi
+            </label>
+            <div className="relative">
+              <ShieldCheck className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${
+                passwordMatch ? 'text-emerald-500' : passwordMismatch ? 'text-red-400' : 'text-slate-400'
+              }`} />
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Ulangi kata sandi"
+                className={`w-full pl-10 pr-11 py-3 bg-white border rounded-xl outline-none transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm focus:ring-2 ${
+                  passwordMatch
+                    ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/10'
+                    : passwordMismatch
+                    ? 'border-red-300 focus:border-red-400 focus:ring-red-500/10'
+                    : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/10'
+                }`}
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {passwordMatch && (
+              <p className="text-[10px] font-semibold text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Kata sandi cocok
+              </p>
+            )}
+            {passwordMismatch && (
+              <p className="text-[10px] font-semibold text-red-500 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> Kata sandi tidak cocok
+              </p>
+            )}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isLoading || !!oauthLoading || (type === 'register' && passwordMismatch)}
+          className={`w-full py-3.5 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-widest mt-2 ${
+            type === 'login'
+              ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
+              : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+          }`}
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <>
+              {type === 'login' ? 'Otentikasi Masuk' : 'Buat Akun'}
+              <ArrowRight className="w-4 h-4 opacity-70" />
+            </>
+          )}
+        </button>
+
+        <p className="text-[9px] text-slate-300 text-center leading-relaxed">
+          Dilindungi oleh reCAPTCHA &amp; berlaku{' '}
+          <a href="https://policies.google.com/privacy" className="underline hover:text-slate-400" target="_blank" rel="noreferrer">Privasi</a>
+          {' '}dan{' '}
+          <a href="https://policies.google.com/terms" className="underline hover:text-slate-400" target="_blank" rel="noreferrer">Ketentuan</a>
+          {' '}Google.
+        </p>
+      </form>
+
+      <div className="flex items-center gap-3 my-6">
+        <div className="flex-1 h-px bg-slate-100" />
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">atau</span>
+        <div className="flex-1 h-px bg-slate-100" />
+      </div>
+
+      <div className="space-y-2.5">
         {oauthProviders.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => handleOAuthLogin(p.id)}
             disabled={!!oauthLoading || isLoading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border border-slate-200 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border border-slate-200 rounded-xl font-semibold text-sm text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
           >
             {oauthLoading === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : p.icon}
             Lanjutkan dengan {p.label}
           </button>
         ))}
       </div>
-
-      <div className="flex items-center gap-4 mb-8">
-        <div className="flex-1 h-px bg-slate-200" />
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">atau email</span>
-        <div className="flex-1 h-px bg-slate-200" />
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        
-        {type === 'register' && (
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Nama Lengkap</label>
-            <div className="relative">
-              <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                value={fullName} 
-                onChange={(e) => setFullName(e.target.value)} 
-                placeholder="John Doe"
-                className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm shadow-sm" 
-                required 
-              />
-            </div>
-          </div>
-        )}
-        
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Alamat Email</label>
-          <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              placeholder="email@perusahaan.com"
-              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm shadow-sm" 
-              required 
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Kata Sandi</label>
-          <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              placeholder="Minimal 6 karakter"
-              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm shadow-sm" 
-              required 
-              minLength={6} 
-            />
-          </div>
-        </div>
-
-        {/* Tombol Utama - Sharp & Pro */}
-        <button 
-          type="submit" 
-          disabled={isLoading || !!oauthLoading}
-          className={`w-full py-4 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md disabled:opacity-50 text-sm uppercase tracking-widest mt-4 ${
-            type === 'login' ? 'bg-slate-900 hover:bg-slate-800' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-          }`}
-        >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <>
-              {type === 'login' ? 'OTENTIKASI MASUK' : 'BUAT AKUN'}
-              <ArrowRight className="w-4 h-4 opacity-70" />
-            </>
-          )}
-        </button>
-      </form>
     </div>
   );
 }
 
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
+
 export default function AuthForm({ type }: AuthFormProps) {
   return (
-    <Suspense fallback={<div className="w-full max-w-sm mx-auto bg-slate-50 rounded-xl animate-pulse h-64 border border-slate-100" />}>
+    <Suspense fallback={<div className="w-full bg-slate-50 rounded-xl animate-pulse h-64 border border-slate-100" />}>
       <AuthFormInner type={type} />
     </Suspense>
   );

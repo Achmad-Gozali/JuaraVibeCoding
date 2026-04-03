@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import RekeningSearchForm from '@/components/RekeningSearchForm';
+import { createClient } from '@/lib/supabase-server';
 
 export const metadata: Metadata = {
   title: 'Cek Rekening - KawalTransaksi',
@@ -47,30 +48,115 @@ const articles = [
   },
 ];
 
+function formatRupiah(amount: number): string {
+  if (amount >= 1_000_000_000) {
+    const val = amount / 1_000_000_000;
+    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} M`.replace('.', ',');
+  }
+  if (amount >= 1_000_000) {
+    const val = amount / 1_000_000;
+    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} Jt`.replace('.', ',');
+  }
+  return `Rp${amount.toLocaleString('id-ID')}`;
+}
+
+async function getStats() {
+  try {
+    const supabase = await createClient();
+
+    // Total laporan rekening terverifikasi
+    const { count: totalLaporan } = await supabase
+      .from('reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'verified')
+      .eq('target_type', 'bank_account');
+
+    // Total nomor rekening unik di database
+    const { count: totalRekening } = await supabase
+      .from('reports')
+      .select('target_number', { count: 'exact', head: true })
+      .eq('target_type', 'bank_account')
+      .not('target_number', 'is', null);
+
+    // Total kerugian dari laporan rekening sejak 1 Januari 2018
+    const { data: kerugianData } = await supabase
+      .from('reports')
+      .select('loss_amount')
+      .eq('target_type', 'bank_account')
+      .gte('created_at', '2018-01-01')
+      .not('loss_amount', 'is', null);
+
+    const totalKerugian = (kerugianData ?? []).reduce<number>(
+      (sum, row) => sum + (Number(row.loss_amount) || 0),
+      0
+    );
+
+    return {
+      totalLaporan: totalLaporan ?? 0,
+      totalRekening: totalRekening ?? 0,
+      totalKerugian,
+    };
+  } catch {
+    return { totalLaporan: 0, totalRekening: 0, totalKerugian: 0 };
+  }
+}
+
 export default async function CekRekeningPage() {
+  const { totalLaporan, totalRekening, totalKerugian } = await getStats();
+
+const stats = [
+    {
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>
+      ),
+      value: totalLaporan > 0 ? `${totalLaporan.toLocaleString('id-ID')}+` : '500+',
+      desc: 'Laporan rekening penipu yang telah diverifikasi komunitas',
+    },
+    {
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      ),
+      value: totalRekening > 0 ? `${totalRekening.toLocaleString('id-ID')}+` : '400+',
+      desc: 'Nomor rekening penipu dalam database kami',
+    },
+    {
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>
+        </svg>
+      ),
+      value: Number(totalKerugian) > 0 ? `${formatRupiah(Number(totalKerugian))}+` : 'Rp50 Jt+',
+      desc: 'Total kerugian yang dilaporkan sejak 1 Maret 2026',
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-16 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-10 sm:pb-20 text-center font-sans">
 
       {/* SECTION 1: HERO */}
-      <section className="relative pt-16 sm:pt-24 pb-0 overflow-hidden bg-white">
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="flex flex-col md:flex-row items-center gap-10 pb-16 sm:pb-24">
+      <section className="relative pt-14 sm:pt-24 pb-0 overflow-hidden bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="flex flex-col md:flex-row items-center gap-8 sm:gap-10 pb-14 sm:pb-24">
 
             {/* KIRI: Teks + Form */}
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-4 sm:mb-6 leading-tight uppercase">
+            <div className="flex-1 text-center md:text-left w-full">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-3 sm:mb-6 uppercase leading-tight">
                 Cek Rekening Bank. <br />
                 <span className="text-emerald-600 italic">Amankan Transaksi.</span>
               </h1>
-              <p className="text-slate-500 text-sm sm:text-base mb-8 sm:mb-12 max-w-xl font-medium leading-relaxed">
+              <p className="text-slate-500 text-sm sm:text-base mb-7 sm:mb-12 max-w-xl mx-auto md:mx-0 font-medium leading-relaxed">
                 Verifikasi kredibilitas nomor rekening tujuan sebelum melakukan transfer dana. Hindari risiko penipuan finansial dalam satu klik.
               </p>
               <RekeningSearchForm />
             </div>
 
-            {/* KANAN: Foto Hero */}
-            <div className="flex-1 flex justify-center md:justify-end">
-              <div className="relative w-full max-w-sm md:max-w-md aspect-square">
+            {/* KANAN: Foto Hero — sembunyikan di mobile kecil */}
+            <div className="hidden sm:flex flex-1 justify-center md:justify-end">
+              <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md aspect-square">
                 <Image
                   src="/hero.png"
                   alt="Ilustrasi penipuan online"
@@ -85,32 +171,72 @@ export default async function CekRekeningPage() {
         </div>
 
         {/* WAVE SEPARATOR */}
-        <div className="w-full overflow-hidden leading-none -mb-1">
-          <svg
-            viewBox="0 0 1440 80"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-            className="w-full h-16 sm:h-20 block"
-          >
+        <div className="w-full overflow-hidden leading-none">
+          <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-12 sm:h-20 block">
             <path d="M0,20 C360,80 1080,0 1440,60 L1440,80 L0,80 Z" fill="#f8fafc" />
           </svg>
         </div>
       </section>
 
-      {/* SECTION 2: CEK REKENING PER BANK */}
-      <section className="max-w-5xl mx-auto px-6 pt-14 mb-20">
-        <div className="flex items-end justify-between mb-6 px-1 border-b border-slate-200 pb-4">
+      {/* STATS CARD — overlap ke atas wave pake negative margin */}
+      <section className="bg-slate-50 pb-10 sm:pb-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-10 sm:-mt-14 relative z-10">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-md overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+              {stats.map((stat, i) => (
+                <div key={i} className="flex items-start gap-4 px-6 sm:px-8 py-7 sm:py-8 text-left">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-600">
+                    {stat.icon}
+                  </div>
+                  <div>
+                    <p className="text-xl sm:text-2xl font-black text-emerald-600 mb-1">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">{stat.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: PENJELASAN + QUOTE */}
+      <section className="bg-slate-50 py-10 sm:py-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center text-left">
+
+            {/* KIRI: penjelasan */}
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 mb-3">Apa itu Cek Rekening?</h2>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                Cek Rekening adalah layanan dari KawalTransaksi yang dapat mengidentifikasi apakah sebuah nomor rekening bank berpotensi digunakan untuk penipuan atau tidak, berdasarkan keluhan dan laporan pengguna yang pernah bertransaksi dengan rekening tersebut.
+              </p>
+            </div>
+
+            {/* KANAN: quote */}
+            <div className="bg-emerald-50 rounded-xl px-6 sm:px-8 py-6 sm:py-7">
+              <p className="text-slate-800 text-sm sm:text-base font-bold leading-relaxed text-center">
+                "Sebelum transfer, selalu verifikasi rekening tujuan. Satu langkah kecil yang bisa menyelamatkan uang Anda dari tangan penipu."
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 4: CEK PER BANK */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 sm:pt-14 mb-14 sm:mb-20 text-left">
+        <div className="flex items-end justify-between mb-5 sm:mb-6 px-1 border-b border-slate-200 pb-4">
           <div>
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">Cek Rekening Per Bank</h2>
+            <h2 className="text-base sm:text-xl font-black text-slate-900 uppercase tracking-tight">Cek Rekening Per Bank</h2>
             <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Pilih bank untuk mulai verifikasi</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {banks.map((bank) => (
             <Link
               key={bank.id}
               href={`/cek-rekening/${bank.id}`}
-              className="group bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+              className="group bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
             >
               <div>
                 <div className="w-16 h-10 relative mb-4">
@@ -119,7 +245,7 @@ export default async function CekRekeningPage() {
                 <h3 className="text-sm font-black text-slate-900 mb-1 tracking-tight">{bank.name}</h3>
                 <p className="text-[11px] text-slate-500 leading-relaxed font-medium">{bank.description}</p>
               </div>
-              <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[11px] font-bold text-emerald-600 group-hover:text-emerald-700 uppercase tracking-wider transition-colors">
                   Cek Selengkapnya
                 </span>
@@ -130,12 +256,12 @@ export default async function CekRekeningPage() {
         </div>
       </section>
 
-      {/* SECTION 3: ARTIKEL */}
-      <section className="max-w-5xl mx-auto px-6 pb-16 sm:pb-24 text-left">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-12">
+      {/* SECTION 5: ARTIKEL */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-14 sm:pb-24 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-8 sm:gap-y-12">
           {articles.map((article, i) => (
             <div key={i}>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-3">{article.title}</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-3">{article.title}</h3>
               <p className="text-sm text-slate-500 leading-relaxed">{article.desc}</p>
             </div>
           ))}
