@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
@@ -24,7 +24,6 @@ export default function Navbar() {
   const [isLoading, setIsLoading]           = useState(true);
   const router      = useRouter();
   const pathname    = usePathname();
-  // ✅ FIX 1: Ganti useRef().current → useMemo
   const supabase    = useMemo(() => createClient(), []);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -40,10 +39,13 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  // ✅ FIX: Pakai startTransition agar tidak trigger cascading renders
   useEffect(() => {
-    setIsMenuOpen(false);
-    setIsProfileOpen(false);
-    setIsDropdownOpen(false);
+    startTransition(() => {
+      setIsMenuOpen(false);
+      setIsProfileOpen(false);
+      setIsDropdownOpen(false);
+    });
   }, [pathname]);
 
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function Navbar() {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* LOGO — kiri */}
+            {/* LOGO */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0">
               <Image src="/logo.png" alt="KawalTransaksi" width={32} height={32} className="rounded-lg" priority />
               <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
@@ -116,13 +118,12 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* MENU NAVIGASI — tengah (desktop only) */}
+            {/* MENU NAVIGASI — desktop */}
             <div className="hidden lg:flex flex-1 items-center justify-center gap-0 h-16">
               {menuItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  // ✅ FIX 2: Tidak ada tanda kutip di JSX, aman
                   className={`flex items-center gap-2 px-4 h-full text-sm font-bold uppercase tracking-wider transition-colors border-b-2 ${
                     isActive(item.href)
                       ? 'text-emerald-700 border-emerald-600'
@@ -147,9 +148,6 @@ export default function Navbar() {
                     <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
                       <span className="text-white text-sm font-black">{initials}</span>
                     </div>
-                    {/* ✅ FIX 2: Gunakan {' '} atau &quot; untuk karakter string, tapi
-                        "Hi," di sini aman karena tidak ada tanda kutip ganda di JSX-nya.
-                        Pastikan tidak ada " literal di luar string JS */}
                     <span className="text-base text-slate-700">
                       Hi, <span className="font-bold text-slate-900">{firstName}</span>
                     </span>
