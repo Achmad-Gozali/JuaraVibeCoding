@@ -19,7 +19,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 30;
 
-// ✅ UPDATE: label withdrawn jadi "Sedang Direvisi"
 const statusConfig = {
   pending:   { label: 'Menunggu',       icon: Clock,        className: 'bg-amber-50 text-amber-700 border-amber-200',     },
   verified:  { label: 'Terverifikasi',  icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-700 border-emerald-200', },
@@ -49,16 +48,6 @@ export default async function LaporanPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Top Bar */}
-      <div className="border-b border-zinc-200 bg-white">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-900 text-sm font-medium transition-colors group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
-            Kembali
-          </Link>
-        </div>
-      </div>
-
       <div className="max-w-5xl mx-auto px-4 py-12 space-y-10">
         {/* Header */}
         <motion.div
@@ -194,7 +183,6 @@ export default async function LaporanPage() {
                       <p className="text-sm text-zinc-400 leading-relaxed line-clamp-2">{report.chronology}</p>
                     </div>
 
-                    {/* Status messages */}
                     {report.status === 'pending' && (
                       <div className="mt-4 pl-14">
                         <div className="inline-flex items-center gap-1.5 text-[11px] text-amber-600 font-medium">
@@ -209,7 +197,6 @@ export default async function LaporanPage() {
                         </div>
                       </div>
                     )}
-                    {/* ✅ UPDATE: pesan withdrawn jadi "Sedang Direvisi" */}
                     {report.status === 'withdrawn' && (
                       <div className="mt-4 pl-14">
                         <div className="inline-flex items-center gap-1.5 text-[11px] text-blue-600 font-medium">
@@ -218,13 +205,10 @@ export default async function LaporanPage() {
                       </div>
                     )}
 
-                    {/* Tombol aksi */}
                     <div className="mt-4 pl-14 flex items-center gap-2 flex-wrap">
-                      {/* Ajukan Revisi — hanya untuk pending & verified */}
                       {(report.status === 'pending' || report.status === 'verified') && (
                         <WithdrawButton reportId={report.id} />
                       )}
-                      {/* Edit — hanya untuk withdrawn */}
                       {report.status === 'withdrawn' && (
                         <EditReportButton report={report} />
                       )}
