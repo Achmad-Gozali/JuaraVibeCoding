@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase-server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -7,7 +8,6 @@ import {
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import * as motion from 'motion/react-client';
-import type { Report } from '@/types/database';
 import { formatDateID, maskNumber } from '@/lib/utils';
 import WithdrawButton from '@/components/WithdrawButton';
 import EditReportButton from '@/components/EditReportButton';
@@ -19,11 +19,31 @@ export const metadata: Metadata = {
 
 export const revalidate = 30;
 
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch { }
+        },
+      },
+    }
+  );
+}
+
 const statusConfig = {
-  pending:   { label: 'Menunggu',       icon: Clock,        className: 'bg-amber-50 text-amber-700 border-amber-200',     },
-  verified:  { label: 'Terverifikasi',  icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-700 border-emerald-200', },
-  rejected:  { label: 'Ditolak',        icon: XCircle,      className: 'bg-red-50 text-red-700 border-red-200',            },
-  withdrawn: { label: 'Sedang Direvisi',icon: FilePen,      className: 'bg-blue-50 text-blue-700 border-blue-200',        },
+  pending:   { label: 'Menunggu',        icon: Clock,        className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  verified:  { label: 'Terverifikasi',   icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  rejected:  { label: 'Ditolak',         icon: XCircle,      className: 'bg-red-50 text-red-700 border-red-200' },
+  withdrawn: { label: 'Sedang Direvisi', icon: FilePen,      className: 'bg-blue-50 text-blue-700 border-blue-200' },
 };
 
 export default async function LaporanPage() {
@@ -49,7 +69,7 @@ export default async function LaporanPage() {
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="max-w-5xl mx-auto px-4 py-12 space-y-10">
-        {/* Header */}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -70,13 +90,12 @@ export default async function LaporanPage() {
           </Link>
         </motion.div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { label: 'Total',         value: stats.total,    color: 'text-zinc-900',    sub: 'Laporan dibuat' },
-            { label: 'Menunggu',      value: stats.pending,  color: 'text-amber-500',   sub: 'Dalam review'   },
-            { label: 'Terverifikasi', value: stats.verified, color: 'text-emerald-500', sub: 'Dipublikasi'    },
-            { label: 'Ditolak',       value: stats.rejected, color: 'text-red-500',     sub: 'Tidak lolos'    },
+            { label: 'Menunggu',      value: stats.pending,  color: 'text-amber-500',   sub: 'Dalam review' },
+            { label: 'Terverifikasi', value: stats.verified, color: 'text-emerald-500', sub: 'Dipublikasi' },
+            { label: 'Ditolak',       value: stats.rejected, color: 'text-red-500',     sub: 'Tidak lolos' },
           ].map((item, i) => (
             <motion.div key={item.label}
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -90,7 +109,6 @@ export default async function LaporanPage() {
           ))}
         </div>
 
-        {/* Reports List */}
         <div>
           <motion.h2
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}

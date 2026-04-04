@@ -7,11 +7,13 @@ import {
   Phone, Building2, ChevronDown, ChevronUp, Loader2,
   Search, Users, FileText, DollarSign, X, TrendingUp, ChevronRight,
   AlertCircle, Download, Globe, AtSign, ShieldAlert, UserX, Calendar,
-  TrendingDown, Undo2, FilePen,
+  TrendingDown, Undo2, FilePen, Ban, ShieldOff, Mail, FileBarChart,
 } from 'lucide-react';
-import { updateReportStatus, updateUserRole } from './actions';
+import { updateReportStatus, updateUserRole, banUser, unbanUser } from './actions';
 import { formatDateID } from '@/lib/utils';
+import DailyChart from './DailyChart';
 
+// ── TYPES ─────────────────────────────────────────────────────────────────────
 interface Report {
   id: string;
   reporter_email: string;
@@ -38,6 +40,10 @@ interface AdminUser {
   id: string;
   full_name: string | null;
   role: string;
+  email: string;
+  created_at: string;
+  is_banned: boolean;
+  report_count: number;
   updated_at: string | null;
 }
 
@@ -45,6 +51,7 @@ interface Stats { total: number; pending: number; verified: number; rejected: nu
 type Tab = 'dashboard' | 'laporan' | 'statistik' | 'pengguna';
 type StatusFilter = 'semua' | 'pending' | 'verified' | 'rejected' | 'withdrawn';
 
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 function formatRupiah(num: number | string): string {
   const n = Number(num) || 0;
   if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)}M`;
@@ -59,6 +66,7 @@ const reportedToLabel: Record<string, string> = {
   belum:    '❌ Belum lapor',
 };
 
+// ── SUB-COMPONENTS ────────────────────────────────────────────────────────────
 function StatCard({ label, value, color, icon: Icon, bg }: { label: string; value: string; color: string; icon: React.ElementType; bg: string }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:border-slate-300 transition-colors">
@@ -80,6 +88,7 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
   );
 }
 
+// ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
 function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Report[]; users: AdminUser[] }) {
   const searchParams = useSearchParams();
   const router       = useRouter();
@@ -97,6 +106,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
 
   const setActiveTab = (tab: Tab) => router.push(`/admin?tab=${tab}`);
 
+  // ── Computed data ───────────────────────────────────────────────────────────
   const uniqueBanks     = useMemo(() => Array.from(new Set(reports.map(r => r.bank_name).filter(Boolean) as string[])).sort(), [reports]);
   const uniquePlatforms = useMemo(() => Array.from(new Set(reports.map(r => r.platform).filter(Boolean) as string[])).sort(), [reports]);
 
@@ -163,7 +173,11 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   const filteredUsers = useMemo(() => {
     if (!userSearch) return users;
     const q = userSearch.toLowerCase();
-    return users.filter(u => u.full_name?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q));
+    return users.filter(u =>
+      u.full_name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.id.toLowerCase().includes(q)
+    );
   }, [users, userSearch]);
 
   const statusConfig = {
@@ -173,6 +187,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     withdrawn: { label: 'Sedang Direvisi', color: 'bg-blue-50 text-blue-600 border-blue-200',           icon: FilePen },
   };
 
+  // ── Report actions ──────────────────────────────────────────────────────────
   const handleAction = async (id: string, status: 'verified' | 'rejected' | 'pending' | 'withdrawn') => {
     setLoadingId(id);
     try { await updateReportStatus(id, status); router.refresh(); } catch (err) { console.error(err); } finally { setLoadingId(null); }
@@ -212,7 +227,9 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     a.download = `laporan-${todayStr}.csv`; a.click();
   };
 
-  // ─── DASHBOARD TAB ───
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ─── DASHBOARD TAB ────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
   if (currentTab === 'dashboard') return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <SectionTitle title="Dashboard" subtitle="Overview semua laporan masuk" />
@@ -248,26 +265,15 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           <p className="text-sm text-amber-800 flex-1">
             <span className="font-semibold">{stats.pending}</span> laporan menunggu review
           </p>
-          <button
-            onClick={() => { setActiveTab('laporan'); setStatusFilter('pending'); }}
-            className="flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors"
-          >
+          <button onClick={() => { setActiveTab('laporan'); setStatusFilter('pending'); }}
+            className="flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors">
             Review <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h3 className="text-sm font-semibold text-slate-900 mb-6">Laporan 7 Hari Terakhir</h3>
-          <div className="flex items-end gap-2 h-36">
-            {dailyStats.map(([date, count]) => (
-              <div key={date} className="flex-1 flex flex-col items-center gap-2">
-                <span className="text-[10px] text-slate-400 font-medium">{count}</span>
-                <div className="w-full bg-emerald-500 rounded-lg hover:bg-emerald-400 transition-colors" style={{ height: `${Math.max((count / maxDaily) * 100, 4)}%`, minHeight: '4px' }} />
-                <span className="text-[9px] text-slate-400">{new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
-              </div>
-            ))}
-          </div>
+          <DailyChart reports={reports} />
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h3 className="text-sm font-semibold text-slate-900 mb-5">Bank Terbanyak Dilaporkan</h3>
@@ -296,7 +302,9 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     </div>
   );
 
-  // ─── LAPORAN TAB ───
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ─── LAPORAN TAB ──────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
   if (currentTab === 'laporan') return (
     <div className="space-y-5 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
@@ -333,7 +341,6 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           )}
         </div>
       </div>
-
       <div className="flex gap-2 overflow-x-auto pb-1">
         {(['semua', 'pending', 'verified', 'rejected', 'withdrawn'] as StatusFilter[]).map(f => {
           const count = f === 'semua' ? reports.length : reports.filter(r => r.status === f).length;
@@ -344,10 +351,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
             rejected:  statusFilter === f ? 'bg-red-500 text-white' : 'bg-white text-red-500 border border-red-200 hover:border-red-300',
             withdrawn: statusFilter === f ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border border-blue-200 hover:border-blue-300',
           };
-          const labels: Record<StatusFilter, string> = {
-            semua: 'Semua', pending: 'Pending', verified: 'Verified',
-            rejected: 'Rejected', withdrawn: 'Sedang Direvisi',
-          };
+          const labels: Record<StatusFilter, string> = { semua: 'Semua', pending: 'Pending', verified: 'Verified', rejected: 'Rejected', withdrawn: 'Sedang Direvisi' };
           return (
             <button key={f} onClick={() => setStatusFilter(f)}
               className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${colors[f]}`}>
@@ -356,7 +360,6 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           );
         })}
       </div>
-
       {selectedIds.size > 0 && (
         <div className="bg-slate-900 text-white rounded-2xl px-5 py-3.5 flex items-center justify-between">
           <span className="text-sm font-medium">{selectedIds.size} laporan dipilih</span>
@@ -373,33 +376,28 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           </div>
         </div>
       )}
-
       {filteredReports.length > 0 && (
         <label className="flex items-center gap-2 cursor-pointer w-fit">
           <input type="checkbox" checked={selectedIds.size === filteredReports.length} onChange={selectAll} className="w-4 h-4 accent-emerald-600 rounded" />
           <span className="text-xs text-slate-400 font-medium">Pilih semua ({filteredReports.length})</span>
         </label>
       )}
-
       {filteredReports.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-20 text-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Search className="w-7 h-7 text-slate-300" />
-          </div>
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Search className="w-7 h-7 text-slate-300" /></div>
           <p className="text-sm font-medium text-slate-500">Tidak ada laporan ditemukan</p>
           <p className="text-xs text-slate-400 mt-1">Coba ubah filter pencarian</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filteredReports.map(report => {
-            const st    = statusConfig[report.status as keyof typeof statusConfig] ?? statusConfig.pending;
+            const st = statusConfig[report.status as keyof typeof statusConfig] ?? statusConfig.pending;
             const StIcon = st.icon;
-            const isExp  = expandedId === report.id;
-            const isLd   = loadingId === report.id;
-            const isSel  = selectedIds.has(report.id);
-            const hasSocmed     = (report.social_media_accounts ?? []).filter(Boolean).length > 0;
+            const isExp = expandedId === report.id;
+            const isLd = loadingId === report.id;
+            const isSel = selectedIds.has(report.id);
+            const hasSocmed = (report.social_media_accounts ?? []).filter(Boolean).length > 0;
             const hasReportedTo = (report.reported_to ?? []).filter(Boolean).length > 0;
-
             return (
               <div key={report.id} className={`bg-white border rounded-2xl overflow-hidden transition-all duration-150 ${isSel ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200 hover:border-slate-300'}`}>
                 <div className="px-4 py-4 sm:px-5">
@@ -412,13 +410,9 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                       <div className="flex flex-wrap items-center gap-1.5 mb-1">
                         <span className="font-bold text-slate-900 text-sm font-mono tracking-wide">{report.target_number}</span>
                         {report.target_name && <span className="text-xs text-slate-400 hidden sm:inline">· {report.target_name}</span>}
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${st.color}`}>
-                          <StIcon className="w-2.5 h-2.5" />{st.label}
-                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${st.color}`}><StIcon className="w-2.5 h-2.5" />{st.label}</span>
                         {report.bank_name && <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-lg font-medium hidden sm:inline">{report.bank_name}</span>}
-                        {report.has_other_victims === 'yes' && (
-                          <span className="text-[10px] px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-lg font-semibold">👥 Multi korban</span>
-                        )}
+                        {report.has_other_victims === 'yes' && <span className="text-[10px] px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-lg font-semibold">👥 Multi korban</span>}
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
                         <span className="bg-slate-100 px-2 py-0.5 rounded-lg font-medium text-slate-500">{report.category}</span>
@@ -431,67 +425,46 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                           {(report.social_media_accounts ?? []).filter(Boolean).slice(0, 2).map((acc, i) => (
                             <span key={i} className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg font-mono border border-slate-200">@{acc.replace(/^@/, '')}</span>
                           ))}
-                          {(report.social_media_accounts ?? []).filter(Boolean).length > 2 && (
-                            <span className="text-[10px] text-slate-400">+{(report.social_media_accounts ?? []).filter(Boolean).length - 2} lagi</span>
-                          )}
+                          {(report.social_media_accounts ?? []).filter(Boolean).length > 2 && <span className="text-[10px] text-slate-400">+{(report.social_media_accounts ?? []).filter(Boolean).length - 2} lagi</span>}
                         </div>
                       )}
                     </div>
-
                     <div className="flex items-center gap-1.5 shrink-0">
                       {report.status === 'pending' && (
                         <>
-                          <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 text-white text-xs font-semibold rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-colors">
-                            {isLd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                            <span className="hidden sm:inline">Approve</span>
+                          <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 text-white text-xs font-semibold rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-colors">
+                            {isLd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}<span className="hidden sm:inline">Approve</span>
                           </button>
-                          <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-red-50 hover:text-red-500 disabled:opacity-50 transition-colors">
-                            {isLd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                            <span className="hidden sm:inline">Reject</span>
+                          <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd} className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-red-50 hover:text-red-500 disabled:opacity-50 transition-colors">
+                            {isLd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}<span className="hidden sm:inline">Reject</span>
                           </button>
                         </>
                       )}
                       {report.status === 'verified' && (
-                        <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 text-xs font-semibold rounded-xl hover:bg-red-50 hover:text-red-500 disabled:opacity-50 transition-colors">
-                          <XCircle className="w-3.5 h-3.5" /><span className="hidden sm:inline">Reject</span>
-                        </button>
+                        <button onClick={() => handleAction(report.id, 'rejected')} disabled={isLd} className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 text-xs font-semibold rounded-xl hover:bg-red-50 hover:text-red-500 disabled:opacity-50 transition-colors"><XCircle className="w-3.5 h-3.5" /><span className="hidden sm:inline">Reject</span></button>
                       )}
                       {report.status === 'rejected' && (
-                        <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 text-xs font-semibold rounded-xl hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50 transition-colors">
-                          <CheckCircle2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Approve</span>
-                        </button>
+                        <button onClick={() => handleAction(report.id, 'verified')} disabled={isLd} className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 text-xs font-semibold rounded-xl hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50 transition-colors"><CheckCircle2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Approve</span></button>
                       )}
                       {report.status === 'withdrawn' && (
-                        <button onClick={() => handleAction(report.id, 'pending')} disabled={isLd}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 text-xs font-semibold rounded-xl hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50 transition-colors">
-                          {isLd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
-                          <span className="hidden sm:inline">Restore</span>
+                        <button onClick={() => handleAction(report.id, 'pending')} disabled={isLd} className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 text-xs font-semibold rounded-xl hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50 transition-colors">
+                          {isLd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}<span className="hidden sm:inline">Restore</span>
                         </button>
                       )}
-                      <button onClick={() => setExpandedId(isExp ? null : report.id)}
-                        className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-colors">
+                      <button onClick={() => setExpandedId(isExp ? null : report.id)} className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-colors">
                         {isExp ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                       </button>
                     </div>
                   </div>
                 </div>
-
                 {isExp && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 bg-slate-50/60 space-y-5">
                     {report.suspect_photo_url && (
                       <div className="flex items-start gap-4 p-4 bg-red-50 border border-red-100 rounded-xl">
                         <img src={report.suspect_photo_url} alt="Foto penipu" className="w-16 h-16 object-cover rounded-xl border-2 border-red-200 shrink-0" />
                         <div>
-                          <p className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1">
-                            <UserX className="w-3 h-3" /> Foto Profil Penipu
-                          </p>
-                          <a href={report.suspect_photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-red-600 hover:underline flex items-center gap-1">
-                            Lihat ukuran penuh <ExternalLink className="w-3 h-3" />
-                          </a>
+                          <p className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1"><UserX className="w-3 h-3" /> Foto Profil Penipu</p>
+                          <a href={report.suspect_photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-red-600 hover:underline flex items-center gap-1">Lihat ukuran penuh <ExternalLink className="w-3 h-3" /></a>
                         </div>
                       </div>
                     )}
@@ -502,11 +475,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                         report.loss_amount ? { label: 'Kerugian', value: formatRupiah(report.loss_amount), className: 'text-red-600 font-semibold' } : null,
                         report.incident_date ? { label: 'Tgl Kejadian', value: formatDateID(report.incident_date), className: '' } : null,
                         report.platform ? { label: 'Platform', value: report.platform, className: '' } : null,
-                        report.has_other_victims ? {
-                          label: 'Korban Lain',
-                          value: report.has_other_victims === 'yes' ? '⚠ Ada korban lain' : 'Hanya pelapor',
-                          className: report.has_other_victims === 'yes' ? 'text-orange-600 font-semibold' : ''
-                        } : null,
+                        report.has_other_victims ? { label: 'Korban Lain', value: report.has_other_victims === 'yes' ? '⚠ Ada korban lain' : 'Hanya pelapor', className: report.has_other_victims === 'yes' ? 'text-orange-600 font-semibold' : '' } : null,
                       ].filter(Boolean).map((item, i) => (
                         <div key={i} className="bg-white rounded-xl border border-slate-100 p-3.5">
                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1">{item!.label}</p>
@@ -516,23 +485,17 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                       {report.link_url && (
                         <div className="bg-white rounded-xl border border-slate-100 p-3.5 col-span-2">
                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1">Link URL</p>
-                          <a href={report.link_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1 truncate">
-                            {report.link_url} <ExternalLink className="w-3 h-3 shrink-0" />
-                          </a>
+                          <a href={report.link_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1 truncate">{report.link_url} <ExternalLink className="w-3 h-3 shrink-0" /></a>
                         </div>
                       )}
                     </div>
                     {hasSocmed && (
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
-                          <AtSign className="w-3 h-3" /> Akun Media Sosial Penipu
-                        </p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5"><AtSign className="w-3 h-3" /> Akun Media Sosial Penipu</p>
                         <div className="flex flex-wrap gap-2">
                           {(report.social_media_accounts ?? []).filter(Boolean).map((acc, i) => (
                             <span key={i} className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-700">
-                              {acc.startsWith('http')
-                                ? <a href={acc} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">{acc} <ExternalLink className="w-2.5 h-2.5 inline" /></a>
-                                : `@${acc.replace(/^@/, '')}`}
+                              {acc.startsWith('http') ? <a href={acc} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">{acc} <ExternalLink className="w-2.5 h-2.5 inline" /></a> : `@${acc.replace(/^@/, '')}`}
                             </span>
                           ))}
                         </div>
@@ -540,33 +503,21 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                     )}
                     {hasReportedTo && (
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
-                          <ShieldAlert className="w-3 h-3" /> Sudah Lapor Ke
-                        </p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5"><ShieldAlert className="w-3 h-3" /> Sudah Lapor Ke</p>
                         <div className="flex flex-wrap gap-2">
                           {(report.reported_to ?? []).filter(Boolean).map(v => (
-                            <span key={v} className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${v === 'belum' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                              {reportedToLabel[v] ?? v}
-                            </span>
+                            <span key={v} className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${v === 'belum' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>{reportedToLabel[v] ?? v}</span>
                           ))}
                         </div>
                       </div>
                     )}
                     <div>
                       <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2">Kronologi</p>
-                      <div className="bg-white border border-slate-100 rounded-xl p-4">
-                        <p className="text-sm text-slate-600 leading-relaxed">{report.chronology}</p>
-                      </div>
+                      <div className="bg-white border border-slate-100 rounded-xl p-4"><p className="text-sm text-slate-600 leading-relaxed">{report.chronology}</p></div>
                     </div>
                     <div className="flex gap-4 pt-1">
-                      {report.evidence_url && (
-                        <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-900 flex items-center gap-1.5 font-medium transition-colors">
-                          <Eye className="w-3.5 h-3.5" />Lihat Bukti
-                        </a>
-                      )}
-                      <a href={`/check/${report.target_number}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1.5 transition-colors">
-                        <ExternalLink className="w-3.5 h-3.5" />Halaman Publik
-                      </a>
+                      {report.evidence_url && <a href={report.evidence_url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-900 flex items-center gap-1.5 font-medium transition-colors"><Eye className="w-3.5 h-3.5" />Lihat Bukti</a>}
+                      <a href={`/check/${report.target_number}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1.5 transition-colors"><ExternalLink className="w-3.5 h-3.5" />Halaman Publik</a>
                     </div>
                   </div>
                 )}
@@ -578,22 +529,15 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     </div>
   );
 
-  // ─── STATISTIK TAB ───
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ─── STATISTIK TAB ────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
   if (currentTab === 'statistik') return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <SectionTitle title="Statistik" subtitle="Analisis data laporan" />
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h3 className="text-sm font-semibold text-slate-900 mb-6">Laporan 7 Hari Terakhir</h3>
-          <div className="flex items-end gap-2 h-36">
-            {dailyStats.map(([d, c]) => (
-              <div key={d} className="flex-1 flex flex-col items-center gap-2">
-                <span className="text-[10px] text-slate-400 font-medium">{c}</span>
-                <div className="w-full bg-emerald-500 rounded-lg hover:bg-emerald-400 transition-colors" style={{ height: `${Math.max((c / maxDaily) * 100, 4)}%`, minHeight: '4px' }} />
-                <span className="text-[9px] text-slate-400">{new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
-              </div>
-            ))}
-          </div>
+          <DailyChart reports={reports} />
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h3 className="text-sm font-semibold text-slate-900 mb-5">Kategori</h3>
@@ -601,13 +545,8 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
             <div className="space-y-3.5">
               {categoryStats.map(([cat, count]) => (
                 <div key={cat}>
-                  <div className="flex justify-between mb-1.5">
-                    <span className="text-xs font-medium text-slate-700">{cat}</span>
-                    <span className="text-xs text-slate-400 font-semibold">{count}</span>
-                  </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(count / maxCat) * 100}%` }} />
-                  </div>
+                  <div className="flex justify-between mb-1.5"><span className="text-xs font-medium text-slate-700">{cat}</span><span className="text-xs text-slate-400 font-semibold">{count}</span></div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(count / maxCat) * 100}%` }} /></div>
                 </div>
               ))}
             </div>
@@ -620,9 +559,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
               {bankStats.map(([label, data]) => (
                 <div key={label} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
-                      {label === 'Nomor Telepon' ? <Phone className="w-3.5 h-3.5 text-slate-400" /> : <Building2 className="w-3.5 h-3.5 text-slate-400" />}
-                    </div>
+                    <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">{label === 'Nomor Telepon' ? <Phone className="w-3.5 h-3.5 text-slate-400" /> : <Building2 className="w-3.5 h-3.5 text-slate-400" />}</div>
                     <span className="text-sm text-slate-700 font-medium">{label}</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -640,13 +577,8 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
             <div className="space-y-3.5">
               {platformStats.map(([p, c]) => (
                 <div key={p}>
-                  <div className="flex justify-between mb-1.5">
-                    <span className="text-xs font-medium text-slate-700">{p}</span>
-                    <span className="text-xs text-slate-400 font-semibold">{c}</span>
-                  </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-slate-600 rounded-full" style={{ width: `${(c / maxPlat) * 100}%` }} />
-                  </div>
+                  <div className="flex justify-between mb-1.5"><span className="text-xs font-medium text-slate-700">{p}</span><span className="text-xs text-slate-400 font-semibold">{c}</span></div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-slate-600 rounded-full" style={{ width: `${(c / maxPlat) * 100}%` }} /></div>
                 </div>
               ))}
             </div>
@@ -668,98 +600,145 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
       <div className="bg-white rounded-2xl border border-slate-200 p-6">
         <h3 className="text-sm font-semibold text-slate-900 mb-5">Info Tambahan</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-            <p className="text-2xl font-black text-orange-600">{multiVictimCount}</p>
-            <p className="text-xs text-orange-500 font-medium mt-1">Laporan multi korban</p>
-          </div>
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <p className="text-2xl font-black text-slate-700">{reports.filter(r => (r.social_media_accounts ?? []).filter(Boolean).length > 0).length}</p>
-            <p className="text-xs text-slate-500 font-medium mt-1">Laporan ada data sosmed</p>
-          </div>
-          <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-            <p className="text-2xl font-black text-emerald-600">{reports.filter(r => (r.reported_to ?? []).some(v => v !== 'belum')).length}</p>
-            <p className="text-xs text-emerald-600 font-medium mt-1">Sudah lapor ke instansi</p>
-          </div>
+          <div className="p-4 bg-orange-50 rounded-xl border border-orange-100"><p className="text-2xl font-black text-orange-600">{multiVictimCount}</p><p className="text-xs text-orange-500 font-medium mt-1">Laporan multi korban</p></div>
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100"><p className="text-2xl font-black text-slate-700">{reports.filter(r => (r.social_media_accounts ?? []).filter(Boolean).length > 0).length}</p><p className="text-xs text-slate-500 font-medium mt-1">Laporan ada data sosmed</p></div>
+          <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100"><p className="text-2xl font-black text-emerald-600">{reports.filter(r => (r.reported_to ?? []).some(v => v !== 'belum')).length}</p><p className="text-xs text-emerald-600 font-medium mt-1">Sudah lapor ke instansi</p></div>
         </div>
       </div>
     </div>
   );
 
-  // ─── PENGGUNA TAB ───
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ─── PENGGUNA TAB (REDESIGNED) ────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
       <SectionTitle title="Pengguna" subtitle={`${users.length} total pengguna terdaftar`} />
       <div className="relative max-w-md">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input type="text" placeholder="Cari nama pengguna..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
+        <input type="text" placeholder="Cari nama atau email..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all" />
       </div>
       {filteredUsers.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-20 text-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Users className="w-7 h-7 text-slate-300" />
-          </div>
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Users className="w-7 h-7 text-slate-300" /></div>
           <p className="text-sm font-medium text-slate-500">Tidak ada pengguna ditemukan</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredUsers.map(u => {
-            const rc = {
-              admin:     { l: 'Admin', c: 'bg-red-50 text-red-600 border-red-200' },
-              moderator: { l: 'Mod',   c: 'bg-blue-50 text-blue-600 border-blue-200' },
-              user:      { l: 'User',  c: 'bg-slate-100 text-slate-500 border-slate-200' },
-            };
-            const role = rc[u.role as keyof typeof rc] ?? rc.user;
-            return <UserRow key={u.id} user={u} role={role} onRefresh={() => router.refresh()} />;
-          })}
+          {filteredUsers.map(u => (
+            <UserRow key={u.id} user={u} onRefresh={() => router.refresh()} />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function UserRow({ user, role, onRefresh }: { user: AdminUser; role: { l: string; c: string }; onRefresh: () => void }) {
+// ── USER ROW COMPONENT (REDESIGNED) ───────────────────────────────────────────
+function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false);
-  const [action, setAction]   = useState<string | null>(null);
-  const handleRole = async (r: 'user' | 'admin' | 'moderator') => {
+  const [action, setAction] = useState<string | null>(null);
+
+  const handleRole = async (r: 'user' | 'admin') => {
     setLoading(true); setAction(r);
     try { await updateUserRole(user.id, r); onRefresh(); } catch (e) { console.error(e); } finally { setLoading(false); setAction(null); }
   };
+
+  const handleBan = async () => {
+    setLoading(true); setAction('ban');
+    try { await banUser(user.id); onRefresh(); } catch (e) { console.error(e); } finally { setLoading(false); setAction(null); }
+  };
+
+  const handleUnban = async () => {
+    setLoading(true); setAction('unban');
+    try { await unbanUser(user.id); onRefresh(); } catch (e) { console.error(e); } finally { setLoading(false); setAction(null); }
+  };
+
   const initial = (user.full_name || 'U').charAt(0).toUpperCase();
+  const isAdmin = user.role === 'admin';
+  const isBanned = user.is_banned;
+  const joinDate = user.created_at
+    ? new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '-';
+
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-5 flex items-center gap-4 hover:border-slate-300 transition-colors">
-      <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shrink-0">
-        <span className="text-white text-sm font-bold">{initial}</span>
-      </div>
-      <div className="flex-grow min-w-0">
-        <p className="text-sm font-semibold text-slate-900 truncate">{user.full_name || 'Tanpa Nama'}</p>
-        <p className="text-[11px] text-slate-400 mt-0.5">{user.updated_at ? formatDateID(user.updated_at) : '-'}</p>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${role.c}`}>{role.l}</span>
-        {user.role !== 'admin' && (
-          <button onClick={() => handleRole('admin')} disabled={loading}
-            className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 font-semibold disabled:opacity-50 transition-colors">
-            {loading && action === 'admin' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Admin'}
-          </button>
-        )}
-        {user.role === 'admin' && (
-          <button onClick={() => handleRole('user')} disabled={loading}
-            className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 font-semibold disabled:opacity-50 transition-colors">
-            {loading && action === 'user' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cabut'}
-          </button>
-        )}
-        {user.role !== 'moderator' && user.role !== 'admin' && (
-          <button onClick={() => handleRole('moderator')} disabled={loading}
-            className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 font-semibold disabled:opacity-50 transition-colors">
-            {loading && action === 'moderator' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Mod'}
-          </button>
-        )}
+    <div className={`bg-white border rounded-2xl px-4 py-4 sm:px-5 hover:border-slate-300 transition-colors ${isBanned ? 'border-red-200 bg-red-50/30' : 'border-slate-200'}`}>
+      <div className="flex items-center gap-4">
+        {/* Avatar */}
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isBanned ? 'bg-red-200' : 'bg-slate-900'}`}>
+          <span className={`text-sm font-bold ${isBanned ? 'text-red-700' : 'text-white'}`}>{initial}</span>
+        </div>
+
+        {/* Info */}
+        <div className="flex-grow min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className={`text-sm font-semibold truncate ${isBanned ? 'text-red-700 line-through' : 'text-slate-900'}`}>
+              {user.full_name || 'Tanpa Nama'}
+            </p>
+            {/* Role / Status badges */}
+            {isAdmin && (
+              <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-50 text-red-600 border-red-200">Admin</span>
+            )}
+            {isBanned && (
+              <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-100 text-red-700 border-red-300">Banned</span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+            {user.email && (
+              <span className="flex items-center gap-1 truncate max-w-[200px]">
+                <Mail className="w-3 h-3 shrink-0" /> {user.email}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3 shrink-0" /> {joinDate}
+            </span>
+            <span className="flex items-center gap-1">
+              <FileBarChart className="w-3 h-3 shrink-0" /> {user.report_count} laporan
+            </span>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Admin: tombol Cabut */}
+          {isAdmin && (
+            <button onClick={() => handleRole('user')} disabled={loading}
+              className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 font-semibold disabled:opacity-50 transition-colors">
+              {loading && action === 'user' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cabut'}
+            </button>
+          )}
+
+          {/* Non-admin: tombol Jadikan Admin */}
+          {!isAdmin && !isBanned && (
+            <button onClick={() => handleRole('admin')} disabled={loading}
+              className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 font-semibold disabled:opacity-50 transition-colors">
+              {loading && action === 'admin' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Admin'}
+            </button>
+          )}
+
+          {/* Non-admin + aktif: tombol Ban */}
+          {!isAdmin && !isBanned && (
+            <button onClick={handleBan} disabled={loading}
+              className="text-[11px] px-3 py-1.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 hover:text-red-700 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1">
+              {loading && action === 'ban' ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Ban className="w-3 h-3" /> Ban</>}
+            </button>
+          )}
+
+          {/* Banned: tombol Unban */}
+          {!isAdmin && isBanned && (
+            <button onClick={handleUnban} disabled={loading}
+              className="text-[11px] px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 hover:text-emerald-700 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1">
+              {loading && action === 'unban' ? <Loader2 className="w-3 h-3 animate-spin" /> : <><ShieldOff className="w-3 h-3" /> Unban</>}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
+// ── EXPORT ────────────────────────────────────────────────────────────────────
 export default function AdminDashboard(props: { stats: Stats; reports: Report[]; users: AdminUser[] }) {
   return (
     <Suspense fallback={

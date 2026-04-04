@@ -22,6 +22,8 @@ interface EditReportFormProps {
   };
 }
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
 const categoryList = [
   { value: 'Jual Beli Online', label: 'Jual Beli Online' },
   { value: 'Investasi Bodong', label: 'Investasi Bodong' },
@@ -147,11 +149,23 @@ export default function EditReportForm({ report }: EditReportFormProps) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/reports/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      // Ambil token dari Supabase
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setError('Sesi habis. Silakan login ulang.');
+        return;
+      }
+
+      const res = await fetch(`${BACKEND_URL}/api/reports/${report.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
-          reportId: report.id,
           target_name: formData.target_name || null,
           category: formData.category,
           chronology: formData.chronology,
@@ -167,6 +181,7 @@ export default function EditReportForm({ report }: EditReportFormProps) {
           reported_to: formData.reported_to,
         }),
       });
+
       const data = await res.json();
       if (data.success) {
         router.push('/dashboard/laporan');
@@ -185,7 +200,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
     <div className="min-h-screen bg-neutral-50">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
 
-        {/* Back */}
         <button
           onClick={() => router.push('/dashboard/laporan')}
           className="flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-800 transition-colors mb-8"
@@ -196,13 +210,11 @@ export default function EditReportForm({ report }: EditReportFormProps) {
           Kembali ke laporan saya
         </button>
 
-        {/* Page header */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-neutral-900 tracking-tight mb-1">Edit Laporan</h1>
           <p className="text-base font-mono text-neutral-400">{report.target_number}</p>
         </div>
 
-        {/* Notice */}
         <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl mb-8">
           <p className="text-sm text-amber-700 leading-relaxed">
             Setelah menyimpan, laporan akan masuk ke antrian review admin kembali.
@@ -210,14 +222,12 @@ export default function EditReportForm({ report }: EditReportFormProps) {
         </div>
 
         <form onSubmit={handleSubmit}>
-
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-4">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
-          {/* Card 1 */}
           <Card title="Informasi dasar">
             <div className="space-y-5">
               <div>
@@ -248,7 +258,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             </div>
           </Card>
 
-          {/* Card 2 */}
           <Card title="Detail kejadian">
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -339,7 +348,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             </div>
           </Card>
 
-          {/* Card 3 */}
           <Card title="Kronologi">
             <textarea
               required
@@ -352,7 +360,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             />
           </Card>
 
-          {/* Card 4 */}
           <Card title="Informasi tambahan">
             <div className="space-y-5">
               <div>
@@ -407,7 +414,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             </div>
           </Card>
 
-          {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 mt-6">
             <button
               type="button"
@@ -424,7 +430,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
               {isLoading ? 'Menyimpan...' : 'Simpan & Kirim ke Review'}
             </button>
           </div>
-
         </form>
       </div>
     </div>

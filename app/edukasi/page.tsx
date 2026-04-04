@@ -1,4 +1,3 @@
-// app/edukasi/page.tsx
 import type { Metadata } from 'next';
 import {
   ShieldAlert,
@@ -11,6 +10,7 @@ export const metadata: Metadata = {
     'Pelajari berbagai modus penipuan online di Indonesia dan cara melindungi diri dari scam, phishing, investasi bodong, dan modus lainnya.',
 };
 
+// ── DATA ──────────────────────────────────────────────────────────────────────
 const modusData = [
   {
     slug: 'jual-beli-online',
@@ -164,78 +164,84 @@ const modusData = [
   },
 ];
 
+// ── PAGE ──────────────────────────────────────────────────────────────────────
 export default function EdukasiPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <main className="min-h-screen bg-white text-slate-900 font-sans">
 
-      {/* Hero */}
-      <div className="bg-white border-b border-slate-200/80 px-4 py-10 text-center">
-        <h1
-          className="text-2xl font-bold text-slate-900 mb-2"
-          style={{ fontFamily: "'Syne', sans-serif" }}
-        >
-          Kenali modus penipuan
-        </h1>
-        <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
-          Pelajari berbagai modus penipuan yang marak di Indonesia dan cara melindungi diri kamu serta keluarga.
-        </p>
-      </div>
+      {/* ── Hero — slate-50 ── */}
+      <section className="bg-slate-50 px-4 pt-14 pb-10">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase mb-2">
+            Kenali Modus Penipuan
+          </h1>
+          <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
+            Pelajari berbagai modus penipuan yang marak di Indonesia dan cara melindungi diri kamu serta keluarga.
+          </p>
+        </div>
+      </section>
 
-      {/* Cards */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-3">
-        {modusData.map((modus, i) => (
-          <div
-            key={modus.slug}
-            id={modus.slug}
-            className="bg-white rounded-[8px] border border-slate-200/80 overflow-hidden"
-          >
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-[0.12em] mb-1">
-                #{String(i + 1).padStart(2, '0')}
-              </p>
-              <p className="text-sm font-semibold text-slate-900 mb-1">{modus.title}</p>
-              <p className="text-xs text-slate-500 leading-relaxed">{modus.summary}</p>
-            </div>
+      {/* Wave: slate-50 → putih */}
+      <svg viewBox="0 0 1440 50" preserveAspectRatio="none" className="w-full block bg-slate-50 -mb-1" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,50 C360,10 720,40 1080,15 C1260,2 1380,30 1440,20 L1440,50 Z" fill="#ffffff" />
+      </svg>
 
-            {/* Body — 2 kolom */}
-            <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
-              {/* Tanda bahaya */}
-              <div className="px-5 py-4">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <AlertTriangle className="w-3 h-3 text-red-400" />
-                  <p className="text-[10px] text-slate-400 uppercase tracking-[0.12em]">Tanda bahaya</p>
-                </div>
-                <ul className="space-y-2">
-                  {modus.redFlags.map((flag, j) => (
-                    <li key={j} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
-                      {flag}
-                    </li>
-                  ))}
-                </ul>
+      {/* ── Modus cards ── */}
+      <section className="px-4 py-10">
+        <div className="max-w-4xl mx-auto space-y-3">
+          {modusData.map((modus, i) => (
+            <div
+              key={modus.slug}
+              id={modus.slug}
+              className="bg-white rounded-lg border border-slate-200 overflow-hidden hover:border-slate-300 transition-colors"
+            >
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">
+                  #{String(i + 1).padStart(2, '0')}
+                </p>
+                <p className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{modus.title}</p>
+                <p className="text-xs text-slate-500 leading-relaxed">{modus.summary}</p>
               </div>
 
-              {/* Tips */}
-              <div className="px-5 py-4">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <ShieldAlert className="w-3 h-3 text-emerald-500" />
-                  <p className="text-[10px] text-slate-400 uppercase tracking-[0.12em]">Cara melindungi diri</p>
+              {/* Body — 2 kolom */}
+              <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                {/* Tanda bahaya */}
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <AlertTriangle className="w-3 h-3 text-red-400" />
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Tanda bahaya</p>
+                  </div>
+                  <ul className="space-y-2">
+                    {modus.redFlags.map((flag, j) => (
+                      <li key={j} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                        {flag}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-2">
-                  {modus.tips.map((tip, j) => (
-                    <li key={j} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
+
+                {/* Tips */}
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <ShieldAlert className="w-3 h-3 text-emerald-500" />
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Cara melindungi diri</p>
+                  </div>
+                  <ul className="space-y-2">
+                    {modus.tips.map((tip, j) => (
+                      <li key={j} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-    </div>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }

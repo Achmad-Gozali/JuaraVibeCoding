@@ -1,9 +1,17 @@
 import AuthForm from '@/components/AuthForm';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShieldX } from 'lucide-react';
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  const isBanned = params.error === 'banned';
+  const isOauthFailed = params.error === 'oauth_failed';
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900 px-4">
 
@@ -46,6 +54,32 @@ export default function LoginPage() {
             Gunakan kredensial terdaftar untuk mengakses database.
           </p>
         </div>
+
+        {/* ── Error banner: Banned ── */}
+        {isBanned && (
+          <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+            <ShieldX className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-red-800 mb-0.5">Akun Dinonaktifkan</p>
+              <p className="text-xs text-red-600 leading-relaxed">
+                Akun Anda telah dinonaktifkan oleh admin. Hubungi tim KawalTransaksi untuk informasi lebih lanjut.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Error banner: OAuth failed ── */}
+        {isOauthFailed && (
+          <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+            <ShieldX className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-amber-800 mb-0.5">Login Gagal</p>
+              <p className="text-xs text-amber-600 leading-relaxed">
+                Gagal masuk dengan Google. Silakan coba lagi.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Card */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-900/5 p-6 sm:p-8 relative overflow-hidden">

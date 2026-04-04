@@ -10,8 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies();
-    
-    // Default response, tapi nanti kita suntik header di bawah
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,32 +22,38 @@ export async function GET(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
               );
-            } catch { /* Handle in middleware */ }
+            } catch { }
           },
         },
       }
     );
 
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data?.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
+    if (!error) {
+      // ── Cek apakah user di-ban ──────────────────────────────────────────────
+      const { data: { user } } = await supabase.auth.getUser();
 
-      const finalUrl = profile?.role === 'admin' ? `${origin}/admin` : `${origin}${next}`;
-      
-      // ✅ FIX: Buat response baru dan suntik cookie store secara manual agar sinkron
-      const redirectResponse = NextResponse.redirect(finalUrl);
-      
-      // Copy cookies dari store ke response redirect
-      cookieStore.getAll().forEach(cookie => {
-          redirectResponse.cookies.set(cookie.name, cookie.value);
-      });
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_banned, role')
+          .eq('id', user.id)
+          .single();
 
-      return redirectResponse;
+        // User banned → logout + redirect ke login
+        if (profile?.is_banned === true) {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${origin}/login?error=banned`);
+        }
+
+        // Admin → redirect ke admin panel
+        if (profile?.role === 'admin') {
+          return NextResponse.redirect(`${origin}/admin`);
+        }
+      }
+
+      return NextResponse.redirect(`${origin}${next}`);
     }
   }
 

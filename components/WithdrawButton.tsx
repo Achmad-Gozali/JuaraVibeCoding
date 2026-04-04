@@ -8,6 +8,8 @@ interface WithdrawButtonProps {
   reportId: string;
 }
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
 export default function WithdrawButton({ reportId }: WithdrawButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -16,11 +18,25 @@ export default function WithdrawButton({ reportId }: WithdrawButtonProps) {
   const handleWithdraw = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/reports/withdraw', {
+      // Ambil token dari Supabase
+      const { createClient } = await import('@/lib/supabase-browser');
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        alert('Sesi habis. Silakan login ulang.');
+        return;
+      }
+
+      const res = await fetch(`${BACKEND_URL}/api/reports/withdraw`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ reportId }),
       });
+
       const data = await res.json();
       if (data.success) {
         router.refresh();

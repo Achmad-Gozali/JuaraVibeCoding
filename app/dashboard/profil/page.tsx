@@ -1,8 +1,5 @@
-// ============================================
-// 📁 LOKASI: app/dashboard/profil/page.tsx
-// ============================================
-
-import { createClient } from '@/lib/supabase-server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, User, Mail, Calendar, Shield } from 'lucide-react';
@@ -12,6 +9,26 @@ import * as motion from 'motion/react-client';
 export const metadata: Metadata = {
   title: 'Profil Saya - KawalTransaksi',
 };
+
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch { }
+        },
+      },
+    }
+  );
+}
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -40,7 +57,6 @@ export default async function ProfilPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Top Bar */}
       <div className="border-b border-zinc-200 bg-white">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-900 text-sm font-medium transition-colors group">
@@ -51,7 +67,6 @@ export default async function ProfilPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -63,7 +78,6 @@ export default async function ProfilPage() {
           <p className="text-zinc-400 text-sm mt-1">Informasi akun kamu di KawalTransaksi</p>
         </motion.div>
 
-        {/* Avatar + Name Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -78,17 +92,16 @@ export default async function ProfilPage() {
           </div>
         </motion.div>
 
-        {/* Info Fields */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="bg-white border border-zinc-200 rounded-2xl divide-y divide-zinc-100"
         >
           {[
-            { icon: User,     label: 'Nama Lengkap',  value: fullName },
-            { icon: Mail,     label: 'Email',          value: user.email ?? '-' },
+            { icon: User,     label: 'Nama Lengkap',   value: fullName },
+            { icon: Mail,     label: 'Email',           value: user.email ?? '-' },
             { icon: Calendar, label: 'Bergabung Sejak', value: joinedAt },
-            { icon: Shield,   label: 'Login Via',      value: provider.charAt(0).toUpperCase() + provider.slice(1) },
+            { icon: Shield,   label: 'Login Via',       value: provider.charAt(0).toUpperCase() + provider.slice(1) },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-4 px-6 py-4">
               <div className="w-9 h-9 bg-zinc-100 rounded-xl flex items-center justify-center shrink-0">
@@ -102,15 +115,13 @@ export default async function ProfilPage() {
           ))}
         </motion.div>
 
-        {/* Quick Links */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="grid grid-cols-2 gap-3"
         >
           <Link href="/dashboard/laporan"
-            className="flex items-center gap-3 bg-white border border-zinc-200 rounded-2xl p-4 hover:border-zinc-300 hover:shadow-md transition-all group"
-          >
+            className="flex items-center gap-3 bg-white border border-zinc-200 rounded-2xl p-4 hover:border-zinc-300 hover:shadow-md transition-all group">
             <div className="w-9 h-9 bg-zinc-100 rounded-xl flex items-center justify-center group-hover:bg-zinc-900 transition-colors">
               <Shield className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
             </div>
@@ -120,8 +131,7 @@ export default async function ProfilPage() {
             </div>
           </Link>
           <Link href="/report"
-            className="flex items-center gap-3 bg-white border border-zinc-200 rounded-2xl p-4 hover:border-zinc-300 hover:shadow-md transition-all group"
-          >
+            className="flex items-center gap-3 bg-white border border-zinc-200 rounded-2xl p-4 hover:border-zinc-300 hover:shadow-md transition-all group">
             <div className="w-9 h-9 bg-zinc-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
               <User className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
             </div>
