@@ -50,7 +50,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com/recaptcha/ http://localhost:5000",
+              // Cuma nambahin link railway lu di sini biar gak kena blokir CSP
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com/recaptcha/ http://localhost:5000 https://kawaltransaksi-production.up.railway.app",
               "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/",
               "object-src 'none'",
               "base-uri 'self'",
