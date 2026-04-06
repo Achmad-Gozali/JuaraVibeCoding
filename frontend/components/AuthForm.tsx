@@ -124,8 +124,8 @@ function useCountdown(targetMs: number | null) {
   const [remaining, setRemaining] = useState<number>(0);
 
   useEffect(() => {
-    if (!targetMs) { setRemaining(0); return; }
     const update = () => {
+      if (!targetMs) { setRemaining(0); return; }
       const diff = targetMs - Date.now();
       setRemaining(Math.max(0, diff));
     };
