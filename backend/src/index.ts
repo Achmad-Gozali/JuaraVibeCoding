@@ -55,8 +55,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 // ── START ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`Backend jalan di http://localhost:${PORT}`);
+// Hugging Face butuh port 7860, kita set default ke sana kalau process.env.PORT kosong
+const port = Number(process.env.PORT) || 7860;
+
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Backend siap tempur di port ${port}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
