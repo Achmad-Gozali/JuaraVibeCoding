@@ -33,11 +33,14 @@ const articles = [
 function formatRupiah(amount: number): string {
   if (amount >= 1_000_000_000) {
     const val = amount / 1_000_000_000;
-    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} M`.replace('.', ',');
+    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} M+`.replace('.', ',');
   }
   if (amount >= 1_000_000) {
     const val = amount / 1_000_000;
-    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} Jt`.replace('.', ',');
+    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} Jt+`.replace('.', ',');
+  }
+  if (amount >= 1_000) {
+    return `Rp${(amount / 1_000).toFixed(0)} Rb+`;
   }
   return `Rp${amount.toLocaleString('id-ID')}`;
 }
@@ -61,18 +64,21 @@ async function getStats() {
     const { count: totalLaporan } = await supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'verified');
+      .eq('status', 'verified')
+      .in('target_type', ['phone', 'ewallet']);
 
     const { count: totalNomor } = await supabase
       .from('reports')
       .select('target_number', { count: 'exact', head: true })
-      .eq('target_type', 'phone')
+      .in('target_type', ['phone', 'ewallet'])
+      .in('status', ['verified', 'pending'])
       .not('target_number', 'is', null);
 
     const { data: kerugianData } = await supabase
       .from('reports')
       .select('loss_amount')
-      .gte('created_at', '2018-01-01')
+      .eq('status', 'verified')
+      .in('target_type', ['phone', 'ewallet'])
       .not('loss_amount', 'is', null);
 
     const totalKerugian = (kerugianData ?? []).reduce<number>(
@@ -90,62 +96,73 @@ export default async function CekNomorPage() {
 
   const stats = [
     {
-      icon: (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>),
-      value: totalLaporan > 0 ? `${totalLaporan.toLocaleString('id-ID')}+` : 'Belum ada data',
-      desc: 'Laporan penipuan yang telah diverifikasi komunitas',
+      icon: (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>),
+      value: totalLaporan > 0 ? `${totalLaporan.toLocaleString('id-ID')}+` : '0',
+      desc: 'Laporan terverifikasi',
     },
     {
-      icon: (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>),
-      value: totalNomor > 0 ? `${totalNomor.toLocaleString('id-ID')}+` : 'Belum ada data',
-      desc: 'Nomor HP penipu dalam database kami',
+      icon: (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>),
+      value: totalNomor > 0 ? `${totalNomor.toLocaleString('id-ID')}+` : '0',
+      desc: 'Nomor HP penipu',
     },
     {
-      icon: (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>),
-      value: Number(totalKerugian) > 0 ? `${formatRupiah(Number(totalKerugian))}+` : 'Belum ada data',
-      desc: 'Total kerugian yang dilaporkan sejak 1 Maret 2026',
+      icon: (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>),
+      value: Number(totalKerugian) > 0 ? formatRupiah(Number(totalKerugian)) : 'Rp0',
+      desc: 'Total kerugian dilaporkan',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-10 sm:pb-20 text-center font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
 
-      <section className="relative pt-14 sm:pt-24 pb-0 overflow-hidden bg-white">
+      {/* ── HERO ── */}
+      <section className="relative pt-10 sm:pt-24 pb-0 overflow-hidden bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="flex flex-col md:flex-row items-center gap-8 sm:gap-10 pb-14 sm:pb-24">
+          <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-10 pb-10 sm:pb-24">
             <div className="flex-1 text-center md:text-left w-full">
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-3 sm:mb-6 uppercase leading-tight">
+              <h1 className="text-2xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-3 sm:mb-6 uppercase leading-tight">
                 Cek Nomor Telepon. <br />
                 <span className="text-emerald-600 italic">Hindari Spammer.</span>
               </h1>
-              <p className="text-slate-500 text-sm sm:text-base mb-7 sm:mb-12 max-w-xl mx-auto md:mx-0 font-medium leading-relaxed">
-                Identifikasi nomor WhatsApp atau telepon seluler yang mencurigakan sebelum Anda merespon pesan atau tawaran yang tidak dikenal.
+              <p className="text-slate-500 text-sm sm:text-base mb-6 sm:mb-12 max-w-xl mx-auto md:mx-0 leading-relaxed">
+                Identifikasi nomor WhatsApp atau telepon seluler yang mencurigakan sebelum merespon pesan atau tawaran yang tidak dikenal.
               </p>
               <NomorSearchForm />
             </div>
-            <div className="hidden sm:flex flex-1 justify-center md:justify-end">
-              <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md aspect-square">
-                <Image src="/hero.png" alt="Ilustrasi penipuan online" fill className="object-contain drop-shadow-lg" priority />
+            <div className="hidden md:flex flex-1 justify-center md:justify-end">
+              <div className="relative w-full max-w-sm md:max-w-md aspect-square">
+                <Image src="/hero.png" alt="Ilustrasi penipuan online" fill className="object-contain" priority />
               </div>
             </div>
           </div>
         </div>
-        <div className="w-full overflow-hidden leading-none">
-          <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-12 sm:h-20 block">
-            <path d="M0,20 C360,80 1080,0 1440,60 L1440,80 L0,80 Z" fill="#f8fafc" />
-          </svg>
-        </div>
+        <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-10 sm:h-20 block">
+          <path d="M0,20 C360,80 1080,0 1440,60 L1440,80 L0,80 Z" fill="#f8fafc" />
+        </svg>
       </section>
 
-      <section className="bg-slate-50 pb-10 sm:pb-12">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-10 sm:-mt-14 relative z-10">
+      {/* ── STATS CARD ── */}
+      <section className="bg-slate-50 pb-8 sm:pb-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6 sm:-mt-14 relative z-10">
           <div className="bg-white border border-slate-200 rounded-xl shadow-md overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            {/* Mobile: 3 kolom compact */}
+            <div className="grid grid-cols-3 sm:hidden divide-x divide-slate-100">
               {stats.map((stat, i) => (
-                <div key={i} className="flex items-start gap-4 px-6 sm:px-8 py-7 sm:py-8 text-left">
+                <div key={i} className="flex flex-col items-center py-4 px-2 text-center">
+                  <div className="text-emerald-600 mb-1.5">{stat.icon}</div>
+                  <p className="text-base font-black text-emerald-600 leading-none mb-1">{stat.value}</p>
+                  <p className="text-[9px] text-slate-400 leading-tight">{stat.desc}</p>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: layout dengan icon di samping */}
+            <div className="hidden sm:grid grid-cols-3 divide-x divide-slate-100">
+              {stats.map((stat, i) => (
+                <div key={i} className="flex items-start gap-4 px-8 py-8 text-left">
                   <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-600">{stat.icon}</div>
                   <div>
-                    <p className="text-xl sm:text-2xl font-black text-emerald-600 mb-1">{stat.value}</p>
-                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">{stat.desc}</p>
+                    <p className="text-2xl font-black text-emerald-600 mb-1">{stat.value}</p>
+                    <p className="text-sm text-slate-500 leading-relaxed">{stat.desc}</p>
                   </div>
                 </div>
               ))}
@@ -154,17 +171,18 @@ export default async function CekNomorPage() {
         </div>
       </section>
 
-      <section className="bg-slate-50 py-10 sm:py-12">
+      {/* ── APA ITU CEK NOMOR ── */}
+      <section className="bg-slate-50 py-8 sm:py-12">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 items-center text-left">
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 mb-3">Apa itu Cek Nomor HP?</h2>
+              <h2 className="text-base sm:text-xl font-black text-slate-900 mb-2 sm:mb-3">Apa itu Cek Nomor HP?</h2>
               <p className="text-slate-500 text-sm leading-relaxed">
                 Cek Nomor HP adalah layanan dari KawalTransaksi yang dapat mengidentifikasi apakah seseorang berpotensi melakukan penipuan atau tidak, berdasarkan keluhan dan laporan pengguna yang pernah bertransaksi dengan orang tersebut.
               </p>
             </div>
-            <div className="bg-emerald-50 rounded-xl px-6 sm:px-8 py-6 sm:py-7">
-              <p className="text-slate-800 text-sm sm:text-base font-bold leading-relaxed text-center">
+            <div className="bg-emerald-50 rounded-xl px-5 sm:px-8 py-5 sm:py-7">
+              <p className="text-slate-800 text-sm font-bold leading-relaxed text-center">
                 &quot;KawalTransaksi hadir untuk melindungi masyarakat Indonesia dari ancaman penipuan digital yang terus berkembang setiap harinya.&quot;
               </p>
             </div>
@@ -172,39 +190,41 @@ export default async function CekNomorPage() {
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 sm:pt-14 mb-14 sm:mb-20 text-left">
-        <div className="flex items-end justify-between mb-5 sm:mb-6 px-1 border-b border-slate-200 pb-4">
+      {/* ── CEK PER E-WALLET ── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-14 mb-10 sm:mb-20 text-left">
+        <div className="flex items-end justify-between mb-4 sm:mb-6 border-b border-slate-200 pb-3 sm:pb-4">
           <div>
-            <h2 className="text-base sm:text-xl font-black text-slate-900 uppercase tracking-tight">Cek Per E-Wallet</h2>
-            <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Pilih platform untuk mulai verifikasi</p>
+            <h2 className="text-sm sm:text-xl font-black text-slate-900 uppercase tracking-tight">Cek Per E-Wallet</h2>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Pilih platform untuk mulai verifikasi</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {ewallets.map((wallet) => (
             <Link key={wallet.id} href={`/cek-nomor/cek-ewallet/${wallet.id}`}
-              className="group bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+              className="group bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
               <div>
-                <div className="w-16 h-10 relative mb-4">
+                <div className="w-14 h-8 sm:w-16 sm:h-10 relative mb-3 sm:mb-4">
                   <Image src={wallet.logo} alt={`Logo ${wallet.name}`} fill className="object-contain object-left" />
                 </div>
-                <h3 className="text-sm font-black text-slate-900 mb-1 tracking-tight">{wallet.name}</h3>
-                <p className="text-[11px] text-slate-500 leading-relaxed font-medium">{wallet.description}</p>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 mb-1 tracking-tight">{wallet.name}</h3>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed hidden sm:block">{wallet.description}</p>
               </div>
-              <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-emerald-600 group-hover:text-emerald-700 uppercase tracking-wider transition-colors">Cek Selengkapnya</span>
-                <ArrowUpRight className="w-4 h-4 text-emerald-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <div className="mt-3 sm:mt-5 pt-2 sm:pt-4 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Cek</span>
+                <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
               </div>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-14 sm:pb-24 text-left">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-8 sm:gap-y-12">
+      {/* ── ARTIKEL ── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-24 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 sm:gap-x-16 gap-y-6 sm:gap-y-12">
           {articles.map((article, i) => (
             <div key={i}>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-3">{article.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">{article.desc}</p>
+              <h3 className="text-sm sm:text-lg font-bold text-slate-900 mb-1.5 sm:mb-3">{article.title}</h3>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">{article.desc}</p>
             </div>
           ))}
         </div>

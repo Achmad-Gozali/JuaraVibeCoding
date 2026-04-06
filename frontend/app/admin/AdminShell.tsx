@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import {
   LayoutDashboard, FileText, BarChart2, Users,
   Home, LogOut, ChevronLeft, ChevronRight,
-  Search, Menu, X, Shield,
+  Search, X, Shield,
 } from 'lucide-react';
 
 interface AdminShellProps {
@@ -24,8 +23,7 @@ const navItems = [
 ];
 
 export default function AdminShell({ email, children }: AdminShellProps) {
-  const [collapsed, setCollapsed]     = useState(false);
-  const [mobileOpen, setMobileOpen]   = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const router       = useRouter();
   const searchParams = useSearchParams();
@@ -42,7 +40,6 @@ export default function AdminShell({ email, children }: AdminShellProps) {
     if (globalSearch.trim()) {
       router.push(`/admin?tab=laporan&search=${encodeURIComponent(globalSearch.trim())}`);
       setGlobalSearch('');
-      setMobileOpen(false);
     }
   };
 
@@ -51,20 +48,11 @@ export default function AdminShell({ email, children }: AdminShellProps) {
   return (
     <div className="min-h-screen bg-slate-50 flex">
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* ── SIDEBAR ── */}
+      {/* ── SIDEBAR — desktop only ── */}
       <aside className={`
-        fixed top-0 left-0 h-full bg-white border-r border-slate-200 z-50 flex flex-col
+        hidden lg:flex fixed top-0 left-0 h-full bg-white border-r border-slate-200 z-50 flex-col
         transition-all duration-200 ease-out
         ${collapsed ? 'w-[64px]' : 'w-[240px]'}
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
 
         {/* Logo */}
@@ -91,7 +79,6 @@ export default function AdminShell({ email, children }: AdminShellProps) {
               <Link
                 key={item.id}
                 href={item.href}
-                onClick={() => setMobileOpen(false)}
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150
                   ${collapsed ? 'justify-center px-0 mx-1' : ''}
@@ -117,17 +104,17 @@ export default function AdminShell({ email, children }: AdminShellProps) {
           </div>
         </nav>
 
-        {/* Collapse toggle — desktop only */}
+        {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex items-center justify-center h-10 border-t border-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+          className="flex items-center justify-center h-10 border-t border-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
 
         {/* User info */}
         <div className={`border-t border-slate-100 p-3 shrink-0 ${collapsed ? 'flex justify-center' : ''}`}>
-          <div className={`flex items-center gap-2.5 ${collapsed ? '' : ''}`}>
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700 shrink-0">
               {initial}
             </div>
@@ -138,7 +125,7 @@ export default function AdminShell({ email, children }: AdminShellProps) {
                   onClick={handleLogout}
                   className="text-[11px] text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors"
                 >
-                  <LogOut className="w-3 h-3" />Logout
+                  <LogOut className="w-3 h-3" /> Logout
                 </button>
               </div>
             )}
@@ -150,48 +137,83 @@ export default function AdminShell({ email, children }: AdminShellProps) {
       <div className={`flex-1 flex flex-col min-h-screen transition-all duration-200 ${collapsed ? 'lg:ml-[64px]' : 'lg:ml-[240px]'}`}>
 
         {/* Top header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 shrink-0 sticky top-0 z-30">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
+        <header className="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 shrink-0 sticky top-0 z-30">
+          {/* Mobile: logo kiri */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center">
+              <Shield className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-sm font-bold text-slate-900">Kawal<span className="text-emerald-600">Transaksi</span></span>
+          </div>
 
-          <form onSubmit={handleGlobalSearch} className="flex-1 max-w-lg mx-4">
+          {/* Search bar */}
+          <form onSubmit={handleGlobalSearch} className="flex-1 max-w-lg mx-3 sm:mx-4">
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari laporan, pengguna..."
+                placeholder="Cari laporan..."
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all"
+                className="w-full pl-9 pr-8 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all"
               />
               {globalSearch && (
-                <button
-                  type="button"
-                  onClick={() => setGlobalSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
+                <button type="button" onClick={() => setGlobalSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
           </form>
 
-          <div className="hidden sm:flex items-center gap-2">
+          {/* Desktop: avatar + email */}
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">
               {initial}
             </div>
             <span className="text-xs text-slate-500 max-w-[160px] truncate">{email}</span>
           </div>
+
+          {/* Mobile: avatar only */}
+          <div className="flex lg:hidden items-center shrink-0">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">
+              {initial}
+            </div>
+          </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8">
+        {/* Main content — padding bawah extra di mobile untuk bottom nav */}
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 pb-24 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* ── BOTTOM NAV — mobile only ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 flex items-stretch">
+        {navItems.map((item) => {
+          const Icon     = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-colors ${
+                isActive ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[9px] font-semibold uppercase tracking-wider">{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          onClick={handleLogout}
+          className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-slate-400 hover:text-red-500 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="text-[9px] font-semibold uppercase tracking-wider">Keluar</span>
+        </button>
+      </nav>
+
     </div>
   );
 }

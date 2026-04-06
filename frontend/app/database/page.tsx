@@ -60,6 +60,21 @@ function getTargetMeta(type: string, bankName: string | null) {
   return { icon: Phone, label: 'Nomor HP', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' };
 }
 
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'verified':
+      return { label: 'Terverifikasi', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    case 'pending':
+      return { label: 'Menunggu', className: 'bg-amber-50 text-amber-700 border-amber-200' };
+    case 'withdrawn':
+      return { label: 'Sedang Direvisi', className: 'bg-slate-100 text-slate-500 border-slate-200' };
+    case 'rejected':
+      return { label: 'Ditolak', className: 'bg-red-50 text-red-700 border-red-200' };
+    default:
+      return { label: status, className: 'bg-slate-50 text-slate-500 border-slate-200' };
+  }
+}
+
 // ── PAGE ──────────────────────────────────────────────────────────────────────
 export default async function DatabasePage({
   searchParams,
@@ -75,9 +90,11 @@ export default async function DatabasePage({
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
 
+  // exclude rejected saja dari database publik, withdrawn tetap tampil
   let query = supabase
     .from('reports')
     .select('id, target_number, target_name, target_type, bank_name, category, status, created_at', { count: 'exact' })
+    .in('status', ['verified', 'pending', 'withdrawn'])
     .order('status', { ascending: true })
     .order('created_at', { ascending: false })
     .range(from, to);
@@ -112,7 +129,7 @@ export default async function DatabasePage({
 
       {/* Wave: slate-50 → putih */}
       <svg viewBox="0 0 1440 50" preserveAspectRatio="none" className="w-full block bg-slate-50 -mb-1" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,50 C360,10 720,40 1080,15 C1260,2 1380,30 1440,20 L1440,50 Z" fill="#ffffff" />
+        <path d="M0,50 C360,10 720,40 1080,15 C1260,2 1380,30 1440,50 Z" fill="#ffffff" />
       </svg>
 
       {/* ── Filter bar — sticky ── */}
@@ -153,14 +170,14 @@ export default async function DatabasePage({
                 const meta = getTargetMeta(report.target_type, report.bank_name);
                 const Icon = meta.icon;
                 const logoSrc = getPlatformLogo(report.target_type, report.bank_name);
-                const isVerified = report.status === 'verified';
+                const badge = getStatusBadge(report.status);
 
                 return (
                   <Link key={report.id} href={`/check/${encodeSlug(report.target_number)}`}
                     className="block bg-white border border-slate-200 p-5 rounded-lg hover:border-slate-300 hover:shadow-md transition-all group">
                     <div className="flex justify-between items-start mb-4">
-                      <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-full border ${isVerified ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                        {isVerified ? 'Verified' : 'Pending'}
+                      <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-full border ${badge.className}`}>
+                        {badge.label}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium">{formatDateID(report.created_at)}</span>
                     </div>

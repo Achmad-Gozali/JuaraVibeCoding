@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Loader2, AlertCircle, CheckCircle2, Mail, Lock,
-  UserPlus, ArrowRight, Eye, EyeOff, ShieldCheck, XCircle,
+  UserPlus, ArrowRight, Eye, EyeOff, ShieldCheck, XCircle, Timer,
 } from 'lucide-react';
 
 interface AuthFormProps {
@@ -72,7 +72,7 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 // ── ERROR TRANSLATION ─────────────────────────────────────────────────────────
 function translateError(message: string): string {
   const errorMap: Record<string, string> = {
-    'Invalid login credentials': 'Email atau kata sandi salah. Periksa kembali dan coba lagi.',
+    'Invalid login credentials': 'Email atau kata sandi salah.',
     'User already registered': 'Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.',
     'Email not confirmed': 'Email belum dikonfirmasi. Cek kotak masuk email kamu.',
     'Password should be at least 6 characters': 'Kata sandi tidak memenuhi persyaratan keamanan.',
@@ -82,13 +82,11 @@ function translateError(message: string): string {
     'Email rate limit exceeded': 'Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.',
     'over_email_send_rate_limit': 'Batas pengiriman email tercapai. Coba lagi dalam beberapa menit.',
     'For security purposes, you can only request this after': 'Tunggu beberapa detik sebelum mencoba lagi.',
-    'Terlalu banyak percobaan masuk': 'Terlalu banyak percobaan masuk. Akun sementara dikunci selama 15 menit demi keamanan.',
-    'Terlalu banyak percobaan pendaftaran': 'Terlalu banyak percobaan pendaftaran dari perangkat ini. Coba lagi dalam 1 jam.',
   };
   for (const [key, value] of Object.entries(errorMap)) {
     if (message.toLowerCase().includes(key.toLowerCase())) return value;
   }
-  return 'Terjadi kesalahan. Silakan coba lagi.';
+  return message;
 }
 
 // ── RECAPTCHA ─────────────────────────────────────────────────────────────────
@@ -121,6 +119,28 @@ function useRecaptcha() {
   return { getToken, recaptchaReady };
 }
 
+// ── COUNTDOWN TIMER HOOK ──────────────────────────────────────────────────────
+function useCountdown(targetMs: number | null) {
+  const [remaining, setRemaining] = useState<number>(0);
+
+  useEffect(() => {
+    if (!targetMs) { setRemaining(0); return; }
+    const update = () => {
+      const diff = targetMs - Date.now();
+      setRemaining(Math.max(0, diff));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [targetMs]);
+
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  const isExpired = remaining === 0;
+
+  return { minutes, seconds, remaining, isExpired };
+}
+
 const oauthProviders = [
   {
     id: 'google', label: 'Google',
@@ -151,6 +171,19 @@ function AuthFormInner({ type }: AuthFormProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
+  // ── Lock state ──────────────────────────────────────────────────────────────
+  const [lockedUntilMs, setLockedUntilMs] = useState<number | null>(null);
+  const { minutes, seconds, isExpired } = useCountdown(lockedUntilMs);
+  const isLocked = lockedUntilMs !== null && !isExpired;
+
+  // Reset lock saat expired
+  useEffect(() => {
+    if (isExpired && lockedUntilMs !== null) {
+      setLockedUntilMs(null);
+      setError(null);
+    }
+  }, [isExpired, lockedUntilMs]);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -169,18 +202,7 @@ function AuthFormInner({ type }: AuthFormProps) {
   const isRegisterInvalid = type === 'register' && (
     emailInvalid || !isPasswordValid(password) || passwordMismatch || fullName.trim().length < 2
   );
-  const isSubmitDisabled = isLoading || !!oauthLoading || !recaptchaReady || isRegisterInvalid;
-
-  // ── Cek banned status setelah login berhasil ────────────────────────────────
-  const checkBannedStatus = async (userId: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/banned`);
-      const data = await res.json();
-      return data.success && data.is_banned === true;
-    } catch {
-      return false; // kalau gagal cek, allow login (fail open)
-    }
-  };
+  const isSubmitDisabled = isLoading || !!oauthLoading || !recaptchaReady || isRegisterInvalid || isLocked;
 
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     setOauthLoading(provider);
@@ -207,7 +229,7 @@ function AuthFormInner({ type }: AuthFormProps) {
       const emailCheck = validateEmail(sanitizedEmail);
       if (!emailCheck.valid) { setError(emailCheck.message); return; }
       if (!isPasswordValid(password)) {
-        setError('Kata sandi tidak memenuhi persyaratan keamanan. Pastikan minimal 8 karakter, mengandung huruf besar, angka, dan simbol.'); return;
+        setError('Kata sandi tidak memenuhi persyaratan keamanan.'); return;
       }
       if (password !== confirmPassword) {
         setError('Kata sandi dan konfirmasi tidak cocok.'); return;
@@ -223,23 +245,23 @@ function AuthFormInner({ type }: AuthFormProps) {
       const action = type === 'register' ? 'register' : 'login';
       const token = await getToken(action);
 
+      // ── Verifikasi reCAPTCHA ──────────────────────────────────────────────
       const verifyRes = await fetch(`${BACKEND_URL}/api/auth/verify-recaptcha`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, action }),
       });
-
       if (!verifyRes.ok) {
         const errData = await verifyRes.json().catch(() => ({}));
         setError(errData.message || 'Verifikasi keamanan gagal. Coba lagi.'); return;
       }
-
       const verifyData = await verifyRes.json();
       if (!verifyData.success) {
         setError(verifyData.message || 'Verifikasi keamanan gagal. Coba lagi.'); return;
       }
 
       if (type === 'register') {
+        // ── Register tetap lewat Supabase langsung ──────────────────────────
         const normalizedEmail = normalizeEmail(sanitizedEmail);
         const { error: signUpError } = await supabase.auth.signUp({
           email: normalizedEmail, password,
@@ -249,22 +271,35 @@ function AuthFormInner({ type }: AuthFormProps) {
         setSuccess('Akun berhasil dibuat! Mengalihkan...');
         router.refresh();
         setTimeout(() => router.push(redirectTo), 1500);
-      } else {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: sanitizedEmail, password,
-        });
-        if (signInError) throw signInError;
 
-        // ── CEK BANNED STATUS — lewat backend 3 layer ─────────────────────────
-        if (signInData.user) {
-          const isBanned = await checkBannedStatus(signInData.user.id);
-          if (isBanned) {
-            // User banned → logout langsung + tampilkan error
-            await supabase.auth.signOut();
-            setError('Akun Anda telah dinonaktifkan. Hubungi admin untuk informasi lebih lanjut.');
-            setIsLoading(false);
+      } else {
+        // ── Login lewat backend — dengan rate limiting ──────────────────────
+        const loginRes = await fetch(`${BACKEND_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: sanitizedEmail, password }),
+        });
+
+        const loginData = await loginRes.json();
+
+        if (!loginData.success) {
+          // Akun dikunci
+          if (loginData.locked && loginData.locked_until) {
+            setLockedUntilMs(new Date(loginData.locked_until).getTime());
+            setError(loginData.message);
             return;
           }
+          // Password salah biasa
+          setError(loginData.message || 'Email atau kata sandi salah.');
+          return;
+        }
+
+        // ── Login berhasil — set session di browser ─────────────────────────
+        if (loginData.session) {
+          await supabase.auth.setSession({
+            access_token: loginData.session.access_token,
+            refresh_token: loginData.session.refresh_token,
+          });
         }
 
         setSuccess('Berhasil masuk! Mengalihkan...');
@@ -281,12 +316,35 @@ function AuthFormInner({ type }: AuthFormProps) {
 
   return (
     <div className="w-full">
+      {/* ── Error banner ── */}
       {error && (
-        <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 shadow-sm">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p className="text-xs font-semibold leading-relaxed">{error}</p>
+        <div className={`mb-5 p-3.5 border rounded-xl flex items-start gap-3 shadow-sm ${
+          isLocked
+            ? 'bg-amber-50 border-amber-200 text-amber-700'
+            : 'bg-red-50 border-red-200 text-red-700'
+        }`}>
+          {isLocked
+            ? <Timer className="w-4 h-4 shrink-0 mt-0.5" />
+            : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          }
+          <div className="flex-1">
+            <p className="text-xs font-semibold leading-relaxed">{error}</p>
+            {/* Countdown timer */}
+            {isLocked && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-amber-100 px-2.5 py-1 rounded-lg">
+                  <Timer className="w-3 h-3 text-amber-600" />
+                  <span className="text-xs font-black text-amber-700 tabular-nums">
+                    {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-600">tersisa</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
+
       {success && (
         <div className="mb-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3 text-emerald-700 shadow-sm">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
@@ -312,7 +370,7 @@ function AuthFormInner({ type }: AuthFormProps) {
             <Mail className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${emailInvalid ? 'text-red-400' : 'text-slate-400'}`} />
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@gmail.com"
               className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl outline-none transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm focus:ring-2 ${emailInvalid ? 'border-red-300 focus:border-red-400 focus:ring-red-500/10' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/10'}`}
-              required autoComplete="email" />
+              required autoComplete="email" disabled={isLocked} />
           </div>
           {emailInvalid && (
             <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl">
@@ -331,7 +389,8 @@ function AuthFormInner({ type }: AuthFormProps) {
               onFocus={() => setPasswordFocused(true)} onBlur={() => setPasswordFocused(false)}
               placeholder={type === 'register' ? 'Min. 8 karakter, huruf besar, angka, simbol' : '••••••••'}
               className="w-full pl-10 pr-11 py-3 bg-white border border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm"
-              required minLength={type === 'register' ? 8 : 6} autoComplete={type === 'login' ? 'current-password' : 'new-password'} />
+              required minLength={type === 'register' ? 8 : 6} autoComplete={type === 'login' ? 'current-password' : 'new-password'}
+              disabled={isLocked} />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-0.5" tabIndex={-1}>
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -377,8 +436,14 @@ function AuthFormInner({ type }: AuthFormProps) {
         )}
 
         <button type="submit" disabled={isSubmitDisabled}
-          className={`w-full py-3.5 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-widest mt-2 ${type === 'login' ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}>
-          {isLoading
+          className={`w-full py-3.5 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-widest mt-2 ${
+            isLocked ? 'bg-amber-400 cursor-not-allowed'
+            : type === 'login' ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
+            : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+          }`}>
+          {isLocked
+            ? <><Timer className="w-4 h-4" /> Dikunci {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</>
+            : isLoading
             ? <><Loader2 className="w-4 h-4 animate-spin" /> {type === 'login' ? 'Sedang Masuk...' : 'Membuat Akun...'}</>
             : !recaptchaReady
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Memuat keamanan...</>
@@ -403,7 +468,7 @@ function AuthFormInner({ type }: AuthFormProps) {
 
       <div className="space-y-2.5">
         {oauthProviders.map((p) => (
-          <button key={p.id} type="button" onClick={() => handleOAuthLogin(p.id)} disabled={!!oauthLoading || isLoading}
+          <button key={p.id} type="button" onClick={() => handleOAuthLogin(p.id)} disabled={!!oauthLoading || isLoading || isLocked}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border border-slate-200 rounded-xl font-semibold text-sm text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50">
             {oauthLoading === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : p.icon}
             Lanjutkan dengan {p.label}

@@ -233,14 +233,14 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   if (currentTab === 'dashboard') return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <SectionTitle title="Dashboard" subtitle="Overview semua laporan masuk" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <StatCard label="Total Laporan"  value={String(stats.total)}   color="text-slate-800"   bg="bg-slate-100"    icon={FileText} />
         <StatCard label="Menunggu"       value={String(stats.pending)}  color="text-amber-600"   bg="bg-amber-50"     icon={Clock} />
         <StatCard label="Terverifikasi"  value={String(stats.verified)} color="text-emerald-600" bg="bg-emerald-50"   icon={CheckCircle2} />
         <StatCard label="Ditolak"        value={String(stats.rejected)} color="text-red-500"     bg="bg-red-50"       icon={XCircle} />
         <StatCard label="Total Kerugian" value={totalLoss > 0 ? formatRupiah(totalLoss) : 'Rp 0'} color="text-slate-800" bg="bg-slate-100" icon={TrendingDown} />
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
           { label: 'Masuk Hari Ini',    value: todayReports.length,  color: 'text-blue-600',   bg: 'bg-blue-50',   icon: TrendingUp },
           { label: 'Verified Hari Ini', value: todayVerified.length, color: 'text-emerald-600',bg: 'bg-emerald-50',icon: CheckCircle2 },
@@ -271,7 +271,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           </button>
         </div>
       )}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <DailyChart reports={reports} />
         </div>
@@ -585,7 +585,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           )}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {[
           { label: 'Approval Rate',  value: stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Rejection Rate', value: stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0, color: 'text-red-500',     bg: 'bg-red-50' },

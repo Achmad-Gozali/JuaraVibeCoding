@@ -39,7 +39,6 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  // ✅ FIX: Pakai startTransition agar tidak trigger cascading renders
   useEffect(() => {
     startTransition(() => {
       setIsMenuOpen(false);
@@ -187,7 +186,7 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* MOBILE: Avatar kanan */}
+            {/* MOBILE: Avatar / Masuk kanan */}
             <div className="lg:hidden ml-auto">
               {isLoading ? (
                 <div className="w-8 h-8 bg-slate-100 rounded-full animate-pulse" />
@@ -226,6 +225,7 @@ export default function Navbar() {
               </button>
             </div>
 
+            {/* Nav items — tanpa tombol Daftar/Masuk di bawah */}
             <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
               {menuItems.map(({ href, label, icon: Icon }) => (
                 <Link
@@ -242,17 +242,6 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
-
-            {!user && (
-              <div className="px-4 pb-8 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
-                <Link href="/register" className="py-3 text-center text-xs font-bold uppercase tracking-widest border border-slate-200 text-slate-900 rounded-xl hover:bg-slate-50 transition-colors">
-                  Daftar
-                </Link>
-                <Link href="/login" className="py-3 text-center text-xs font-bold uppercase tracking-widest bg-slate-900 text-white rounded-xl hover:bg-black transition-colors">
-                  Masuk
-                </Link>
-              </div>
-            )}
           </div>
         </div>
       )}

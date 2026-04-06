@@ -100,16 +100,23 @@ export default async function CheckPage({ params }: CheckPageProps) {
 
   if (error) console.error('error fetching reports:', error);
 
-  const reports = ((data as any[]) ?? []).filter((r) => r.status !== 'withdrawn');
+  // ✅ FIX: semua laporan diambil, withdrawn tetap diitung
+  const allReports = (data as any[]) ?? [];
+  const reports = allReports.filter((r) => r.status !== 'withdrawn');
+  const withdrawnReports = allReports.filter((r) => r.status === 'withdrawn');
+  const hasWithdrawn = withdrawnReports.length > 0;
+
   const verifiedReports = reports.filter((r) => r.status === 'verified');
   const pendingReports = reports.filter((r) => r.status === 'pending');
   const verifiedCount = verifiedReports.length;
   const totalLoss = reports.reduce((sum, r) => sum + (Number(r.loss_amount) || 0), 0);
   const hasOtherVictims = reports.some((r) => r.has_other_victims === 'yes');
 
+  // ✅ FIX: kalau semua laporan withdrawn, status jadi warning bukan safe
   let status: 'safe' | 'warning' | 'danger' = 'safe';
   if (verifiedCount > 0) status = 'danger';
   else if (pendingReports.length > 0) status = 'warning';
+  else if (hasWithdrawn) status = 'warning'; // ← ini yang baru
 
   const statusConfig = {
     danger: {
@@ -131,8 +138,13 @@ export default async function CheckPage({ params }: CheckPageProps) {
       nameBadgeBg: 'bg-amber-50',
       nameBadgeText: 'text-amber-800',
       nameBadgeBorder: 'border-amber-200',
-      verdict: 'Dalam investigasi',
-      verdictSub: `${pendingReports.length} laporan masuk sedang diverifikasi moderator.`,
+      // ✅ FIX: teks berbeda kalau pure withdrawn
+      verdict: hasWithdrawn && pendingReports.length === 0 && verifiedCount === 0
+        ? 'Ada riwayat laporan'
+        : 'Dalam investigasi',
+      verdictSub: hasWithdrawn && pendingReports.length === 0 && verifiedCount === 0
+        ? 'Laporan untuk nomor ini sedang dalam proses revisi oleh pelapor.'
+        : `${pendingReports.length} laporan masuk sedang diverifikasi moderator.`,
     },
     safe: {
       barBg: 'bg-emerald-50 border-b border-emerald-100',
@@ -156,7 +168,7 @@ export default async function CheckPage({ params }: CheckPageProps) {
       : `✅ nomor ${formatNum(realNumber)} aman — belum ada laporan penipuan di kawaltransaksi:`;
 
   const verificationSteps = [
-    { label: 'Laporan diterima', done: reports.length > 0 },
+    { label: 'Laporan diterima', done: allReports.length > 0 },
     { label: 'Dalam review moderator', done: status === 'warning' || status === 'danger' },
     { label: 'Terverifikasi', done: status === 'danger' },
   ];
@@ -221,10 +233,9 @@ export default async function CheckPage({ params }: CheckPageProps) {
         {/* Main content grid */}
         <div className="grid lg:grid-cols-3 gap-6 items-start">
 
-          {/* Kolom kiri — konten utama */}
+          {/* Kolom kiri */}
           <div className="lg:col-span-2 space-y-5">
 
-            {/* Nomor card */}
             <NumberCard reports={reports} realNumber={realNumber} config={config} />
 
             {/* Waspada checklist — hanya jika safe */}
@@ -261,10 +272,8 @@ export default async function CheckPage({ params }: CheckPageProps) {
               </div>
             )}
 
-            {/* Bukti foto + Riwayat laporan */}
-            <ReportList reports={reports} />
+            <ReportList reports={reports} hasWithdrawn={hasWithdrawn} />
 
-            {/* Langkah yang harus dilakukan */}
             {status !== 'safe' && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-2.5 font-medium px-0.5">
@@ -286,8 +295,7 @@ export default async function CheckPage({ params }: CheckPageProps) {
               </div>
             )}
 
-            {/* Status verifikasi */}
-            {reports.length > 0 && (
+            {allReports.length > 0 && !( hasWithdrawn && reports.length === 0) && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-2.5 font-medium px-0.5">
                   Status verifikasi
@@ -317,10 +325,9 @@ export default async function CheckPage({ params }: CheckPageProps) {
             )}
           </div>
 
-          {/* Kolom kanan — sidebar */}
+          {/* Kolom kanan */}
           <div className="lg:col-span-1 space-y-4">
 
-            {/* CTA laporan */}
             <div className="bg-slate-900 rounded-xl p-5">
               <p className="text-sm font-medium text-white mb-1.5">Pernah kena tipu nomor ini?</p>
               <p className="text-xs text-slate-400 mb-4 leading-relaxed">
@@ -334,7 +341,6 @@ export default async function CheckPage({ params }: CheckPageProps) {
               </Link>
             </div>
 
-            {/* Share buttons */}
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-3 font-medium">
                 Sebarkan peringatan
@@ -342,7 +348,6 @@ export default async function CheckPage({ params }: CheckPageProps) {
               <ShareButtons slug={slug} shareText={shareText} />
             </div>
 
-            {/* Tips keamanan */}
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-3 font-medium">
                 Tips keamanan
@@ -363,7 +368,6 @@ export default async function CheckPage({ params }: CheckPageProps) {
               </ul>
             </div>
 
-            {/* Kontak darurat */}
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-3 font-medium">
                 Kontak darurat

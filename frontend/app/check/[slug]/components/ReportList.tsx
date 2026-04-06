@@ -1,13 +1,11 @@
-import { ShieldCheck, ExternalLink, ImageIcon } from 'lucide-react';
+import { ShieldCheck, ExternalLink, ImageIcon, Clock } from 'lucide-react';
 import { formatDateID } from '@/lib/utils';
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-// Strip extra quotes dari kronologi (user kadang input dengan tanda kutip)
 function cleanChronology(text: string): string {
   return text.replace(/^["'""]+|["'""]+$/g, '').trim();
 }
 
-// Format tanggal lengkap: "5 Apr 2026"
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -34,6 +32,7 @@ interface ReportItem {
 
 interface Props {
   reports: ReportItem[];
+  hasWithdrawn?: boolean; // ← tambahan prop
 }
 
 // ── Evidence URL helpers ──────────────────────────────────────────────────────
@@ -50,13 +49,13 @@ function getAllEvidenceUrls(reports: ReportItem[]): string[] {
 }
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function ReportList({ reports }: Props) {
+export default function ReportList({ reports, hasWithdrawn = false }: Props) {
   const allEvidenceUrls = getAllEvidenceUrls(reports);
 
   return (
     <div className="space-y-5">
 
-      {/* ── 1. Riwayat laporan — kronologi text + tanggal ── */}
+      {/* ── 1. Riwayat laporan ── */}
       <div>
         <div className="mb-2.5 px-0.5">
           <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-medium">Riwayat laporan</p>
@@ -67,11 +66,9 @@ export default function ReportList({ reports }: Props) {
             {reports.map((report) => (
               <div key={report.id} className="bg-white rounded-xl border border-slate-200 px-5 py-4 hover:border-slate-300 transition-colors">
                 <div className="flex gap-4">
-                  {/* Kronologi text */}
                   <p className="flex-1 text-sm text-slate-600 leading-relaxed" style={{ fontFamily: 'var(--font-serif, Georgia, serif)' }}>
                     &quot;{cleanChronology(report.chronology)}&quot;
                   </p>
-                  {/* Tanggal kejadian pojok kanan atas */}
                   <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0 mt-0.5">
                     {formatDate(report.incident_date || report.created_at)}
                   </span>
@@ -79,7 +76,17 @@ export default function ReportList({ reports }: Props) {
               </div>
             ))}
           </div>
+        ) : hasWithdrawn ? (
+          // ── Empty state khusus withdrawn ──
+          <div className="bg-amber-50 rounded-xl border border-amber-200 p-10 text-center">
+            <Clock className="w-7 h-7 text-amber-400 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-amber-800 mb-1">Laporan sedang diperbarui</p>
+            <p className="text-xs text-amber-600 max-w-xs mx-auto leading-relaxed">
+              Pelapor sedang merevisi laporannya. Detail akan kembali muncul setelah disetujui moderator.
+            </p>
+          </div>
         ) : (
+          // ── Empty state normal (memang tidak ada laporan) ──
           <div className="bg-white rounded-xl border border-slate-200 p-14 text-center">
             <ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
             <p className="text-sm font-semibold text-slate-900 mb-1">Database bersih</p>
@@ -90,7 +97,7 @@ export default function ReportList({ reports }: Props) {
         )}
       </div>
 
-      {/* ── 2. Bukti lampiran — foto grid ── */}
+      {/* ── 2. Bukti lampiran ── */}
       {allEvidenceUrls.length > 0 && (
         <div>
           <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-2.5 font-medium px-0.5">
@@ -98,7 +105,6 @@ export default function ReportList({ reports }: Props) {
           </p>
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {/* Max 3 thumbnail preview */}
               {allEvidenceUrls.slice(0, 3).map((url, i) => (
                 <a
                   key={i}
@@ -121,8 +127,6 @@ export default function ReportList({ reports }: Props) {
                   </div>
                 </a>
               ))}
-
-              {/* Tombol lihat sisa foto */}
               {allEvidenceUrls.length > 3 && (
                 <a
                   href={allEvidenceUrls[3]}
