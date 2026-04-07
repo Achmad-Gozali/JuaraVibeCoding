@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Upload, X, Loader2, AlertCircle, CheckCircle2,
   ArrowLeft, ChevronDown, Plus, Trash2,
@@ -109,7 +110,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
-  // Existing evidence
   const existingUrls: string[] = [
     ...(report.evidence_urls ?? []),
     ...(report.evidence_url && !report.evidence_urls?.includes(report.evidence_url)
@@ -119,8 +119,8 @@ export default function EditReportForm({ report }: EditReportFormProps) {
   const [keptExistingUrls, setKeptExistingUrls] = useState<string[]>(existingUrls);
   const [newFiles, setNewFiles] = useState<{ file: File; preview: string }[]>([]);
 
-  // Suspect photo
-  const [suspectPhotoUrl] = useState<string | null>(report.suspect_photo_url ?? null);
+  // FIX: suspectPhotoUrl dipakai di handleSubmit, tidak perlu setter terpisah
+  const [suspectPhotoUrl, setSuspectPhotoUrl] = useState<string | null>(report.suspect_photo_url ?? null);
   const [newSuspectPhoto, setNewSuspectPhoto] = useState<File | null>(null);
   const [suspectPhotoPreview, setSuspectPhotoPreview] = useState<string | null>(report.suspect_photo_url ?? null);
 
@@ -192,6 +192,12 @@ export default function EditReportForm({ report }: EditReportFormProps) {
     reader.readAsDataURL(file);
   };
 
+  const handleRemoveSuspectPhoto = () => {
+    setNewSuspectPhoto(null);
+    setSuspectPhotoPreview(null);
+    setSuspectPhotoUrl(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.chronology.trim().length < 20) {
@@ -206,10 +212,9 @@ export default function EditReportForm({ report }: EditReportFormProps) {
       const { createClient } = await import('@/lib/supabase-browser');
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError('Sesi habis. Silakan login ulang.'); return; }
+      if (!session) { setError('Sesi habis. Silakan login ulang.'); setIsLoading(false); return; }
       const token = session.access_token;
 
-      // Upload foto bukti baru langsung ke Supabase Storage
       const uploadedUrls: string[] = [];
       if (newFiles.length > 0) {
         for (let i = 0; i < newFiles.length; i++) {
@@ -225,7 +230,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
         }
       }
 
-      // Upload foto profil penipu baru langsung ke Supabase Storage
       let finalSuspectPhotoUrl = suspectPhotoUrl;
       if (newSuspectPhoto) {
         setUploadProgress('Mengupload foto profil...');
@@ -392,7 +396,7 @@ export default function EditReportForm({ report }: EditReportFormProps) {
               </div>
             </div>
 
-            {/* Foto profil penipu */}
+            {/* FIX: Foto profil penipu — <img> → <Image /> */}
             <div>
               <FieldLabel label="Foto profil / identitas visual penipu" optional />
               {!suspectPhotoPreview ? (
@@ -408,10 +412,18 @@ export default function EditReportForm({ report }: EditReportFormProps) {
                 </label>
               ) : (
                 <div className="relative inline-block">
-                  <img src={suspectPhotoPreview} alt="Foto penipu" className="w-24 h-24 object-cover rounded-2xl border border-zinc-200" />
+                  <div className="relative w-24 h-24">
+                    <Image
+                      src={suspectPhotoPreview}
+                      alt="Foto penipu"
+                      fill
+                      className="object-cover rounded-2xl border border-zinc-200"
+                      unoptimized
+                    />
+                  </div>
                   <button
                     type="button"
-                    onClick={() => { setNewSuspectPhoto(null); setSuspectPhotoPreview(null); }}
+                    onClick={handleRemoveSuspectPhoto}
                     className="absolute -top-2 -right-2 p-1 bg-zinc-900 text-white rounded-full hover:bg-red-600 transition-colors"
                   >
                     <X className="w-3 h-3" />
@@ -517,44 +529,56 @@ export default function EditReportForm({ report }: EditReportFormProps) {
               Screenshot percakapan, struk transfer, atau bukti pembayaran · Maks {MAX_EVIDENCE_FILES} foto · 5MB per file
             </p>
 
-            {/* Existing photos */}
+            {/* FIX: Existing photos — <img> → <Image /> */}
             {keptExistingUrls.length > 0 && (
               <div>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Foto sebelumnya</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {keptExistingUrls.map((url, i) => (
                     <div key={i} className="relative aspect-square">
-                      <img src={url} alt={`Bukti ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-zinc-200" />
+                      <Image
+                        src={url}
+                        alt={`Bukti ${i + 1}`}
+                        fill
+                        className="object-cover rounded-xl border border-zinc-200"
+                        unoptimized
+                      />
                       <button
                         type="button"
                         onClick={() => setKeptExistingUrls(prev => prev.filter(u => u !== url))}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-10"
                       >
                         <X className="w-3 h-3" />
                       </button>
-                      <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold">{i + 1}</div>
+                      <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold z-10">{i + 1}</div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* New photos */}
+            {/* FIX: New photos — <img> → <Image /> */}
             {newFiles.length > 0 && (
               <div>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Foto baru</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {newFiles.map((item, i) => (
                     <div key={i} className="relative aspect-square">
-                      <img src={item.preview} alt={`Baru ${i + 1}`} className="w-full h-full object-cover rounded-xl border-2 border-emerald-400" />
+                      <Image
+                        src={item.preview}
+                        alt={`Baru ${i + 1}`}
+                        fill
+                        className="object-cover rounded-xl border-2 border-emerald-400"
+                        unoptimized
+                      />
                       <button
                         type="button"
                         onClick={() => setNewFiles(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-10"
                       >
                         <X className="w-3 h-3" />
                       </button>
-                      <div className="absolute bottom-1 left-1 bg-emerald-600/80 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold">Baru</div>
+                      <div className="absolute bottom-1 left-1 bg-emerald-600/80 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold z-10">Baru</div>
                     </div>
                   ))}
                 </div>

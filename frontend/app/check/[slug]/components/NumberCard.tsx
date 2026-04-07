@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { ExternalLink, AlertTriangle } from 'lucide-react';
 import { formatNum } from '@/lib/utils';
 
@@ -52,7 +53,6 @@ const targetTypeLabel: Record<string, string> = {
 };
 
 export default function NumberCard({ reports, realNumber, config }: Props) {
-  // Kumpulkan semua akun sosmed unik dari semua laporan
   const allSocialAccounts: string[] = [];
   reports.forEach((r) => {
     if (Array.isArray(r.social_media_accounts)) {
@@ -62,7 +62,6 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
     }
   });
 
-  // Kumpulkan semua reported_to unik
   const allReportedTo: string[] = [];
   reports.forEach((r) => {
     if (Array.isArray(r.reported_to)) {
@@ -78,7 +77,6 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
   const targetType = reports[0]?.target_type ?? 'phone';
   const dangerLink = reports.find((r) => r.link_url)?.link_url ?? null;
 
-  // Ambil detail dari laporan pertama
   const category = reports[0]?.category ?? null;
   const platform = reports.find((r) => r.platform)?.platform ?? null;
   const totalLoss = reports.reduce((sum, r) => sum + (Number(r.loss_amount) || 0), 0);
@@ -112,14 +110,17 @@ export default function NumberCard({ reports, realNumber, config }: Props) {
             )}
           </div>
 
+          {/* FIX: <img> → <Image /> */}
           {suspectPhotoUrl && (
             <div className="shrink-0">
               <p className="text-[10px] text-slate-400 mb-1.5">Foto penipu</p>
-              <div className="relative">
-                <img
+              <div className="relative w-16 h-16">
+                <Image
                   src={suspectPhotoUrl}
                   alt="Foto profil penipu"
-                  className="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                  fill
+                  className="object-cover rounded-xl border border-slate-200"
+                  unoptimized
                 />
                 <span className="absolute -bottom-1 -right-1 bg-red-600 text-white text-[8px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide">
                   Penipu

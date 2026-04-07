@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { ShieldCheck, ExternalLink, ImageIcon, Clock } from 'lucide-react';
 import { formatDateID } from '@/lib/utils';
 
@@ -32,7 +33,7 @@ interface ReportItem {
 
 interface Props {
   reports: ReportItem[];
-  hasWithdrawn?: boolean; // ← tambahan prop
+  hasWithdrawn?: boolean;
 }
 
 // ── Evidence URL helpers ──────────────────────────────────────────────────────
@@ -77,7 +78,6 @@ export default function ReportList({ reports, hasWithdrawn = false }: Props) {
             ))}
           </div>
         ) : hasWithdrawn ? (
-          // ── Empty state khusus withdrawn ──
           <div className="bg-amber-50 rounded-xl border border-amber-200 p-10 text-center">
             <Clock className="w-7 h-7 text-amber-400 mx-auto mb-3" />
             <p className="text-sm font-semibold text-amber-800 mb-1">Laporan sedang diperbarui</p>
@@ -86,7 +86,6 @@ export default function ReportList({ reports, hasWithdrawn = false }: Props) {
             </p>
           </div>
         ) : (
-          // ── Empty state normal (memang tidak ada laporan) ──
           <div className="bg-white rounded-xl border border-slate-200 p-14 text-center">
             <ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
             <p className="text-sm font-semibold text-slate-900 mb-1">Database bersih</p>
@@ -113,11 +112,14 @@ export default function ReportList({ reports, hasWithdrawn = false }: Props) {
                   rel="noopener noreferrer"
                   className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 hover:border-slate-400 transition-all"
                 >
-                  <img
+                  {/* FIX: <img> → <Image /> */}
+                  <Image
                     src={url}
                     alt={`Bukti ${i + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-200"
                     loading="lazy"
+                    unoptimized
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                     <ExternalLink className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />

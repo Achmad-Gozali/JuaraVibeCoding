@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase-browser';
 import {
   Loader2, Upload, AlertCircle, CheckCircle2, Brain,
@@ -374,7 +375,7 @@ export default function ReportForm() {
   const updateSocialField = (i: number, val: string) => setFormData(f => { const arr = [...f.social_media_accounts]; arr[i] = val; return { ...f, social_media_accounts: arr }; });
   const toggleReportedTo = (val: string) => setFormData(f => ({ ...f, reported_to: f.reported_to.includes(val) ? f.reported_to.filter(v => v !== val) : [...f.reported_to, val] }));
 
-  // ── SUBMIT — upload langsung ke Supabase Storage ──────────────────────────
+  // ── SUBMIT ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
@@ -383,7 +384,6 @@ export default function ReportForm() {
       const token = await getAuthToken();
       if (!token) { setError('Sesi habis. Silakan login ulang.'); setIsLoading(false); return; }
 
-      // ── Upload foto bukti langsung ke Supabase Storage ──────────────────────
       const uploadedUrls: string[] = [];
       if (evidenceFiles.length > 0) {
         for (let i = 0; i < evidenceFiles.length; i++) {
@@ -400,7 +400,6 @@ export default function ReportForm() {
         setUploadProgress('Mengirim laporan...');
       }
 
-      // ── Upload foto profil penipu langsung ke Supabase Storage ───────────────
       let suspectPhotoUrl: string | null = null;
       if (suspectPhoto) {
         setUploadProgress('Mengupload foto profil penipu...');
@@ -413,7 +412,6 @@ export default function ReportForm() {
         }
       }
 
-      // ── Ambil hasil scan AI ─────────────────────────────────────────────────
       const scannedFile = evidenceFiles.find(f => f.analysis !== null);
       const aiPhotoResult: PhotoScanPayload | null = scannedFile?.analysis
         ? {
@@ -429,7 +427,6 @@ export default function ReportForm() {
         : formData.target_type === 'ewallet' ? formData.ewallet_name
         : null;
 
-      // ── Kirim data laporan ke backend (tanpa file) ─────────────────────────
       setUploadProgress('Mengirim laporan...');
       const res = await fetch(`${BACKEND_URL}/api/reports`, {
         method: 'POST',
@@ -592,6 +589,7 @@ export default function ReportForm() {
                 </div>
               </div>
 
+              {/* FIX: Foto profil penipu — <img> → <Image /> */}
               <div className="space-y-2">
                 <FieldLabel label="Foto Profil / Identitas Visual Penipu" optional />
                 {!suspectPhotoPreview ? (
@@ -602,7 +600,15 @@ export default function ReportForm() {
                   </label>
                 ) : (
                   <div className="relative inline-block">
-                    <img src={suspectPhotoPreview} alt="Foto penipu" className="w-24 h-24 object-cover rounded-2xl border border-zinc-200" />
+                    <div className="relative w-24 h-24">
+                      <Image
+                        src={suspectPhotoPreview}
+                        alt="Foto penipu"
+                        fill
+                        className="object-cover rounded-2xl border border-zinc-200"
+                        unoptimized
+                      />
+                    </div>
                     <button type="button" onClick={() => { setSuspectPhoto(null); setSuspectPhotoPreview(null); }}
                       className="absolute -top-2 -right-2 p-1 bg-zinc-900 text-white rounded-full hover:bg-red-600 transition-colors">
                       <X className="w-3 h-3" />
@@ -732,13 +738,20 @@ export default function ReportForm() {
                 <div className="space-y-3">
                   {evidenceFiles.map((item, index) => (
                     <div key={index} className="rounded-2xl overflow-hidden border border-zinc-200 bg-white p-2">
-                      <div className="relative">
-                        <img src={item.preview} alt={`Bukti ${index + 1}`} className="w-full h-40 object-cover rounded-xl" />
+                      <div className="relative h-40 w-full">
+                        {/* FIX: <img> → <Image /> */}
+                        <Image
+                          src={item.preview}
+                          alt={`Bukti ${index + 1}`}
+                          fill
+                          className="object-cover rounded-xl"
+                          unoptimized
+                        />
                         <button type="button" onClick={() => removeEvidenceFile(index)}
-                          className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black transition-colors">
+                          className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black transition-colors z-10">
                           <X className="w-3 h-3" />
                         </button>
-                        <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-white text-[10px] font-bold rounded-lg">Foto {index + 1}</div>
+                        <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-white text-[10px] font-bold rounded-lg z-10">Foto {index + 1}</div>
                       </div>
                       <div className="mt-2 px-1 pb-1 flex justify-between items-center">
                         <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[200px]">{item.file.name}</span>

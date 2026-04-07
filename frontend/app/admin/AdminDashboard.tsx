@@ -2,6 +2,7 @@
 
 import { useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import {
   CheckCircle2, XCircle, Clock, Eye, ExternalLink,
   Phone, Building2, ChevronDown, ChevronUp, Loader2,
@@ -459,9 +460,18 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                 </div>
                 {isExp && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 bg-slate-50/60 space-y-5">
+                    {/* FIX: <img> → <Image /> dengan unoptimized untuk URL eksternal dinamis */}
                     {report.suspect_photo_url && (
                       <div className="flex items-start gap-4 p-4 bg-red-50 border border-red-100 rounded-xl">
-                        <img src={report.suspect_photo_url} alt="Foto penipu" className="w-16 h-16 object-cover rounded-xl border-2 border-red-200 shrink-0" />
+                        <div className="relative w-16 h-16 shrink-0">
+                          <Image
+                            src={report.suspect_photo_url}
+                            alt="Foto penipu"
+                            fill
+                            className="object-cover rounded-xl border-2 border-red-200"
+                            unoptimized
+                          />
+                        </div>
                         <div>
                           <p className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1"><UserX className="w-3 h-3" /> Foto Profil Penipu</p>
                           <a href={report.suspect_photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-red-600 hover:underline flex items-center gap-1">Lihat ukuran penuh <ExternalLink className="w-3 h-3" /></a>
@@ -609,7 +619,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ─── PENGGUNA TAB (REDESIGNED) ────────────────────────────────────────────
+  // ─── PENGGUNA TAB ─────────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
@@ -635,7 +645,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   );
 }
 
-// ── USER ROW COMPONENT (REDESIGNED) ───────────────────────────────────────────
+// ── USER ROW COMPONENT ────────────────────────────────────────────────────────
 function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<string | null>(null);
@@ -665,18 +675,14 @@ function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }
   return (
     <div className={`bg-white border rounded-2xl px-4 py-4 sm:px-5 hover:border-slate-300 transition-colors ${isBanned ? 'border-red-200 bg-red-50/30' : 'border-slate-200'}`}>
       <div className="flex items-center gap-4">
-        {/* Avatar */}
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isBanned ? 'bg-red-200' : 'bg-slate-900'}`}>
           <span className={`text-sm font-bold ${isBanned ? 'text-red-700' : 'text-white'}`}>{initial}</span>
         </div>
-
-        {/* Info */}
         <div className="flex-grow min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <p className={`text-sm font-semibold truncate ${isBanned ? 'text-red-700 line-through' : 'text-slate-900'}`}>
               {user.full_name || 'Tanpa Nama'}
             </p>
-            {/* Role / Status badges */}
             {isAdmin && (
               <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-50 text-red-600 border-red-200">Admin</span>
             )}
@@ -698,34 +704,25 @@ function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }
             </span>
           </div>
         </div>
-
-        {/* Action buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Admin: tombol Cabut */}
           {isAdmin && (
             <button onClick={() => handleRole('user')} disabled={loading}
               className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-500 font-semibold disabled:opacity-50 transition-colors">
               {loading && action === 'user' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cabut'}
             </button>
           )}
-
-          {/* Non-admin: tombol Jadikan Admin */}
           {!isAdmin && !isBanned && (
             <button onClick={() => handleRole('admin')} disabled={loading}
               className="text-[11px] px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 font-semibold disabled:opacity-50 transition-colors">
               {loading && action === 'admin' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Admin'}
             </button>
           )}
-
-          {/* Non-admin + aktif: tombol Ban */}
           {!isAdmin && !isBanned && (
             <button onClick={handleBan} disabled={loading}
               className="text-[11px] px-3 py-1.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 hover:text-red-700 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1">
               {loading && action === 'ban' ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Ban className="w-3 h-3" /> Ban</>}
             </button>
           )}
-
-          {/* Banned: tombol Unban */}
           {!isAdmin && isBanned && (
             <button onClick={handleUnban} disabled={loading}
               className="text-[11px] px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 hover:text-emerald-700 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1">
