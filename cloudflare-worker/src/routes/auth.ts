@@ -4,8 +4,8 @@ import type { Env } from '../types';
 
 const auth = new Hono<{ Bindings: Env }>();
 
-const LOCK_DURATION_MINUTES = 15;
-const MAX_ATTEMPTS = 3;
+const LOCK_DURATION_MINUTES = 10;
+const MAX_ATTEMPTS = 5;
 
 // ── POST /api/auth/verify-recaptcha ──────────────────────────────────────────
 auth.post('/verify-recaptcha', async (c) => {
@@ -40,7 +40,7 @@ auth.post('/login', async (c) => {
     const supabaseAdmin = getSupabaseAdmin(c.env);
     const supabaseClient = getSupabaseClient(c.env);
 
-    // ── Cari user by email dulu ───────────────────────────────────────────────
+    // ── Cari user by email ────────────────────────────────────────────────────
     const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
     const authUser = users?.find((u: { email?: string }) => u.email?.toLowerCase() === normalizedEmail);
 
@@ -63,7 +63,7 @@ auth.post('/login', async (c) => {
           const lockedUntilTime = lockedUntil.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
           return c.json({
             success: false,
-            message: `Akun dikunci. Coba lagi pukul ${lockedUntilTime}.`,
+            message: `Akun dikunci selama ${LOCK_DURATION_MINUTES} menit. Coba lagi pukul ${lockedUntilTime}.`,
             locked: true,
             locked_until: profile.locked_until,
             remaining_ms: remainingMs,
@@ -94,6 +94,7 @@ auth.post('/login', async (c) => {
       const currentAttempts = (profile?.failed_attempts ?? 0) + 1;
       const remaining = MAX_ATTEMPTS - currentAttempts;
 
+      // ── Percobaan ke-5: langsung lock ─────────────────────────────────────
       if (currentAttempts >= MAX_ATTEMPTS) {
         const lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
         await supabaseAdmin.from('profiles').update({
@@ -112,13 +113,25 @@ auth.post('/login', async (c) => {
       }
 
       await supabaseAdmin.from('profiles').update({ failed_attempts: currentAttempts }).eq('id', authUser.id);
+
+      // ── Percobaan ke-4: warning 1 lagi sebelum lock ───────────────────────
+      if (remaining === 1) {
+        return c.json({
+          success: false,
+          message: 'Kata sandi salah. Tersisa 1 percobaan lagi sebelum akun dikunci!',
+          locked: false,
+          remaining_attempts: 1,
+          warning: true,
+        }, 401);
+      }
+
+      // ── Percobaan 1-3: error biasa ────────────────────────────────────────
       return c.json({
         success: false,
-        message: remaining === 1
-          ? 'Kata sandi salah. Tersisa 1 percobaan sebelum akun dikunci.'
-          : `Kata sandi salah. Tersisa ${remaining} percobaan lagi.`,
+        message: `Kata sandi salah. Tersisa ${remaining} percobaan lagi.`,
         locked: false,
         remaining_attempts: remaining,
+        warning: false,
       }, 401);
     }
 

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Loader2, AlertCircle, CheckCircle2, Mail, Lock,
-  UserPlus, ArrowRight, Eye, EyeOff, ShieldCheck, XCircle, Timer,
+  UserPlus, ArrowRight, Eye, EyeOff, ShieldCheck, XCircle, Timer, AlertTriangle,
 } from 'lucide-react';
 
 interface AuthFormProps {
@@ -175,6 +175,7 @@ function AuthFormInner({ type }: AuthFormProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [lockedUntilMs, setLockedUntilMs] = useState<number | null>(null);
+  const [isWarning, setIsWarning] = useState(false); // ← state warning percobaan ke-4
 
   const { minutes, seconds, isExpired } = useCountdown(lockedUntilMs);
   const isLocked = lockedUntilMs !== null && !isExpired;
@@ -183,6 +184,7 @@ function AuthFormInner({ type }: AuthFormProps) {
     if (isExpired && lockedUntilMs !== null) {
       setLockedUntilMs(null);
       setError(null);
+      setIsWarning(false);
     }
   }, [isExpired, lockedUntilMs]);
 
@@ -206,6 +208,7 @@ function AuthFormInner({ type }: AuthFormProps) {
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     setOauthLoading(provider);
     setError(null);
+    setIsWarning(false);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}` },
@@ -220,6 +223,7 @@ function AuthFormInner({ type }: AuthFormProps) {
 
     setError(null);
     setSuccess(null);
+    setIsWarning(false);
 
     const sanitizedEmail = email.trim().toLowerCase();
     const sanitizedFullName = fullName.trim().replace(/[<>'"]/g, '');
@@ -284,7 +288,14 @@ function AuthFormInner({ type }: AuthFormProps) {
           if (loginData.locked && loginData.locked_until) {
             setLockedUntilMs(new Date(loginData.locked_until).getTime());
             setError(loginData.message);
+            setIsWarning(false);
             return;
+          }
+          // ── Warning percobaan ke-4 ────────────────────────────────────────
+          if (loginData.warning) {
+            setIsWarning(true);
+          } else {
+            setIsWarning(false);
           }
           setError(loginData.message || 'Email atau kata sandi salah.');
           return;
@@ -309,13 +320,24 @@ function AuthFormInner({ type }: AuthFormProps) {
     }
   };
 
+  // ── Tentukan style notif error ────────────────────────────────────────────
+  const errorStyle = isLocked
+    ? 'bg-amber-50 border-amber-200 text-amber-700'
+    : isWarning
+    ? 'bg-orange-50 border-orange-300 text-orange-700'
+    : 'bg-red-50 border-red-200 text-red-700';
+
+  const errorIcon = isLocked
+    ? <Timer className="w-4 h-4 shrink-0 mt-0.5" />
+    : isWarning
+    ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+    : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />;
+
   return (
     <div className="w-full">
       {error && (
-        <div className={`mb-5 p-3.5 border rounded-xl flex items-start gap-3 shadow-sm ${
-          isLocked ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-red-50 border-red-200 text-red-700'
-        }`}>
-          {isLocked ? <Timer className="w-4 h-4 shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />}
+        <div className={`mb-5 p-3.5 border rounded-xl flex items-start gap-3 shadow-sm ${errorStyle}`}>
+          {errorIcon}
           <div className="flex-1">
             <p className="text-xs font-semibold leading-relaxed">{error}</p>
             {isLocked && (
@@ -452,6 +474,7 @@ function AuthFormInner({ type }: AuthFormProps) {
         <button type="submit" disabled={isSubmitDisabled}
           className={`w-full py-3.5 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-widest mt-2 ${
             isLocked ? 'bg-amber-400 cursor-not-allowed'
+            : isWarning ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'
             : type === 'login' ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20'
             : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
           }`}>
@@ -461,6 +484,8 @@ function AuthFormInner({ type }: AuthFormProps) {
             ? <><Loader2 className="w-4 h-4 animate-spin" /> {type === 'login' ? 'Sedang Masuk...' : 'Membuat Akun...'}</>
             : !recaptchaReady
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Memuat keamanan...</>
+            : isWarning
+            ? <><AlertTriangle className="w-4 h-4" /> Coba Lagi (Percobaan Terakhir)</>
             : <>{type === 'login' ? 'Masuk' : 'Buat Akun'}<ArrowRight className="w-4 h-4 opacity-70" /></>
           }
         </button>
