@@ -1,11 +1,10 @@
 import { Suspense } from 'react';
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import AdminDashboard from './AdminDashboard';
 
-export const revalidate = 30;
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+export const dynamic = 'force-dynamic';
 
 async function createClient() {
   const cookieStore = await cookies();
@@ -27,46 +26,41 @@ async function createClient() {
   );
 }
 
-// ── Fetch users dari backend ──────────────────────────────────────────────────
-async function fetchUsersFromBackend(token: string) {
-  try {
-    console.log('[Admin] token exists:', !!token, '| token length:', token.length);
-    console.log('[Admin] BACKEND_URL:', BACKEND_URL);
+async function fetchUsers() {
+  const supabase = createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
-    const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-      cache: 'no-store',
-    });
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, role, is_banned, updated_at')
+    .order('updated_at', { ascending: false });
 
-    console.log('[Admin] response status:', res.status);
+  if (!profiles) return [];
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error('[Admin] response error body:', text);
-      return [];
-    }
+  const { data: counts } = await supabase
+    .from('reports')
+    .select('reporter_id');
 
-    const data = await res.json();
-    console.log('[Admin] data.success:', data.success, '| users count:', data.data?.length ?? 0);
+  const reportCounts: Record<string, number> = {};
+  counts?.forEach((r: { reporter_id: string }) => {
+    reportCounts[r.reporter_id] = (reportCounts[r.reporter_id] || 0) + 1;
+  });
 
-    return data.success ? data.data : [];
-  } catch (err) {
-    console.error('[Admin] fetchUsers error:', err);
-    return [];
-  }
+  return profiles.map((p: any) => ({
+    ...p,
+    created_at: p.updated_at,
+    report_count: reportCounts[p.id] || 0,
+  }));
 }
 
 export default async function AdminPage() {
   const supabase = await createClient();
 
-  // Gunakan getUser() untuk memastikan user valid di server-side
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('[Admin] user exists:', !!user, '| user id:', user?.id);
-
-  // Ambil session untuk token
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token ?? '';
-  console.log('[Admin] session exists:', !!session, '| token length:', token.length);
+  if (!user) return null;
 
   const [
     { count: totalReports },
@@ -81,11 +75,8 @@ export default async function AdminPage() {
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
     supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
     supabase.rpc('get_reports_admin'),
-    fetchUsersFromBackend(token),
+    fetchUsers(),
   ]);
-
-  console.log('[Admin] reports count:', reports?.length ?? 0);
-  console.log('[Admin] users count:', users?.length ?? 0);
 
   const stats = {
     total: totalReports || 0,

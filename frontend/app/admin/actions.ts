@@ -1,10 +1,11 @@
 'use server';
 
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8787';
 
 async function createClient() {
   const cookieStore = await cookies();
@@ -26,7 +27,14 @@ async function createClient() {
   );
 }
 
-// ── Helper: ambil auth token ──────────────────────────────────────────────────
+function createAdminClient() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
 async function getAuthToken(): Promise<string> {
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -34,7 +42,6 @@ async function getAuthToken(): Promise<string> {
   return session.access_token;
 }
 
-// ── Helper: validasi admin role ───────────────────────────────────────────────
 async function validateAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -50,7 +57,6 @@ async function validateAdmin() {
   return user;
 }
 
-// ── Update Report Status ──────────────────────────────────────────────────────
 export async function updateReportStatus(
   reportId: string,
   status: 'verified' | 'rejected' | 'pending' | 'withdrawn'
@@ -81,63 +87,34 @@ export async function updateReportStatus(
   revalidatePath('/dashboard');
 }
 
-// ── Update User Role — lewat backend 3 layer ─────────────────────────────────
-export async function updateUserRole(
-  userId: string,
-  role: 'user' | 'admin' | 'moderator'
-) {
-  await validateAdmin();
-  const token = await getAuthToken();
+export async function updateUserRole(userId: string, role: 'user' | 'admin' | 'moderator') {
+  const admin = await validateAdmin();
+  if (admin.id === userId) throw new Error('Tidak dapat mengubah role diri sendiri.');
 
-  const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/role`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ role }),
-  });
-
-  const data = await res.json();
-  if (!data.success) throw new Error(data.message || 'Gagal update role');
+  const supabase = createAdminClient();
+  const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
+  if (error) throw new Error('Gagal update role');
 
   revalidatePath('/admin');
 }
 
-// ── Ban User — lewat backend 3 layer ──────────────────────────────────────────
 export async function banUser(userId: string) {
-  await validateAdmin();
-  const token = await getAuthToken();
+  const admin = await validateAdmin();
+  if (admin.id === userId) throw new Error('Tidak dapat memban diri sendiri.');
 
-  const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/ban`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  const data = await res.json();
-  if (!data.success) throw new Error(data.message || 'Gagal memblokir pengguna');
+  const supabase = createAdminClient();
+  const { error } = await supabase.from('profiles').update({ is_banned: true }).eq('id', userId);
+  if (error) throw new Error('Gagal memblokir pengguna');
 
   revalidatePath('/admin');
 }
 
-// ── Unban User — lewat backend 3 layer ────────────────────────────────────────
 export async function unbanUser(userId: string) {
   await validateAdmin();
-  const token = await getAuthToken();
 
-  const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/unban`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  const data = await res.json();
-  if (!data.success) throw new Error(data.message || 'Gagal membuka blokir pengguna');
+  const supabase = createAdminClient();
+  const { error } = await supabase.from('profiles').update({ is_banned: false }).eq('id', userId);
+  if (error) throw new Error('Gagal membuka blokir pengguna');
 
   revalidatePath('/admin');
 }

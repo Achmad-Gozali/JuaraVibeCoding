@@ -7,7 +7,6 @@ import Link from 'next/link';
 
 export const revalidate = 60;
 
-// ── SUPABASE CLIENT ───────────────────────────────────────────────────────────
 async function createClient() {
   const cookieStore = await cookies();
   return createServerClient(
@@ -28,7 +27,6 @@ async function createClient() {
   );
 }
 
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const ewalletNames = ['gopay', 'dana', 'ovo', 'shopeepay', 'linkaja'];
 
 const bankLogoMap: Record<string, string> = {
@@ -41,7 +39,6 @@ const ewalletLogoMap: Record<string, string> = {
   shopeepay: '/ewallets/shopeepay.png', linkaja: '/ewallets/linkaja.png',
 };
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
 function getPlatformLogo(type: string, bankName: string | null): string | null {
   if (!bankName) return null;
   const key = bankName.toLowerCase();
@@ -75,7 +72,6 @@ function getStatusBadge(status: string) {
   }
 }
 
-// ── PAGE ──────────────────────────────────────────────────────────────────────
 export default async function DatabasePage({
   searchParams,
 }: {
@@ -90,7 +86,6 @@ export default async function DatabasePage({
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
 
-  // exclude rejected saja dari database publik, withdrawn tetap tampil
   let query = supabase
     .from('reports')
     .select('id, target_number, target_name, target_type, bank_name, category, status, created_at', { count: 'exact' })
@@ -114,29 +109,30 @@ export default async function DatabasePage({
   return (
     <main className="bg-white text-slate-900 font-sans min-h-screen">
 
-      {/* ── Hero section — slate-50 ── */}
-      <section className="bg-slate-50 px-4 pt-14 pb-10">
+      {/* ── Hero ── */}
+      <section className="bg-slate-50 px-4 pt-10 pb-8 sm:pt-14 sm:pb-10">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase mb-2">
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase mb-2 leading-tight">
             Database Laporan Publik
           </h1>
-          <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-500 max-w-xl leading-relaxed">
             Semua laporan yang masuk ke sistem KawalTransaksi. Nomor dengan status{' '}
             <span className="font-bold text-emerald-600">VERIFIED</span> telah dikonfirmasi oleh tim auditor kami.
           </p>
         </div>
       </section>
 
-      {/* Wave: slate-50 → putih */}
+      {/* Wave */}
       <svg viewBox="0 0 1440 50" preserveAspectRatio="none" className="w-full block bg-slate-50 -mb-1" xmlns="http://www.w3.org/2000/svg">
         <path d="M0,50 C360,10 720,40 1080,15 C1260,2 1380,30 1440,50 Z" fill="#ffffff" />
       </svg>
 
-      {/* ── Filter bar — sticky ── */}
-      <section className="border-b border-slate-200 px-4 py-4 sticky top-16 bg-white z-10">
-        <div className="max-w-5xl mx-auto flex flex-wrap gap-2 items-center">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tipe:</span>
+      {/* ── Filter bar ── */}
+      <section className="border-b border-slate-200 px-4 py-3 sticky top-16 bg-white z-10">
+        <div className="max-w-5xl mx-auto flex flex-col gap-2 sm:flex-row sm:items-center">
+          {/* Filter buttons — scrollable di mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Tipe:</span>
             {[
               { val: 'all', label: 'Semua' },
               { val: 'phone', label: 'Nomor HP', icon: Phone },
@@ -144,20 +140,24 @@ export default async function DatabasePage({
               { val: 'ewallet', label: 'E-Wallet', icon: Wallet },
             ].map((t) => (
               <Link key={t.val} href={buildUrl({ type: t.val })}
-                className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg border transition-colors flex items-center gap-1 ${
-                  type === t.val ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
+                className={`shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg border transition-colors flex items-center gap-1 ${
+                  type === t.val
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
                 }`}>
                 {t.icon && <t.icon className="w-3 h-3" />}
                 {t.label}
               </Link>
             ))}
           </div>
-          <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase tracking-widest">{count ?? 0} laporan</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest sm:ml-auto">
+            {count ?? 0} laporan
+          </span>
         </div>
       </section>
 
       {/* ── Report cards ── */}
-      <section className="px-4 py-10">
+      <section className="px-4 py-6 sm:py-10">
         <div className="max-w-5xl mx-auto">
           {!reports || reports.length === 0 ? (
             <div className="text-center py-24">
@@ -174,26 +174,39 @@ export default async function DatabasePage({
 
                 return (
                   <Link key={report.id} href={`/check/${encodeSlug(report.target_number)}`}
-                    className="block bg-white border border-slate-200 p-5 rounded-lg hover:border-slate-300 hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-4">
+                    className="flex flex-col bg-white border border-slate-200 p-4 sm:p-5 rounded-xl hover:border-slate-300 hover:shadow-md transition-all group active:scale-[0.98]">
+                    {/* Top row: badge + date */}
+                    <div className="flex justify-between items-start mb-3">
                       <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-full border ${badge.className}`}>
                         {badge.label}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-medium">{formatDateID(report.created_at)}</span>
+                      <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-2">{formatDateID(report.created_at)}</span>
                     </div>
-                    <div className="mb-4">
-                      <p className="text-lg font-black font-mono tracking-tight text-slate-900 group-hover:text-slate-700 transition-colors">{report.target_number}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">A.N. {report.target_name || 'Anonymous'}</p>
+
+                    {/* Number + name */}
+                    <div className="mb-3 flex-1">
+                      <p className="text-base sm:text-lg font-black font-mono tracking-tight text-slate-900 group-hover:text-slate-700 transition-colors break-all">
+                        {report.target_number}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 truncate">
+                        A.N. {report.target_name || 'Anonymous'}
+                      </p>
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                      <div className="flex items-center gap-2">
-                        <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold border ${meta.bg} ${meta.color} ${meta.border}`}>
-                          {logoSrc ? <Image src={logoSrc} alt={meta.label} width={14} height={14} className="object-contain rounded-sm" /> : <Icon className="w-3 h-3" />}
-                          <span className="truncate max-w-[80px]">{meta.label}</span>
+
+                    {/* Bottom: platform + category + arrow */}
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border shrink-0 ${meta.bg} ${meta.color} ${meta.border}`}>
+                          {logoSrc
+                            ? <Image src={logoSrc} alt={meta.label} width={12} height={12} className="object-contain rounded-sm" />
+                            : <Icon className="w-3 h-3" />}
+                          <span className="truncate max-w-[60px] sm:max-w-[80px]">{meta.label}</span>
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{report.category}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate min-w-0">
+                          {report.category}
+                        </span>
                       </div>
-                      <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
+                      <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0 ml-1" />
                     </div>
                   </Link>
                 );
@@ -203,13 +216,21 @@ export default async function DatabasePage({
 
           {/* ── Pagination ── */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-10">
+            <div className="flex justify-center items-center gap-2 mt-8 sm:mt-10">
               {page > 1 && (
-                <Link href={buildUrl({ page: String(page - 1) })} className="px-4 py-2 text-[11px] font-bold uppercase tracking-widest border border-slate-200 rounded-lg hover:border-slate-400 transition-colors">← Prev</Link>
+                <Link href={buildUrl({ page: String(page - 1) })}
+                  className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest border border-slate-200 rounded-xl hover:border-slate-400 transition-colors active:scale-95">
+                  ← Prev
+                </Link>
               )}
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-3">{page} / {totalPages}</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-3">
+                {page} / {totalPages}
+              </span>
               {page < totalPages && (
-                <Link href={buildUrl({ page: String(page + 1) })} className="px-4 py-2 text-[11px] font-bold uppercase tracking-widest border border-slate-200 rounded-lg hover:border-slate-400 transition-colors">Next →</Link>
+                <Link href={buildUrl({ page: String(page + 1) })}
+                  className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest border border-slate-200 rounded-xl hover:border-slate-400 transition-colors active:scale-95">
+                  Next →
+                </Link>
               )}
             </div>
           )}
