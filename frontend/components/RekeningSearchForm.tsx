@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 import { encodeSlug } from '@/lib/utils';
 
+// FIX: Cooldown antar pencarian (ms) — cegah spam query ke DB
+const SEARCH_COOLDOWN_MS = 2000;
+
 function isValidRekening(num: string): boolean {
   const cleaned = num.replace(/\s/g, '');
-  // Nomor rekening: angka saja, 10-20 digit, tidak diawali 08 atau +62
   if (cleaned.startsWith('08') || cleaned.startsWith('62')) return false;
   return /^\d{10,20}$/.test(cleaned);
 }
@@ -18,12 +20,8 @@ function getRekeningError(num: string): string | null {
   if (cleaned.startsWith('08') || cleaned.startsWith('62')) {
     return 'Ini terlihat seperti nomor HP. Untuk cek nomor HP atau WhatsApp, gunakan halaman Cek Nomor HP.';
   }
-  if (cleaned.length < 10) {
-    return 'Nomor rekening terlalu pendek. Minimal 10 digit.';
-  }
-  if (cleaned.length > 20) {
-    return 'Nomor rekening terlalu panjang. Maksimal 20 digit.';
-  }
+  if (cleaned.length < 10) return 'Nomor rekening terlalu pendek. Minimal 10 digit.';
+  if (cleaned.length > 20) return 'Nomor rekening terlalu panjang. Maksimal 20 digit.';
   return null;
 }
 
@@ -31,6 +29,8 @@ export default function RekeningSearchForm() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [cooldown, setCooldown] = useState(false); // FIX: rate limit state
+  const lastSearchRef = useRef<number>(0);          // FIX: timestamp pencarian terakhir
   const router = useRouter();
 
   const error = touched ? getRekeningError(query) : null;
@@ -40,7 +40,18 @@ export default function RekeningSearchForm() {
     e.preventDefault();
     setTouched(true);
     if (!query.trim() || !isValid) return;
+
+    // FIX: Cek cooldown — cegah spam pencarian
+    const now = Date.now();
+    if (now - lastSearchRef.current < SEARCH_COOLDOWN_MS) return;
+    lastSearchRef.current = now;
+
     setIsLoading(true);
+    setCooldown(true);
+
+    // FIX: Reset cooldown setelah SEARCH_COOLDOWN_MS
+    setTimeout(() => setCooldown(false), SEARCH_COOLDOWN_MS);
+
     router.push(`/check/${encodeSlug(query)}`);
   };
 
@@ -77,7 +88,7 @@ export default function RekeningSearchForm() {
 
           <button
             type="submit"
-            disabled={isLoading || !query.trim()}
+            disabled={isLoading || !query.trim() || cooldown}
             className="mt-2 sm:mt-0 px-6 sm:px-8 py-3.5 sm:py-3 bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-lg hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 shrink-0"
           >
             {isLoading ? (
@@ -88,7 +99,6 @@ export default function RekeningSearchForm() {
           </button>
         </div>
 
-        {/* Error notification */}
         {error && (
           <div className="mt-2.5 flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />

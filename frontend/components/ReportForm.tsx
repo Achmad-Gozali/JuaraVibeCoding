@@ -13,7 +13,13 @@ import {
 import * as motion from 'motion/react-client';
 import { uploadToStorage } from '@/lib/upload-storage';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+// FIX: Throw error kalau env tidak dikonfigurasi — cegah silent fail ke localhost di production
+const BACKEND_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_BACKEND_URL belum dikonfigurasi di environment variables.');
+  return url;
+})();
+
 const MAX_EVIDENCE_FILES = 10;
 
 // ── LIST DATA ─────────────────────────────────────────────────────────────────
@@ -589,7 +595,6 @@ export default function ReportForm() {
                 </div>
               </div>
 
-              {/* FIX: Foto profil penipu — <img> → <Image /> */}
               <div className="space-y-2">
                 <FieldLabel label="Foto Profil / Identitas Visual Penipu" optional />
                 {!suspectPhotoPreview ? (
@@ -601,13 +606,7 @@ export default function ReportForm() {
                 ) : (
                   <div className="relative inline-block">
                     <div className="relative w-24 h-24">
-                      <Image
-                        src={suspectPhotoPreview}
-                        alt="Foto penipu"
-                        fill
-                        className="object-cover rounded-2xl border border-zinc-200"
-                        unoptimized
-                      />
+                      <Image src={suspectPhotoPreview} alt="Foto penipu" fill className="object-cover rounded-2xl border border-zinc-200" unoptimized />
                     </div>
                     <button type="button" onClick={() => { setSuspectPhoto(null); setSuspectPhotoPreview(null); }}
                       className="absolute -top-2 -right-2 p-1 bg-zinc-900 text-white rounded-full hover:bg-red-600 transition-colors">
@@ -739,14 +738,7 @@ export default function ReportForm() {
                   {evidenceFiles.map((item, index) => (
                     <div key={index} className="rounded-2xl overflow-hidden border border-zinc-200 bg-white p-2">
                       <div className="relative h-40 w-full">
-                        {/* FIX: <img> → <Image /> */}
-                        <Image
-                          src={item.preview}
-                          alt={`Bukti ${index + 1}`}
-                          fill
-                          className="object-cover rounded-xl"
-                          unoptimized
-                        />
+                        <Image src={item.preview} alt={`Bukti ${index + 1}`} fill className="object-cover rounded-xl" unoptimized />
                         <button type="button" onClick={() => removeEvidenceFile(index)}
                           className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black transition-colors z-10">
                           <X className="w-3 h-3" />

@@ -42,12 +42,18 @@ export function encodeSlug(text: string): string {
 }
 
 export function decodeSlug(slug: string): string {
+  // Kalau sudah angka murni, langsung return
   if (/^\d+$/.test(slug)) return slug;
+
   let base64 = slug.replace(/-/g, '+').replace(/_/g, '/');
   while (base64.length % 4) base64 += '=';
   try {
-    return Buffer.from(base64, 'base64').toString('utf-8');
+    const decoded = Buffer.from(base64, 'base64').toString('utf-8');
+    // FIX: Validasi hasil decode — harus angka saja, kalau tidak return string kosong
+    if (!/^\d+$/.test(decoded)) return '';
+    return decoded;
   } catch {
-    return slug;
+    // FIX: Return string kosong bukan slug mentah, cegah inject string aneh ke query DB
+    return '';
   }
 }

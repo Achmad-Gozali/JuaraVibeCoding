@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ArrowLeft, ExternalLink, PlusCircle, AlertTriangle, Clock } from 'lucide-react';
-import { formatDateID, formatNum, decodeSlug } from '@/lib/utils';
+import { formatNum, decodeSlug } from '@/lib/utils';
 import ShareButtons from './ShareButtons';
 import NumberCard from './components/NumberCard';
 import ReportList from './components/ReportList';
@@ -38,6 +38,9 @@ async function createClient() {
 export async function generateMetadata({ params }: CheckPageProps): Promise<Metadata> {
   const { slug } = await params;
   const realNumber = decodeSlug(slug);
+  if (!realNumber) {
+    return { title: 'Halaman tidak ditemukan - kawaltransaksi' };
+  }
   return {
     title: `cek nomor ${realNumber} - kawaltransaksi`,
     description: `hasil pengecekan nomor ${realNumber} di database laporan komunitas kawaltransaksi.`,
@@ -86,11 +89,16 @@ const warningSteps = [
 
 export default async function CheckPage({ params }: CheckPageProps) {
   const { slug } = await params;
-  const realNumber = decodeSlug(slug);
-  const checkedAt = new Date();
 
+  // FIX: Validasi slug panjang maksimal
   if (!slug || slug.length > 50) notFound();
 
+  const realNumber = decodeSlug(slug);
+
+  // FIX: Validasi hasil decode — harus angka saja, cegah string aneh masuk ke query DB
+  if (!realNumber || !/^\d+$/.test(realNumber)) notFound();
+
+  const checkedAt = new Date();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('reports')
@@ -100,7 +108,6 @@ export default async function CheckPage({ params }: CheckPageProps) {
 
   if (error) console.error('error fetching reports:', error);
 
-  // ✅ FIX: semua laporan diambil, withdrawn tetap diitung
   const allReports = (data as any[]) ?? [];
   const reports = allReports.filter((r) => r.status !== 'withdrawn');
   const withdrawnReports = allReports.filter((r) => r.status === 'withdrawn');
@@ -112,11 +119,10 @@ export default async function CheckPage({ params }: CheckPageProps) {
   const totalLoss = reports.reduce((sum, r) => sum + (Number(r.loss_amount) || 0), 0);
   const hasOtherVictims = reports.some((r) => r.has_other_victims === 'yes');
 
-  // ✅ FIX: kalau semua laporan withdrawn, status jadi warning bukan safe
   let status: 'safe' | 'warning' | 'danger' = 'safe';
   if (verifiedCount > 0) status = 'danger';
   else if (pendingReports.length > 0) status = 'warning';
-  else if (hasWithdrawn) status = 'warning'; // ← ini yang baru
+  else if (hasWithdrawn) status = 'warning';
 
   const statusConfig = {
     danger: {
@@ -138,7 +144,6 @@ export default async function CheckPage({ params }: CheckPageProps) {
       nameBadgeBg: 'bg-amber-50',
       nameBadgeText: 'text-amber-800',
       nameBadgeBorder: 'border-amber-200',
-      // ✅ FIX: teks berbeda kalau pure withdrawn
       verdict: hasWithdrawn && pendingReports.length === 0 && verifiedCount === 0
         ? 'Ada riwayat laporan'
         : 'Dalam investigasi',
@@ -295,7 +300,7 @@ export default async function CheckPage({ params }: CheckPageProps) {
               </div>
             )}
 
-            {allReports.length > 0 && !( hasWithdrawn && reports.length === 0) && (
+            {allReports.length > 0 && !(hasWithdrawn && reports.length === 0) && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-2.5 font-medium px-0.5">
                   Status verifikasi
@@ -305,16 +310,10 @@ export default async function CheckPage({ params }: CheckPageProps) {
                     {verificationSteps.map((step, i) => (
                       <div key={i} className="relative flex flex-col items-center flex-1">
                         {i < verificationSteps.length - 1 && (
-                          <div className={`absolute top-1.5 left-1/2 w-full h-[2px] z-0 ${
-                            verificationSteps[i + 1].done ? 'bg-emerald-500' : 'bg-slate-200'
-                          }`} />
+                          <div className={`absolute top-1.5 left-1/2 w-full h-[2px] z-0 ${verificationSteps[i + 1].done ? 'bg-emerald-500' : 'bg-slate-200'}`} />
                         )}
-                        <div className={`relative z-10 w-3 h-3 rounded-full border-2 transition-colors mb-2 ${
-                          step.done ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'
-                        }`} />
-                        <p className={`text-[10px] text-center leading-snug px-1 ${
-                          step.done ? 'text-slate-700 font-medium' : 'text-slate-400'
-                        }`}>
+                        <div className={`relative z-10 w-3 h-3 rounded-full border-2 transition-colors mb-2 ${step.done ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'}`} />
+                        <p className={`text-[10px] text-center leading-snug px-1 ${step.done ? 'text-slate-700 font-medium' : 'text-slate-400'}`}>
                           {step.label}
                         </p>
                       </div>
@@ -376,9 +375,7 @@ export default async function CheckPage({ params }: CheckPageProps) {
                 {emergencyContacts.map((contact, i) => (
                   <div
                     key={contact.name}
-                    className={`py-3 hover:bg-slate-50 -mx-2 px-2 rounded-lg transition-colors ${
-                      i < emergencyContacts.length - 1 ? 'border-b border-slate-100' : ''
-                    }`}
+                    className={`py-3 hover:bg-slate-50 -mx-2 px-2 rounded-lg transition-colors ${i < emergencyContacts.length - 1 ? 'border-b border-slate-100' : ''}`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div>

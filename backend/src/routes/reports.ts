@@ -111,7 +111,12 @@ reports.post('/', authMiddleware, async (c) => {
       suspect_photo_url: body.suspect_photo_url || null,
     });
 
-    if (error) return c.json({ success: false, message: `Gagal menyimpan laporan: ${error.message}` }, 500);
+    // FIX: Jangan expose detail error database ke client
+    if (error) {
+      console.error('Insert report error:', error.message);
+      return c.json({ success: false, message: 'Gagal menyimpan laporan.' }, 500);
+    }
+
     return c.json({ success: true, slug: cleanNumber, status: autoStatus }, 201);
   } catch {
     return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
@@ -135,9 +140,7 @@ reports.post('/analyze/image', authMiddleware, async (c) => {
       binary += String.fromCharCode(bytes[i]);
     }
     const base64 = btoa(binary);
-    console.log('GROQ KEY exists:', !!c.env.GROQ_API_KEY, 'length:', c.env.GROQ_API_KEY?.length);
     const result = await analyzeEvidenceImage(base64, file.type, c.env.GROQ_API_KEY);
-    console.log('GROQ result:', JSON.stringify(result));
     return c.json({ success: true, data: result });
   } catch (err) {
     console.error('Analyze image error:', err);

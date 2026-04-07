@@ -1,17 +1,26 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth';
 import { getSupabaseAdmin } from '../lib/supabase';
-import type { Env } from '../types'; // ← ganti dari '../index'
-
-// ... sisa file sama persis
+import type { Env } from '../types';
 
 const admin = new Hono<{ Bindings: Env; Variables: { userId: string; userEmail: string } }>();
 
+// ── Whitelist nilai valid ─────────────────────────────────────────────────────
+const VALID_STATUSES = ['pending', 'verified', 'rejected', 'withdrawn'] as const;
+const VALID_ROLES = ['user', 'admin'] as const;
+
+// ── Middleware cek role admin ─────────────────────────────────────────────────
 async function requireAdmin(c: any, next: any) {
   const userId = c.get('userId');
   const supabase = getSupabaseAdmin(c.env);
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
-  if (profile?.role !== 'admin') return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  if (profile?.role !== 'admin') {
+    return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+  }
   await next();
 }
 
@@ -19,22 +28,23 @@ async function requireAdmin(c: any, next: any) {
 admin.get('/users', authMiddleware, requireAdmin, async (c) => {
   try {
     const supabase = getSupabaseAdmin(c.env);
+
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, full_name, role, is_banned, created_at, updated_at')
+      .select('id, full_name, email, role, is_banned, created_at, updated_at')
       .order('created_at', { ascending: false });
 
-    const { data: authUsers } = await supabase.auth.admin.listUsers();
+    // Hitung jumlah laporan per user
     const reportCounts: Record<string, number> = {};
     const { data: counts } = await supabase.from('reports').select('reporter_id');
     counts?.forEach((r: { reporter_id: string }) => {
       reportCounts[r.reporter_id] = (reportCounts[r.reporter_id] || 0) + 1;
     });
 
-    const users = profiles?.map((p: any) => {
-      const authUser = authUsers?.users?.find((u: any) => u.id === p.id);
-      return { ...p, email: authUser?.email ?? '', report_count: reportCounts[p.id] || 0 };
-    }) ?? [];
+    const users = profiles?.map((p: any) => ({
+      ...p,
+      report_count: reportCounts[p.id] || 0,
+    })) ?? [];
 
     return c.json({ success: true, data: users });
   } catch {
@@ -43,11 +53,16 @@ admin.get('/users', authMiddleware, requireAdmin, async (c) => {
 });
 
 // ── GET /api/admin/users/:userId/banned ───────────────────────────────────────
-admin.get('/users/:userId/banned', async (c) => {
+// FIX: Ditambah authMiddleware + requireAdmin — sebelumnya endpoint ini terbuka untuk siapapun
+admin.get('/users/:userId/banned', authMiddleware, requireAdmin, async (c) => {
   try {
     const userId = c.req.param('userId');
     const supabase = getSupabaseAdmin(c.env);
-    const { data: profile } = await supabase.from('profiles').select('is_banned').eq('id', userId).single();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_banned')
+      .eq('id', userId)
+      .single();
     return c.json({ success: true, is_banned: profile?.is_banned ?? false });
   } catch {
     return c.json({ success: false, is_banned: false });
@@ -59,6 +74,15 @@ admin.patch('/reports/:id/status', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
     const { status } = await c.req.json();
+
+    // FIX: Validasi status sebelum update ke DB
+    if (!status || !VALID_STATUSES.includes(status)) {
+      return c.json({
+        success: false,
+        message: `Status tidak valid. Nilai yang diizinkan: ${VALID_STATUSES.join(', ')}.`,
+      }, 400);
+    }
+
     const supabase = getSupabaseAdmin(c.env);
     const { error } = await supabase.from('reports').update({ status }).eq('id', id);
     if (error) throw error;
@@ -73,6 +97,21 @@ admin.patch('/users/:id/role', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
     const { role } = await c.req.json();
+
+    // FIX: Validasi role sebelum update ke DB
+    if (!role || !VALID_ROLES.includes(role)) {
+      return c.json({
+        success: false,
+        message: `Role tidak valid. Nilai yang diizinkan: ${VALID_ROLES.join(', ')}.`,
+      }, 400);
+    }
+
+    // FIX: Cegah admin hapus role diri sendiri
+    const requesterId = c.get('userId');
+    if (requesterId === id) {
+      return c.json({ success: false, message: 'Tidak dapat mengubah role diri sendiri.' }, 400);
+    }
+
     const supabase = getSupabaseAdmin(c.env);
     const { error } = await supabase.from('profiles').update({ role }).eq('id', id);
     if (error) throw error;
@@ -86,6 +125,13 @@ admin.patch('/users/:id/role', authMiddleware, requireAdmin, async (c) => {
 admin.patch('/users/:id/ban', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
+
+    // FIX: Cegah admin ban diri sendiri
+    const requesterId = c.get('userId');
+    if (requesterId === id) {
+      return c.json({ success: false, message: 'Tidak dapat memban diri sendiri.' }, 400);
+    }
+
     const supabase = getSupabaseAdmin(c.env);
     const { error } = await supabase.from('profiles').update({ is_banned: true }).eq('id', id);
     if (error) throw error;

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 import { encodeSlug } from '@/lib/utils';
 
+// FIX: Cooldown antar pencarian (ms) — cegah spam query ke DB
+const SEARCH_COOLDOWN_MS = 2000;
+
 function isValidPhoneNumber(num: string): boolean {
   const cleaned = num.replace(/\s/g, '');
-  // Harus diawali 08 atau +62, panjang 10-15 digit
   return /^(08|\+62)\d{8,13}$/.test(cleaned);
 }
 
@@ -17,12 +19,8 @@ function getPhoneError(num: string): string | null {
   if (!cleaned.startsWith('08') && !cleaned.startsWith('+62')) {
     return 'Nomor HP harus diawali 08 atau +62. Untuk cek rekening bank, gunakan halaman Cek Rekening.';
   }
-  if (cleaned.length < 10) {
-    return 'Nomor HP terlalu pendek. Minimal 10 digit.';
-  }
-  if (cleaned.length > 15) {
-    return 'Nomor HP terlalu panjang. Maksimal 15 digit.';
-  }
+  if (cleaned.length < 10) return 'Nomor HP terlalu pendek. Minimal 10 digit.';
+  if (cleaned.length > 15) return 'Nomor HP terlalu panjang. Maksimal 15 digit.';
   return null;
 }
 
@@ -30,6 +28,8 @@ export default function NomorSearchForm() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [cooldown, setCooldown] = useState(false); // FIX: rate limit state
+  const lastSearchRef = useRef<number>(0);          // FIX: timestamp pencarian terakhir
   const router = useRouter();
 
   const error = touched ? getPhoneError(query) : null;
@@ -39,7 +39,18 @@ export default function NomorSearchForm() {
     e.preventDefault();
     setTouched(true);
     if (!query.trim() || !isValid) return;
+
+    // FIX: Cek cooldown — cegah spam pencarian
+    const now = Date.now();
+    if (now - lastSearchRef.current < SEARCH_COOLDOWN_MS) return;
+    lastSearchRef.current = now;
+
     setIsLoading(true);
+    setCooldown(true);
+
+    // FIX: Reset cooldown setelah SEARCH_COOLDOWN_MS
+    setTimeout(() => setCooldown(false), SEARCH_COOLDOWN_MS);
+
     router.push(`/check/${encodeSlug(query)}`);
   };
 
@@ -75,7 +86,7 @@ export default function NomorSearchForm() {
 
           <button
             type="submit"
-            disabled={isLoading || !query.trim()}
+            disabled={isLoading || !query.trim() || cooldown}
             className="mt-2 sm:mt-0 px-6 sm:px-8 py-3.5 sm:py-3 bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-lg hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 shrink-0"
           >
             {isLoading ? (
@@ -86,7 +97,6 @@ export default function NomorSearchForm() {
           </button>
         </div>
 
-        {/* Error notification */}
         {error && (
           <div className="mt-2.5 flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
