@@ -15,7 +15,7 @@ app.use('*', cors({
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
       'https://kawaltransaksi.vercel.app',
-      c.env.FRONTEND_URL, // fallback dari env
+      c.env.FRONTEND_URL,
     ].filter(Boolean);
 
     if (allowedOrigins.includes(origin ?? '')) return origin;
@@ -25,6 +25,15 @@ app.use('*', cors({
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
+
+// FIX: Batasi ukuran request body — cegah payload besar yang bisa abuse server
+app.use('*', async (c, next) => {
+  const contentLength = c.req.header('content-length');
+  if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+    return c.json({ success: false, message: 'Request terlalu besar.' }, 413);
+  }
+  await next();
+});
 
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
