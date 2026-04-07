@@ -27,16 +27,31 @@ async function createClient() {
   );
 }
 
-// ── Fetch users dari backend (return email, created_at, is_banned, report_count) ──
+// ── Fetch users dari backend ──────────────────────────────────────────────────
 async function fetchUsersFromBackend(token: string) {
   try {
+    console.log('[Admin] token exists:', !!token, '| token length:', token.length);
+    console.log('[Admin] BACKEND_URL:', BACKEND_URL);
+
     const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
       headers: { 'Authorization': `Bearer ${token}` },
-      next: { revalidate: 30 },
+      cache: 'no-store',
     });
+
+    console.log('[Admin] response status:', res.status);
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('[Admin] response error body:', text);
+      return [];
+    }
+
     const data = await res.json();
+    console.log('[Admin] data.success:', data.success, '| users count:', data.data?.length ?? 0);
+
     return data.success ? data.data : [];
-  } catch {
+  } catch (err) {
+    console.error('[Admin] fetchUsers error:', err);
     return [];
   }
 }
@@ -44,9 +59,14 @@ async function fetchUsersFromBackend(token: string) {
 export default async function AdminPage() {
   const supabase = await createClient();
 
-  // Ambil token untuk fetch ke backend
+  // Gunakan getUser() untuk memastikan user valid di server-side
+  const { data: { user } } = await supabase.auth.getUser();
+  console.log('[Admin] user exists:', !!user, '| user id:', user?.id);
+
+  // Ambil session untuk token
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token ?? '';
+  console.log('[Admin] session exists:', !!session, '| token length:', token.length);
 
   const [
     { count: totalReports },
@@ -63,6 +83,9 @@ export default async function AdminPage() {
     supabase.rpc('get_reports_admin'),
     fetchUsersFromBackend(token),
   ]);
+
+  console.log('[Admin] reports count:', reports?.length ?? 0);
+  console.log('[Admin] users count:', users?.length ?? 0);
 
   const stats = {
     total: totalReports || 0,
