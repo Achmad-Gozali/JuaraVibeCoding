@@ -10,6 +10,7 @@ import {
   ArrowLeft, ArrowRight, Send,
 } from 'lucide-react';
 import * as motion from 'motion/react-client';
+import { uploadToStorage } from '@/lib/upload-storage';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 const MAX_EVIDENCE_FILES = 10;
@@ -265,8 +266,6 @@ export default function ReportForm() {
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
   const [suspectPhoto, setSuspectPhoto] = useState<File | null>(null);
   const [suspectPhotoPreview, setSuspectPhotoPreview] = useState<string | null>(null);
-
-  // ── Upload progress state untuk multi-foto ──────────────────────────────────
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
   const chronologyProgress = Math.min((formData.chronology.length / 150) * 100, 100);
@@ -292,7 +291,7 @@ export default function ReportForm() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── EVIDENCE FILES HANDLER ──────────────────────────────────────────────────
+  // ── EVIDENCE FILES ──────────────────────────────────────────────────────────
   const handleEvidenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -369,24 +368,13 @@ export default function ReportForm() {
     } else setSuspectPhotoPreview(null);
   };
 
-  // ── SOCIAL MEDIA FIELDS ─────────────────────────────────────────────────────
+  // ── SOCIAL MEDIA ─────────────────────────────────────────────────────────────
   const addSocialField = () => setFormData(f => ({ ...f, social_media_accounts: [...f.social_media_accounts, ''] }));
   const removeSocialField = (i: number) => setFormData(f => ({ ...f, social_media_accounts: f.social_media_accounts.filter((_, idx) => idx !== i) }));
   const updateSocialField = (i: number, val: string) => setFormData(f => { const arr = [...f.social_media_accounts]; arr[i] = val; return { ...f, social_media_accounts: arr }; });
   const toggleReportedTo = (val: string) => setFormData(f => ({ ...f, reported_to: f.reported_to.includes(val) ? f.reported_to.filter(v => v !== val) : [...f.reported_to, val] }));
 
-  // ── UPLOAD HELPER ───────────────────────────────────────────────────────────
-  const uploadFile = async (file: File, token: string): Promise<string | null> => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch(`${BACKEND_URL}/api/reports/upload`, {
-      method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd,
-    });
-    const data = await res.json();
-    return data.success ? data.url : null;
-  };
-
-  // ── SUBMIT — FIX: upload SEMUA foto, kirim evidence_urls array ──────────────
+  // ── SUBMIT — upload langsung ke Supabase Storage ──────────────────────────
   const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
@@ -395,22 +383,37 @@ export default function ReportForm() {
       const token = await getAuthToken();
       if (!token) { setError('Sesi habis. Silakan login ulang.'); setIsLoading(false); return; }
 
-      // ── Upload SEMUA foto bukti satu per satu ───────────────────────────────
+      // ── Upload foto bukti langsung ke Supabase Storage ──────────────────────
       const uploadedUrls: string[] = [];
       if (evidenceFiles.length > 0) {
         for (let i = 0; i < evidenceFiles.length; i++) {
           setUploadProgress(`Mengupload foto ${i + 1} dari ${evidenceFiles.length}...`);
-          const url = await uploadFile(evidenceFiles[i].file, token);
-          if (url) uploadedUrls.push(url);
+          try {
+            const url = await uploadToStorage(evidenceFiles[i].file);
+            uploadedUrls.push(url);
+          } catch (uploadErr) {
+            setError(uploadErr instanceof Error ? uploadErr.message : 'Gagal mengupload foto.');
+            setIsLoading(false);
+            return;
+          }
         }
         setUploadProgress('Mengirim laporan...');
       }
 
-      // ── Upload foto profil penipu ───────────────────────────────────────────
+      // ── Upload foto profil penipu langsung ke Supabase Storage ───────────────
       let suspectPhotoUrl: string | null = null;
-      if (suspectPhoto) suspectPhotoUrl = await uploadFile(suspectPhoto, token);
+      if (suspectPhoto) {
+        setUploadProgress('Mengupload foto profil penipu...');
+        try {
+          suspectPhotoUrl = await uploadToStorage(suspectPhoto);
+        } catch (uploadErr) {
+          setError(uploadErr instanceof Error ? uploadErr.message : 'Gagal mengupload foto profil.');
+          setIsLoading(false);
+          return;
+        }
+      }
 
-      // ── Ambil hasil scan AI dari foto yang sudah dianalisis ─────────────────
+      // ── Ambil hasil scan AI ─────────────────────────────────────────────────
       const scannedFile = evidenceFiles.find(f => f.analysis !== null);
       const aiPhotoResult: PhotoScanPayload | null = scannedFile?.analysis
         ? {
@@ -426,7 +429,8 @@ export default function ReportForm() {
         : formData.target_type === 'ewallet' ? formData.ewallet_name
         : null;
 
-      // ── Kirim ke backend — evidence_urls (array) + evidence_url (backward compat) ──
+      // ── Kirim data laporan ke backend (tanpa file) ─────────────────────────
+      setUploadProgress('Mengirim laporan...');
       const res = await fetch(`${BACKEND_URL}/api/reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -436,8 +440,8 @@ export default function ReportForm() {
           target_type: formData.target_type,
           category: formData.category,
           chronology: formData.chronology,
-          evidence_url: uploadedUrls[0] || null,       // backward compat — foto pertama
-          evidence_urls: uploadedUrls,                  // NEW — semua foto
+          evidence_url: uploadedUrls[0] || null,
+          evidence_urls: uploadedUrls,
           bank_name: providerName || null,
           loss_amount: formData.loss_amount ? parseInt(formData.loss_amount.replace(/\D/g, ''), 10) : null,
           incident_date: formData.incident_date || null,
@@ -474,8 +478,6 @@ export default function ReportForm() {
 
   return (
     <div className="space-y-6">
-
-      {/* ── PROGRESS STEPS ── */}
       <div className="flex items-center gap-0">
         {STEPS.map((step, i) => {
           const isDone = currentStep > step.number;
@@ -504,22 +506,17 @@ export default function ReportForm() {
         })}
       </div>
 
-      {/* ── LAYOUT: FORM + SIDEBAR ── */}
       <div className="flex gap-6 items-start">
-
-        {/* ── FORM — tidak pakai <form> untuk cegah auto submit ── */}
         <div className="flex-1 min-w-0 space-y-5">
-
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 text-red-600 text-sm font-medium">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {error}
             </div>
           )}
 
-          {/* ── STEP 1: DATA PENIPU ── */}
+          {/* ── STEP 1 ── */}
           {currentStep === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
-
               <div className="space-y-3">
                 <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest ml-1">Jenis Laporan</label>
                 <div className="bg-zinc-100 p-1 rounded-2xl flex gap-1">
@@ -691,7 +688,7 @@ export default function ReportForm() {
             </motion.div>
           )}
 
-          {/* ── STEP 2: KRONOLOGI ── */}
+          {/* ── STEP 2 ── */}
           {currentStep === 2 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
               <div className="space-y-3">
@@ -706,13 +703,10 @@ export default function ReportForm() {
                   onChange={(e) => setFormData({ ...formData, chronology: e.target.value })}
                   placeholder="Ceritakan bagaimana penipuan terjadi, termasuk nominal kerugian, tanggal kejadian, dan identitas pelaku..."
                   className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm focus:bg-white focus:border-zinc-900 transition-all outline-none resize-none" />
-
                 <div className="space-y-1.5">
                   <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${chronologyProgress >= 100 ? 'bg-emerald-500' : chronologyProgress > 50 ? 'bg-amber-400' : 'bg-zinc-300'}`}
-                      style={{ width: `${chronologyProgress}%` }}
-                    />
+                    <div className={`h-full rounded-full transition-all duration-300 ${chronologyProgress >= 100 ? 'bg-emerald-500' : chronologyProgress > 50 ? 'bg-amber-400' : 'bg-zinc-300'}`}
+                      style={{ width: `${chronologyProgress}%` }} />
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-zinc-400 font-medium">
@@ -723,19 +717,17 @@ export default function ReportForm() {
                     </span>
                   </div>
                 </div>
-
                 {textAnalysis && <TextAnalysisResult analysis={textAnalysis} />}
               </div>
             </motion.div>
           )}
 
-          {/* ── STEP 3: BUKTI FOTO ── */}
+          {/* ── STEP 3 ── */}
           {currentStep === 3 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
               <p className="text-[10px] text-zinc-400 font-medium">
                 Upload hingga {MAX_EVIDENCE_FILES} foto bukti · Screenshot percakapan, struk transfer, atau bukti pembayaran · JPG, PNG · maks 5MB per file
               </p>
-
               {evidenceFiles.length > 0 && (
                 <div className="space-y-3">
                   {evidenceFiles.map((item, index) => (
@@ -766,7 +758,6 @@ export default function ReportForm() {
                   ))}
                 </div>
               )}
-
               {evidenceFiles.length < MAX_EVIDENCE_FILES && (
                 <label className="group border-2 border-dashed border-zinc-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 hover:border-zinc-400 hover:bg-zinc-50/50 transition-all cursor-pointer">
                   <Upload className="w-6 h-6 text-zinc-300 group-hover:text-zinc-500 transition-colors" />
@@ -777,7 +768,6 @@ export default function ReportForm() {
                   <input type="file" onChange={handleEvidenceFileChange} className="hidden" accept="image/*" multiple />
                 </label>
               )}
-
               {evidenceFiles.length >= MAX_EVIDENCE_FILES && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl">
                   <Info className="w-4 h-4 text-zinc-400 shrink-0" />
@@ -808,13 +798,11 @@ export default function ReportForm() {
               </button>
             )}
           </div>
-
           {currentStep === 3 && (
             <p className="text-center text-[10px] text-zinc-400 font-medium uppercase tracking-widest">
               Laporan divalidasi tim moderator · Identitas pelapor terlindungi
             </p>
           )}
-
         </div>
 
         {/* ── TIPS SIDEBAR ── */}
@@ -836,7 +824,6 @@ export default function ReportForm() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

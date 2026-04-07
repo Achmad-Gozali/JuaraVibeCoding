@@ -6,6 +6,7 @@ import {
   Upload, X, Loader2, AlertCircle, CheckCircle2,
   ArrowLeft, ChevronDown, Plus, Trash2,
 } from 'lucide-react';
+import { uploadToStorage } from '@/lib/upload-storage';
 
 interface EditReportFormProps {
   report: {
@@ -191,18 +192,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
     reader.readAsDataURL(file);
   };
 
-  const uploadFile = async (file: File, token: string): Promise<string | null> => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch(`${BACKEND_URL}/api/reports/upload`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: fd,
-    });
-    const data = await res.json();
-    return data.success ? data.url : null;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.chronology.trim().length < 20) {
@@ -220,21 +209,33 @@ export default function EditReportForm({ report }: EditReportFormProps) {
       if (!session) { setError('Sesi habis. Silakan login ulang.'); return; }
       const token = session.access_token;
 
-      // Upload foto bukti baru
+      // Upload foto bukti baru langsung ke Supabase Storage
       const uploadedUrls: string[] = [];
       if (newFiles.length > 0) {
         for (let i = 0; i < newFiles.length; i++) {
           setUploadProgress(`Mengupload foto ${i + 1} dari ${newFiles.length}...`);
-          const url = await uploadFile(newFiles[i].file, token);
-          if (url) uploadedUrls.push(url);
+          try {
+            const url = await uploadToStorage(newFiles[i].file);
+            uploadedUrls.push(url);
+          } catch (uploadErr) {
+            setError(uploadErr instanceof Error ? uploadErr.message : 'Gagal mengupload foto.');
+            setIsLoading(false);
+            return;
+          }
         }
       }
 
-      // Upload foto profil penipu baru
+      // Upload foto profil penipu baru langsung ke Supabase Storage
       let finalSuspectPhotoUrl = suspectPhotoUrl;
       if (newSuspectPhoto) {
         setUploadProgress('Mengupload foto profil...');
-        finalSuspectPhotoUrl = await uploadFile(newSuspectPhoto, token);
+        try {
+          finalSuspectPhotoUrl = await uploadToStorage(newSuspectPhoto);
+        } catch (uploadErr) {
+          setError(uploadErr instanceof Error ? uploadErr.message : 'Gagal mengupload foto profil.');
+          setIsLoading(false);
+          return;
+        }
       }
 
       const allEvidenceUrls = [...keptExistingUrls, ...uploadedUrls];
