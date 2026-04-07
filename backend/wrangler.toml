@@ -5,3 +5,4 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 NODE_ENV = "production"
+TURNSTILE_SECRET_KEY = "0x4AAAAAAC17fXUhsrX8gqZGaPrc0uSFEfU"

@@ -4,5 +4,6 @@ export type Env = {
   SUPABASE_SERVICE_ROLE_KEY: string;
   GROQ_API_KEY: string;
   RECAPTCHA_SECRET_KEY: string;
+  TURNSTILE_SECRET_KEY: string;
   FRONTEND_URL: string;
 };

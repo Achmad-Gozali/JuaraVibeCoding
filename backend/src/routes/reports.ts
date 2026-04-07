@@ -13,7 +13,6 @@ const THRESHOLD = {
   PHOTO_RELEVANCE_MIN: 90,
 };
 
-// FIX: Whitelist target_type dan category
 const VALID_TARGET_TYPES = ['phone', 'bank_account', 'ewallet'] as const;
 const VALID_CATEGORIES = [
   'Jual Beli Online',
@@ -61,12 +60,31 @@ function determineAutoStatus(params: {
   return 'pending';
 }
 
+async function verifyTurnstile(token: string, secretKey: string): Promise<boolean> {
+  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: secretKey, response: token }),
+  });
+  const data = await res.json() as { success: boolean };
+  return data.success;
+}
+
 // ── POST /api/reports ─────────────────────────────────────────────────────────
 reports.post('/', authMiddleware, async (c) => {
   try {
     const userId = c.get('userId');
     const body = await c.req.json();
     const supabase = getSupabaseAdmin(c.env);
+
+    // Verifikasi Turnstile
+    if (!body.turnstile_token) {
+      return c.json({ success: false, message: 'Verifikasi CAPTCHA diperlukan.' }, 400);
+    }
+    const turnstileValid = await verifyTurnstile(body.turnstile_token, c.env.TURNSTILE_SECRET_KEY);
+    if (!turnstileValid) {
+      return c.json({ success: false, message: 'Verifikasi CAPTCHA gagal.' }, 400);
+    }
 
     // Rate limit: maks 10 laporan per hari
     const oneDayAgo = new Date(Date.now() - 86400000).toISOString();
@@ -78,7 +96,6 @@ reports.post('/', authMiddleware, async (c) => {
       return c.json({ success: false, message: 'Batas laporan harian tercapai.' }, 429);
     }
 
-    // FIX: Validasi target_type dan category dengan whitelist
     if (!body.target_type || !VALID_TARGET_TYPES.includes(body.target_type)) {
       return c.json({
         success: false,
@@ -109,8 +126,6 @@ reports.post('/', authMiddleware, async (c) => {
     try {
       const textResult = await analyzeChronologyText(sanitizedChronology, c.env.GROQ_API_KEY);
 
-      // FIX: Backend analisis foto sendiri dari URL storage
-      // Sebelumnya percaya body.ai_photo_result dari client — bisa dimanipulasi
       let photoResult: AnalysisResult | null = null;
       if (hasPhoto && evidenceUrls[0]) {
         try {
@@ -124,11 +139,9 @@ reports.post('/', authMiddleware, async (c) => {
               binary += String.fromCharCode(bytes[i]);
             }
             const base64 = btoa(binary);
-            // Analisis dilakukan backend, bukan percaya skor dari client
             photoResult = await analyzeEvidenceImage(base64, contentType, c.env.GROQ_API_KEY);
           }
         } catch {
-          // Gagal analisis foto → tetap pending, tidak throw
           photoResult = null;
         }
       }
@@ -220,7 +233,6 @@ reports.post('/withdraw', authMiddleware, async (c) => {
     const userId = c.get('userId');
     const { reportId } = await c.req.json();
 
-    // FIX: Validasi UUID reportId
     if (!reportId || !UUID_REGEX.test(reportId)) {
       return c.json({ success: false, message: 'ID laporan tidak valid.' }, 400);
     }
@@ -245,7 +257,6 @@ reports.put('/:reportId', authMiddleware, async (c) => {
     const userId = c.get('userId');
     const reportId = c.req.param('reportId');
 
-    // FIX: Validasi UUID reportId
     if (!UUID_REGEX.test(reportId)) {
       return c.json({ success: false, message: 'ID laporan tidak valid.' }, 400);
     }

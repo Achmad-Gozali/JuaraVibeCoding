@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase-browser';
+import { Turnstile } from '@marsidev/react-turnstile';
 import {
   Loader2, Upload, AlertCircle, CheckCircle2, Brain,
   Sparkles, X, Phone, Building2, Wallet, ChevronDown,
@@ -13,7 +14,6 @@ import {
 import * as motion from 'motion/react-client';
 import { uploadToStorage } from '@/lib/upload-storage';
 
-// FIX: Throw error kalau env tidak dikonfigurasi — cegah silent fail ke localhost di production
 const BACKEND_URL = (() => {
   const url = process.env.NEXT_PUBLIC_BACKEND_URL;
   if (!url) throw new Error('NEXT_PUBLIC_BACKEND_URL belum dikonfigurasi di environment variables.');
@@ -22,7 +22,6 @@ const BACKEND_URL = (() => {
 
 const MAX_EVIDENCE_FILES = 10;
 
-// ── LIST DATA ─────────────────────────────────────────────────────────────────
 const bankList = [
   { value: 'BCA', label: 'BCA (Bank Central Asia)' },
   { value: 'BRI', label: 'BRI (Bank Rakyat Indonesia)' },
@@ -112,7 +111,6 @@ const TIPS: Record<number, { title: string; items: string[] }> = {
   },
 };
 
-// ── TYPES ─────────────────────────────────────────────────────────────────────
 type TargetType = 'phone' | 'bank_account' | 'ewallet';
 
 interface AnalysisResult {
@@ -133,7 +131,6 @@ interface EvidenceFile {
 
 type PhotoScanPayload = Pick<AnalysisResult, 'authenticity_score' | 'relevance_score' | 'has_concrete_evidence' | 'is_likely_authentic'>;
 
-// ── SUB-COMPONENTS ────────────────────────────────────────────────────────────
 function FieldLabel({ label, optional }: { label: string; optional?: boolean }) {
   return (
     <label className="text-[11px] font-bold text-zinc-700 ml-1 flex items-center gap-1.5">
@@ -236,19 +233,18 @@ function TextAnalysisResult({ analysis }: { analysis: { risk_level: string; chro
   );
 }
 
-// ── AUTH HELPER ────────────────────────────────────────────────────────────────
 async function getAuthToken(): Promise<string | null> {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token ?? null;
 }
 
-// ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function ReportForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -277,7 +273,6 @@ export default function ReportForm() {
 
   const chronologyProgress = Math.min((formData.chronology.length / 150) * 100, 100);
 
-  // ── STEP NAVIGATION ─────────────────────────────────────────────────────────
   const handleNextStep = () => {
     setError(null);
     if (currentStep === 1 && !formData.target_number.trim()) {
@@ -298,7 +293,6 @@ export default function ReportForm() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── EVIDENCE FILES ──────────────────────────────────────────────────────────
   const handleEvidenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -318,7 +312,6 @@ export default function ReportForm() {
 
   const removeEvidenceFile = (index: number) => setEvidenceFiles(prev => prev.filter((_, i) => i !== index));
 
-  // ── AI IMAGE ANALYSIS ───────────────────────────────────────────────────────
   const handleAIImageAnalysis = async (index: number) => {
     const item = evidenceFiles[index];
     if (!item) return;
@@ -344,7 +337,6 @@ export default function ReportForm() {
     }
   };
 
-  // ── AI TEXT ANALYSIS ────────────────────────────────────────────────────────
   const handleAITextAnalysis = async () => {
     if (formData.chronology.trim().length < 20) return;
     setIsAnalyzingText(true);
@@ -363,7 +355,6 @@ export default function ReportForm() {
     finally { setIsAnalyzingText(false); }
   };
 
-  // ── SUSPECT PHOTO ───────────────────────────────────────────────────────────
   const handleSuspectPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] || null;
     if (selected && selected.size > 5 * 1024 * 1024) { setError('Ukuran foto profil melebihi batas 5MB.'); return; }
@@ -375,14 +366,16 @@ export default function ReportForm() {
     } else setSuspectPhotoPreview(null);
   };
 
-  // ── SOCIAL MEDIA ─────────────────────────────────────────────────────────────
   const addSocialField = () => setFormData(f => ({ ...f, social_media_accounts: [...f.social_media_accounts, ''] }));
   const removeSocialField = (i: number) => setFormData(f => ({ ...f, social_media_accounts: f.social_media_accounts.filter((_, idx) => idx !== i) }));
   const updateSocialField = (i: number, val: string) => setFormData(f => { const arr = [...f.social_media_accounts]; arr[i] = val; return { ...f, social_media_accounts: arr }; });
   const toggleReportedTo = (val: string) => setFormData(f => ({ ...f, reported_to: f.reported_to.includes(val) ? f.reported_to.filter(v => v !== val) : [...f.reported_to, val] }));
 
-  // ── SUBMIT ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
+    if (!turnstileToken) {
+      setError('Selesaikan verifikasi CAPTCHA terlebih dahulu.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     setUploadProgress(null);
@@ -455,6 +448,7 @@ export default function ReportForm() {
           has_other_victims: formData.has_other_victims || null,
           reported_to: formData.reported_to,
           suspect_photo_url: suspectPhotoUrl,
+          turnstile_token: turnstileToken,
         }),
       });
 
@@ -467,7 +461,6 @@ export default function ReportForm() {
     finally { setIsLoading(false); setUploadProgress(null); }
   };
 
-  // ── SUCCESS STATE ───────────────────────────────────────────────────────────
   if (isSuccess)
     return (
       <div className="text-center py-20">
@@ -641,9 +634,11 @@ export default function ReportForm() {
                   </div>
                   <div className="space-y-2">
                     <FieldLabel label="Tanggal" optional />
-                    <input type="date" max={new Date().toISOString().split('T')[0]} value={formData.incident_date}
-                      onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
-                      className="w-full px-3 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-zinc-900 outline-none transition-all" />
+                    <div className="relative">
+                      <input type="date" max={new Date().toISOString().split('T')[0]} value={formData.incident_date}
+                        onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
+                        className="w-full px-3 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-zinc-900 outline-none transition-all" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <FieldLabel label="Platform" optional />
@@ -779,6 +774,14 @@ export default function ReportForm() {
                   <p className="text-[11px] text-zinc-500 font-medium">Batas maksimal {MAX_EVIDENCE_FILES} foto bukti telah tercapai.</p>
                 </div>
               )}
+
+              {/* ── TURNSTILE ── */}
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+              />
             </motion.div>
           )}
 
