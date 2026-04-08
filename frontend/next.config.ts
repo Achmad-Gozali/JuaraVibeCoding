@@ -60,12 +60,15 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
+              // UPDATE: Menambahkan wildcard challenges agar script tidak diblokir
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://challenges.cloudflare.com https://*.challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://*.supabase.co https://picsum.photos",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com/recaptcha/ https://kawaltransaksi-api.achmadgozali.workers.dev http://localhost:8787",
-              "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/",
+              // UPDATE: Menambahkan *.cloudflare.com agar handshake verifikasi tidak 400 Bad Request
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com/recaptcha/ https://*.cloudflare.com https://challenges.cloudflare.com https://*.challenges.cloudflare.com https://kawaltransaksi-api.achmadgozali.workers.dev http://localhost:8787",
+              // UPDATE: Menambahkan wildcard frame agar widget box muncul konsisten
+              "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/ https://challenges.cloudflare.com https://*.challenges.cloudflare.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",

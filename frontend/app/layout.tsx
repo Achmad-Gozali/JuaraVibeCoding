@@ -20,7 +20,10 @@ const robotoMono = Roboto_Mono({
 export const metadata: Metadata = {
   title: 'KawalTransaksi - Platform Anti-Penipuan Komunitas',
   description: 'Cek dan laporkan nomor telepon atau rekening terindikasi penipuan. Gratis, cepat, didukung komunitas.',
-  metadataBase: new URL('https://kawaltransaksi-kf68.vercel.app'),
+  metadataBase: new URL('https://kawaltransaksi.vercel.app/'),
+  icons: {
+    icon: '/logo.png',
+  },
   openGraph: {
     title: 'KawalTransaksi - Platform Anti-Penipuan Komunitas',
     description: 'Cek dan laporkan nomor telepon atau rekening terindikasi penipuan.',

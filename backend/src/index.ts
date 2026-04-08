@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import authRoutes from './routes/auth';
 import reportsRoutes from './routes/reports';
 import adminRoutes from './routes/admin';
+import searchRoutes from './routes/search'; // FIX: import route baru
 import type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -23,21 +24,32 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// PROTEKSI RATE LIMITER GLOBAL
+// FIX: Rate limiter dengan guard — tidak silent fail kalau KV belum terpasang
 app.use('/api/*', async (c, next) => {
+  if (!c.env.LIMITER) {
+    // FIX: Log warning tapi tetap lanjut — jangan block request karena misconfiguration
+    console.warn('[RATE LIMIT] KV binding LIMITER tidak tersedia. Rate limiting dinonaktifkan.');
+    return next();
+  }
+
   const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
   const key = `rate_limit_${ip}`;
-  
-  if (c.env.LIMITER) {
+
+  try {
     const current = await c.env.LIMITER.get(key);
     const count = current ? parseInt(current) : 0;
 
-    if (count >= 20) { // Batas 20 request per menit per IP
+    if (count >= 20) {
       return c.json({ success: false, message: 'Terlalu banyak permintaan. Coba lagi nanti.' }, 429);
     }
+
     await c.env.LIMITER.put(key, (count + 1).toString(), { expirationTtl: 60 });
+  } catch (err) {
+    // FIX: Kalau KV error, log tapi jangan block request
+    console.error('[RATE LIMIT] Error mengakses KV:', err);
   }
-  await next();
+
+  return next();
 });
 
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -45,6 +57,7 @@ app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOStri
 app.route('/api/auth', authRoutes);
 app.route('/api/reports', reportsRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/search', searchRoutes); // FIX: daftarkan route baru
 
 app.notFound((c) => c.json({ success: false, message: 'Endpoint tidak ditemukan.' }, 404));
 app.onError((err, c) => {

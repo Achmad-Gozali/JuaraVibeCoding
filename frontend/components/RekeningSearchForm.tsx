@@ -2,11 +2,12 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import { Search, Loader2, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
 import { encodeSlug } from '@/lib/utils';
+import { Turnstile } from '@marsidev/react-turnstile';
 
-// FIX: Cooldown antar pencarian (ms) — cegah spam query ke DB
 const SEARCH_COOLDOWN_MS = 2000;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 function isValidRekening(num: string): boolean {
   const cleaned = num.replace(/\s/g, '');
@@ -29,30 +30,56 @@ export default function RekeningSearchForm() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [touched, setTouched] = useState(false);
-  const [cooldown, setCooldown] = useState(false); // FIX: rate limit state
-  const lastSearchRef = useRef<number>(0);          // FIX: timestamp pencarian terakhir
+  const [cooldown, setCooldown] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileStatus, setTurnstileStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('loading');
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const lastSearchRef = useRef<number>(0);
   const router = useRouter();
 
   const error = touched ? getRekeningError(query) : null;
   const isValid = isValidRekening(query);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
+    setCaptchaError(null);
+
+    if (!turnstileToken) {
+      setCaptchaError('Selesaikan verifikasi keamanan terlebih dahulu.');
+      return;
+    }
+
     if (!query.trim() || !isValid) return;
 
-    // FIX: Cek cooldown — cegah spam pencarian
     const now = Date.now();
     if (now - lastSearchRef.current < SEARCH_COOLDOWN_MS) return;
     lastSearchRef.current = now;
 
     setIsLoading(true);
     setCooldown(true);
-
-    // FIX: Reset cooldown setelah SEARCH_COOLDOWN_MS
     setTimeout(() => setCooldown(false), SEARCH_COOLDOWN_MS);
 
-    router.push(`/check/${encodeSlug(query)}`);
+    try {
+      // FIX: Verifikasi Turnstile di backend sebelum redirect
+      const verifyRes = await fetch(`${BACKEND_URL}/api/search/verify-turnstile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+      const verifyData = await verifyRes.json() as { success: boolean; message?: string };
+
+      if (!verifyData.success) {
+        setCaptchaError('Verifikasi keamanan gagal. Coba refresh halaman.');
+        setIsLoading(false);
+        return;
+      }
+
+      router.push(`/check/${encodeSlug(query)}`);
+    } catch {
+      setCaptchaError('Gagal menghubungi server. Periksa koneksi internet.');
+      setIsLoading(false);
+    }
   };
 
   const examples = ['1234567890', '1122334455'];
@@ -88,21 +115,65 @@ export default function RekeningSearchForm() {
 
           <button
             type="submit"
-            disabled={isLoading || !query.trim() || cooldown}
+            disabled={isLoading || !query.trim() || cooldown || turnstileStatus !== 'ready'}
             className="mt-2 sm:mt-0 px-6 sm:px-8 py-3.5 sm:py-3 bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-lg hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 shrink-0"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
+            ) : turnstileStatus === 'loading' ? (
+              // FIX: loading indicator saat Turnstile belum ready
+              <><Loader2 className="w-4 h-4 animate-spin" /> Memuat...</>
             ) : (
               <>CEK DATABASE <ArrowRight className="w-4 h-4" /></>
             )}
           </button>
         </div>
 
+        {/* FIX: Turnstile dengan onError handler + status tracking */}
+        <div className="mt-3 flex flex-col items-start gap-2">
+          <Turnstile
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+            onSuccess={(token) => {
+              setTurnstileToken(token);
+              setTurnstileStatus('ready');
+              setCaptchaError(null);
+            }}
+            onExpire={() => {
+              setTurnstileToken(null);
+              setTurnstileStatus('loading');
+            }}
+            onError={() => {
+              setTurnstileToken(null);
+              setTurnstileStatus('error');
+              setCaptchaError('Widget keamanan gagal dimuat. Coba refresh halaman.');
+            }}
+          />
+          {/* FIX: Indikator status Turnstile */}
+          {turnstileStatus === 'ready' && !captchaError && (
+            <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Verifikasi keamanan selesai
+            </p>
+          )}
+          {turnstileStatus === 'loading' && (
+            <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> Memuat verifikasi keamanan...
+            </p>
+          )}
+        </div>
+
+        {/* Error validasi rekening */}
         {error && (
           <div className="mt-2.5 flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <p className="text-xs font-semibold text-red-600 leading-relaxed">{error}</p>
+          </div>
+        )}
+
+        {/* FIX: Error CAPTCHA */}
+        {captchaError && (
+          <div className="mt-2.5 flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs font-semibold text-amber-600 leading-relaxed">{captchaError}</p>
           </div>
         )}
       </form>

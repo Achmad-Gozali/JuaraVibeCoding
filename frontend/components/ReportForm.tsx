@@ -778,10 +778,19 @@ export default function ReportForm() {
               {/* ── TURNSTILE ── */}
               <Turnstile
                 siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-                onSuccess={(token) => setTurnstileToken(token)}
-                onExpire={() => setTurnstileToken(null)}
-                onError={() => setTurnstileToken(null)}
-              />
+                onSuccess={(token) => {
+                setTurnstileToken(token);
+                setError(null);
+              }}
+              onExpire={() => {
+                setTurnstileToken(null);
+                setError('Verifikasi keamanan kedaluwarsa. Silakan ulangi.');
+              }}
+              onError={() => {
+                setTurnstileToken(null);
+                setError('Widget keamanan gagal dimuat. Coba refresh halaman.');
+              }}
+            />
             </motion.div>
           )}
 

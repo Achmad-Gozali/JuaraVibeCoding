@@ -10,14 +10,25 @@ const MAX_ATTEMPTS = 5;
 // ── POST /api/auth/verify-recaptcha ──────────────────────────────────────────
 auth.post('/verify-recaptcha', async (c) => {
   try {
-    const { token } = await c.req.json();
+    const { token, action } = await c.req.json();
     if (!token) return c.json({ success: false, message: 'Token tidak ditemukan.' }, 400);
+
+    // FIX: Validasi action — hanya izinkan action yang dikenal
+    const ALLOWED_ACTIONS = ['login', 'register'];
+    if (!action || !ALLOWED_ACTIONS.includes(action)) {
+      return c.json({ success: false, message: 'Action tidak valid.' }, 400);
+    }
 
     const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${c.env.RECAPTCHA_SECRET_KEY}&response=${token}`;
     const response = await fetch(verifyUrl, { method: 'POST' });
-    const data = await response.json() as { success: boolean; score: number };
+    const data = await response.json() as { success: boolean; score: number; action?: string };
 
     if (!data.success) return c.json({ success: false, message: 'Verifikasi reCAPTCHA gagal.' }, 400);
+
+    // FIX: Verifikasi action dari response Google harus cocok dengan yang dikirim frontend
+    if (data.action && data.action !== action) {
+      return c.json({ success: false, message: 'Token keamanan tidak valid untuk aksi ini.' }, 403);
+    }
 
     const threshold = 0.3;
     if (data.score < threshold) return c.json({ success: false, message: 'Terdeteksi aktivitas mencurigakan.' }, 403);
