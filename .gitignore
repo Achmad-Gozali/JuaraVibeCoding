@@ -1,7 +1,7 @@
 node_modules/
 .next/
-coverage/
-.DS_Store
+.wrangler/
+.vercel/
 *.log
 .env*
 !.env.example

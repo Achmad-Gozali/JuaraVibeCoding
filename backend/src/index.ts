@@ -12,12 +12,9 @@ app.use('*', cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
       'https://kawaltransaksi.vercel.app',
       c.env.FRONTEND_URL,
     ].filter(Boolean);
-
     if (allowedOrigins.includes(origin ?? '')) return origin;
     return null;
   },
@@ -26,11 +23,19 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// FIX: Batasi ukuran request body — cegah payload besar yang bisa abuse server
-app.use('*', async (c, next) => {
-  const contentLength = c.req.header('content-length');
-  if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
-    return c.json({ success: false, message: 'Request terlalu besar.' }, 413);
+// PROTEKSI RATE LIMITER GLOBAL
+app.use('/api/*', async (c, next) => {
+  const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
+  const key = `rate_limit_${ip}`;
+  
+  if (c.env.LIMITER) {
+    const current = await c.env.LIMITER.get(key);
+    const count = current ? parseInt(current) : 0;
+
+    if (count >= 20) { // Batas 20 request per menit per IP
+      return c.json({ success: false, message: 'Terlalu banyak permintaan. Coba lagi nanti.' }, 429);
+    }
+    await c.env.LIMITER.put(key, (count + 1).toString(), { expirationTtl: 60 });
   }
   await next();
 });
