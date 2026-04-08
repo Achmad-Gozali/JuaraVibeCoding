@@ -3,7 +3,7 @@
 // ✅ UPDATE: Tambah 'withdrawn' ke ReportStatus dan Enums
 // ============================================
 
-export type TargetType = 'phone' | 'bank_account';
+export type TargetType = 'phone' | 'bank_account' | 'ewallet';
 export type ReportStatus = 'pending' | 'verified' | 'rejected' | 'withdrawn'; // ✅ tambah withdrawn
 export type UserRole = 'user' | 'admin' | 'moderator';
 

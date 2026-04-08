@@ -25,6 +25,28 @@ const VALID_CATEGORIES = [
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// ── TAMBAHAN: Validasi URL evidence ──────────────────────────────────────────
+const ALLOWED_STORAGE_HOSTNAME = 'gqnajsdvwhaokxbdummj.supabase.co';
+const MAX_EVIDENCE_FILES = 10;
+
+function isValidEvidenceUrl(url: unknown): boolean {
+  if (typeof url !== 'string' || url.trim() === '') return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && parsed.hostname === ALLOWED_STORAGE_HOSTNAME;
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeEvidenceUrls(urls: unknown): string[] {
+  if (!Array.isArray(urls)) return [];
+  return urls
+    .filter(isValidEvidenceUrl)
+    .slice(0, MAX_EVIDENCE_FILES) as string[];
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function sanitizeText(input: string): string {
   return input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#x27;').replace(/\//g, '&#x2F;').trim();
@@ -118,9 +140,16 @@ reports.post('/', authMiddleware, async (c) => {
     const sanitizedSocialAccounts = body.social_media_accounts
       ? sanitizeArray(body.social_media_accounts as string[]) : [];
 
-    const evidenceUrls: string[] = body.evidence_urls?.length > 0
-      ? body.evidence_urls : body.evidence_url ? [body.evidence_url] : [];
+    // FIX: Validasi URL evidence — hanya terima URL dari storage Supabase lo sendiri
+    const evidenceUrls = sanitizeEvidenceUrls(
+      body.evidence_urls?.length > 0 ? body.evidence_urls : body.evidence_url ? [body.evidence_url] : []
+    );
     const hasPhoto = evidenceUrls.length > 0;
+
+    // FIX: Validasi suspect_photo_url juga
+    const suspectPhotoUrl = isValidEvidenceUrl(body.suspect_photo_url)
+      ? body.suspect_photo_url as string
+      : null;
 
     let autoStatus: 'pending' | 'verified' = 'pending';
     try {
@@ -173,7 +202,7 @@ reports.post('/', authMiddleware, async (c) => {
       social_media_accounts: sanitizedSocialAccounts,
       has_other_victims: body.has_other_victims || null,
       reported_to: body.reported_to ?? [],
-      suspect_photo_url: body.suspect_photo_url || null,
+      suspect_photo_url: suspectPhotoUrl, // FIX: pakai yang sudah divalidasi
     });
 
     if (error) {
@@ -269,6 +298,13 @@ reports.put('/:reportId', authMiddleware, async (c) => {
     if (report.status !== 'withdrawn') {
       return c.json({ success: false, message: 'Hanya laporan "Sedang Direvisi" yang dapat diedit.' }, 400);
     }
+
+    // FIX: Validasi URL evidence dan suspect photo saat edit juga
+    const editedEvidenceUrls = sanitizeEvidenceUrls(body.evidence_urls);
+    const editedSuspectPhotoUrl = isValidEvidenceUrl(body.suspect_photo_url)
+      ? body.suspect_photo_url as string
+      : null;
+
     const sanitizedData = {
       target_name: body.target_name ? sanitizeText(String(body.target_name)) : null,
       category: body.category,
@@ -282,9 +318,9 @@ reports.put('/:reportId', authMiddleware, async (c) => {
         ? sanitizeArray(body.social_media_accounts as string[]) : [],
       has_other_victims: body.has_other_victims || null,
       reported_to: body.reported_to ?? [],
-      evidence_urls: body.evidence_urls ?? [],
-      evidence_url: body.evidence_url || null,
-      suspect_photo_url: body.suspect_photo_url || null,
+      evidence_urls: editedEvidenceUrls, // FIX: pakai yang sudah divalidasi
+      evidence_url: editedEvidenceUrls[0] || null, // FIX: pakai yang sudah divalidasi
+      suspect_photo_url: editedSuspectPhotoUrl, // FIX: pakai yang sudah divalidasi
       status: 'pending',
     };
     const { error } = await supabase.from('reports').update(sanitizedData)
