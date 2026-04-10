@@ -5,15 +5,24 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
-import { LogOut, Menu, X, User, FileText, ChevronDown, Home, Phone, Building2, Flag, BookOpen } from 'lucide-react';
+import { LogOut, Menu, X, User, FileText, ChevronDown, Home, Phone, Building2, Flag, BookOpen, Database } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-const menuItems = [
+const publicMenuItems = [
   { href: '/',             label: 'Beranda',      icon: Home      },
   { href: '/cek-nomor',    label: 'Cek Nomor',    icon: Phone     },
   { href: '/cek-rekening', label: 'Cek Rekening', icon: Building2 },
   { href: '/report',       label: 'Laporkan',     icon: Flag      },
   { href: '/edukasi',      label: 'Edukasi',      icon: BookOpen  },
+];
+
+const privateMenuItems = [
+  { href: '/',             label: 'Beranda',        icon: Home      },
+  { href: '/cek-nomor',    label: 'Cek Nomor',      icon: Phone     },
+  { href: '/cek-rekening', label: 'Cek Rekening',   icon: Building2 },
+  { href: '/database',     label: 'Laporan Publik', icon: Database  },
+  { href: '/report',       label: 'Laporkan',       icon: Flag      },
+  { href: '/edukasi',      label: 'Edukasi',        icon: BookOpen  },
 ];
 
 export default function Navbar() {
@@ -77,6 +86,8 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) => pathname === path;
+
+  const menuItems = user ? privateMenuItems : publicMenuItems;
 
   const fullName =
     user?.user_metadata?.full_name ||
@@ -225,7 +236,6 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Nav items — tanpa tombol Daftar/Masuk di bawah */}
             <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
               {menuItems.map(({ href, label, icon: Icon }) => (
                 <Link

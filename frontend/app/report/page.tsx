@@ -154,45 +154,48 @@ export default async function ReportPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-8 shadow-sm">
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 text-center mb-1.5 sm:mb-2">Masuk Dulu Yuk!</h2>
-            <p className="text-slate-500 text-xs sm:text-sm text-center mb-6 sm:mb-8 leading-relaxed">
-              Kamu perlu login terlebih dahulu untuk mulai membuat laporan.
-            </p>
-            <div className="grid grid-cols-2 gap-3 mb-5 sm:mb-6">
-              <div className="border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col">
-                <div className="flex-1">
-                  <p className="font-bold text-sm text-slate-900 mb-1 text-center">Masuk</p>
-                  <p className="text-xs text-slate-400 mb-3 sm:mb-4 leading-relaxed text-center">Sudah punya akun? Masuk sekarang.</p>
+          {/* ✅ FIX: tambah pt-8 sm:pt-16 biar card turun sejajar seperti di Kredibel */}
+          <div className="pt-8 sm:pt-16">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-8 shadow-sm">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 text-center mb-1.5 sm:mb-2">Masuk Dulu Yuk!</h2>
+              <p className="text-slate-500 text-xs sm:text-sm text-center mb-6 sm:mb-8 leading-relaxed">
+                Kamu perlu login terlebih dahulu untuk mulai membuat laporan.
+              </p>
+              <div className="grid grid-cols-2 gap-3 mb-5 sm:mb-6">
+                <div className="border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col">
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-slate-900 mb-1 text-center">Masuk</p>
+                    <p className="text-xs text-slate-400 mb-3 sm:mb-4 leading-relaxed text-center">Sudah punya akun? Masuk sekarang.</p>
+                  </div>
+                  <Link href="/login?redirectTo=%2Freport" className="block w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors text-center uppercase tracking-wider mt-auto">
+                    Login
+                  </Link>
                 </div>
-                <Link href="/login?redirectTo=%2Freport" className="block w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors text-center uppercase tracking-wider mt-auto">
-                  Login
-                </Link>
-              </div>
-              <div className="border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col">
-                <div className="flex-1">
-                  <p className="font-bold text-sm text-slate-900 mb-1 text-center">Daftar</p>
-                  <p className="text-xs text-slate-400 mb-3 sm:mb-4 leading-relaxed text-center">Belum punya akun? Daftar gratis.</p>
+                <div className="border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col">
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-slate-900 mb-1 text-center">Daftar</p>
+                    <p className="text-xs text-slate-400 mb-3 sm:mb-4 leading-relaxed text-center">Belum punya akun? Daftar gratis.</p>
+                  </div>
+                  <Link href="/register" className="block w-full py-2.5 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors text-center uppercase tracking-wider mt-auto">
+                    Register
+                  </Link>
                 </div>
-                <Link href="/register" className="block w-full py-2.5 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors text-center uppercase tracking-wider mt-auto">
-                  Register
-                </Link>
               </div>
+              <div className="flex items-center gap-3 mb-4 sm:mb-5">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">atau</span>
+                <div className="flex-1 h-px bg-slate-200" />
+              </div>
+              <Link href="/login?redirectTo=%2Freport" className="flex items-center justify-center gap-3 w-full py-2.5 sm:py-3 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.6-8 19.6-20 0-1.3-.1-2.7-.4-4z"/>
+                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+                  <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5L31.8 33c-2 1.4-4.6 2.3-7.8 2.3-5.2 0-9.6-3.5-11.2-8.2l-6.6 5.1C9.5 39.5 16.2 44 24 44z"/>
+                  <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.5-2.6 4.6-4.9 6l5.7 5c3.4-3.1 5.9-7.7 5.9-13.4 0-1.3-.1-2.7-.4-4z"/>
+                </svg>
+                Lanjutkan dengan Google
+              </Link>
             </div>
-            <div className="flex items-center gap-3 mb-4 sm:mb-5">
-              <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">atau</span>
-              <div className="flex-1 h-px bg-slate-200" />
-            </div>
-            <Link href="/login?redirectTo=%2Freport" className="flex items-center justify-center gap-3 w-full py-2.5 sm:py-3 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-              <svg width="16" height="16" viewBox="0 0 48 48">
-                <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.6-8 19.6-20 0-1.3-.1-2.7-.4-4z"/>
-                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
-                <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5L31.8 33c-2 1.4-4.6 2.3-7.8 2.3-5.2 0-9.6-3.5-11.2-8.2l-6.6 5.1C9.5 39.5 16.2 44 24 44z"/>
-                <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.5-2.6 4.6-4.9 6l5.7 5c3.4-3.1 5.9-7.7 5.9-13.4 0-1.3-.1-2.7-.4-4z"/>
-              </svg>
-              Lanjutkan dengan Google
-            </Link>
           </div>
         </div>
       </div>

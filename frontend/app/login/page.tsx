@@ -6,11 +6,12 @@ import { ArrowLeft, ArrowRight, ShieldX } from 'lucide-react';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }) {
   const params = await searchParams;
   const isBanned = params.error === 'banned';
   const isOauthFailed = params.error === 'oauth_failed';
+  const isFromDatabase = params.redirectTo === '/database';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900 px-4">
@@ -50,8 +51,11 @@ export default async function LoginPage({
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2">
             Masuk Portal.
           </h1>
+          {/* ✅ Subtitle dinamis sesuai konteks */}
           <p className="text-sm text-slate-500 font-medium max-w-xs">
-            Gunakan kredensial terdaftar untuk mengakses database.
+            {isFromDatabase
+              ? 'Masuk untuk mengakses seluruh laporan penipuan terverifikasi.'
+              : 'Selamat datang. Masuk untuk melanjutkan.'}
           </p>
         </div>
 

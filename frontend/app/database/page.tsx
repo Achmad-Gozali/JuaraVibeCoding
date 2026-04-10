@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { formatDateID, encodeSlug } from '@/lib/utils';
 import { Phone, Building2, Wallet, ArrowRight, Search } from 'lucide-react';
 import Image from 'next/image';
@@ -87,18 +88,24 @@ export default async function DatabasePage({
   searchParams: Promise<{ type?: string; page?: string }>;
 }) {
   const supabase = await createClient();
-  const params = await searchParams;
 
+  // ── Auth check — redirect ke login kalau belum login ──
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    redirect('/login');
+  }
+
+  const params = await searchParams;
   const type = params.type ?? 'all';
   const page = parseInt(params.page ?? '1');
   const perPage = 12;
 
-  // ── Fetch semua laporan untuk stats chart (pass raw ke client) ──
+  // ── Fetch semua laporan untuk stats chart ──
   const { data: allReportsForStats } = await supabase
     .from('reports')
     .select('target_type, bank_name, category, status, created_at')
     .in('status', ['verified', 'pending', 'withdrawn'])
-    .order('created_at', { ascending: true }); // ascending agar tren urut dari lama ke baru
+    .order('created_at', { ascending: true });
 
   // ── Fetch laporan untuk card list (dengan filter tipe) ──
   let query = supabase
@@ -197,7 +204,6 @@ export default async function DatabasePage({
               {totalReports} total laporan
             </span>
           </div>
-          {/* Pass raw reports — filtering terjadi di client */}
           <StatsChart rawReports={allReportsForStats ?? []} />
         </div>
       </section>
@@ -213,7 +219,10 @@ export default async function DatabasePage({
               { val: 'bank_account', label: 'Rekening', icon: Building2 },
               { val: 'ewallet', label: 'E-Wallet', icon: Wallet },
             ].map((t) => (
-              <Link key={t.val} href={buildUrl({ type: t.val })}
+              <Link
+                key={t.val}
+                href={buildUrl({ type: t.val })}
+                scroll={false}
                 className={`shrink-0 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl border transition-colors flex items-center gap-1.5 ${
                   type === t.val
                     ? 'bg-slate-900 text-white border-slate-900'
@@ -302,7 +311,9 @@ export default async function DatabasePage({
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-8 sm:mt-10">
               {page > 1 && (
-                <Link href={buildUrl({ page: String(page - 1) })}
+                <Link
+                  href={buildUrl({ page: String(page - 1) })}
+                  scroll={false}
                   className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest border border-slate-200 rounded-xl hover:border-slate-400 transition-colors active:scale-95">
                   ← Prev
                 </Link>
@@ -311,7 +322,9 @@ export default async function DatabasePage({
                 {page} / {totalPages}
               </span>
               {page < totalPages && (
-                <Link href={buildUrl({ page: String(page + 1) })}
+                <Link
+                  href={buildUrl({ page: String(page + 1) })}
+                  scroll={false}
                   className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest border border-slate-200 rounded-xl hover:border-slate-400 transition-colors active:scale-95">
                   Next →
                 </Link>

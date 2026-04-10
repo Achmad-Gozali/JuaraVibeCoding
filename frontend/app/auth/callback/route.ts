@@ -6,7 +6,8 @@ import type { NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  // Support both 'next' dan 'redirectTo' parameter
+  const next = searchParams.get('next') ?? searchParams.get('redirectTo') ?? '/';
 
   if (code) {
     const cookieStore = await cookies();
@@ -31,7 +32,6 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // ── Cek apakah user di-ban ──────────────────────────────────────────────
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
@@ -41,13 +41,11 @@ export async function GET(request: NextRequest) {
           .eq('id', user.id)
           .single();
 
-        // User banned → logout + redirect ke login
         if (profile?.is_banned === true) {
           await supabase.auth.signOut();
           return NextResponse.redirect(`${origin}/login?error=banned`);
         }
 
-        // Admin → redirect ke admin panel
         if (profile?.role === 'admin') {
           return NextResponse.redirect(`${origin}/admin`);
         }

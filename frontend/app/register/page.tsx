@@ -42,8 +42,9 @@ export default function RegisterPage() {
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2">
             Gabung Komunitas.
           </h1>
+          {/* ✅ Subtitle diubah */}
           <p className="text-sm text-slate-500 font-medium max-w-xs">
-            Bantu kami membangun database keamanan transaksi terbaik.
+            Buat akunmu secara gratis dan mulai sekarang.
           </p>
         </div>
 

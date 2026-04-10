@@ -3,6 +3,8 @@ import Image from 'next/image';
 import { Phone, Landmark, Wallet, ArrowRight } from 'lucide-react';
 import * as motion from 'motion/react-client';
 import { formatDateID, encodeSlug } from '@/lib/utils';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export const revalidate = 60;
 
@@ -143,6 +145,27 @@ async function getStats(): Promise<Stats> {
   }
 }
 
+// ── GET USER (server-side) ────────────────────────────────────────────────────
+async function getUser() {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll() {},
+        },
+      }
+    );
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  } catch {
+    return null;
+  }
+}
+
 // ── CARA KERJA STEPS ─────────────────────────────────────────────────────────
 function HowItWorksSteps() {
   return (
@@ -160,7 +183,14 @@ function HowItWorksSteps() {
 
 // ── PAGE ──────────────────────────────────────────────────────────────────────
 export default async function HomePage() {
-  const [recentReports, stats] = await Promise.all([getRecentReports(), getStats()]);
+  const [recentReports, stats, user] = await Promise.all([
+    getRecentReports(),
+    getStats(),
+    getUser(),
+  ]);
+
+  // Kalau sudah login → langsung ke /database, belum login → ke /login?redirectTo=/database
+  const lihatSemuaHref = user ? '/database' : '/login?redirectTo=/database';
 
   return (
     <main className="bg-white text-slate-900 font-sans overflow-x-hidden">
@@ -208,7 +238,6 @@ export default async function HomePage() {
       </section>
 
       {/* ── WAVE + FLOATING STATS CARD ── */}
-      {/* Desktop: floating card overlap wave */}
       <div className="relative bg-white hidden sm:block">
         <svg viewBox="0 0 1440 100" preserveAspectRatio="none" className="w-full block" xmlns="http://www.w3.org/2000/svg">
           <path d="M0,0 C240,80 480,30 720,60 C960,90 1200,40 1440,65 L1440,100 L0,100 Z" fill="#f8fafc" />
@@ -240,7 +269,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Mobile: stats card inline (tidak floating) */}
+      {/* Mobile: stats card inline */}
       <div className="sm:hidden bg-white px-4 pb-6">
         <svg viewBox="0 0 1440 50" preserveAspectRatio="none" className="w-full block" xmlns="http://www.w3.org/2000/svg">
           <path d="M0,0 C240,40 480,10 720,30 C960,50 1200,20 1440,35 L1440,50 L0,50 Z" fill="#f8fafc" />
@@ -267,7 +296,7 @@ export default async function HomePage() {
         </motion.div>
       </div>
 
-      {/* ── 2. APA ITU KAWALTRANSAKSI — slate-50 ── */}
+      {/* ── 2. APA ITU KAWALTRANSAKSI ── */}
       <section className="bg-slate-50 pt-10 sm:pt-24 pb-12 sm:pb-16">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center">
           <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-3">Tentang Platform</p>
@@ -280,12 +309,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Wave: slate-50 → putih */}
       <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full block bg-slate-50 -mb-1" xmlns="http://www.w3.org/2000/svg">
         <path d="M0,80 C360,20 720,65 1080,25 C1260,5 1380,45 1440,30 L1440,80 Z" fill="#ffffff" />
       </svg>
 
-      {/* ── 3. CARA KERJA — putih ── */}
+      {/* ── 3. CARA KERJA ── */}
       <section className="bg-white py-12 sm:py-16">
         <div className="max-w-6xl mx-auto px-5 sm:px-6">
           <div className="text-center mb-10 sm:mb-12">
@@ -307,18 +335,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Wave: putih → slate-50 */}
       <svg viewBox="0 0 1440 70" preserveAspectRatio="none" className="w-full block bg-white -mb-1" xmlns="http://www.w3.org/2000/svg">
         <path d="M0,0 C240,60 480,20 720,45 C960,70 1200,30 1440,50 L1440,70 L0,70 Z" fill="#f8fafc" />
       </svg>
 
-      {/* ── 4. LAPORAN MASUK TERKINI — slate-50 ── */}
+      {/* ── 4. LAPORAN MASUK TERKINI ── */}
       <section className="bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
           <div className="flex items-end justify-between mb-6 sm:mb-8">
             <h2 className="text-lg sm:text-2xl font-black tracking-tighter uppercase">laporan masuk terkini</h2>
+            {/* ✅ FIX: Sudah login → /database, belum login → /login?redirectTo=/database */}
             <Link
-              href="/database"
+              href={lihatSemuaHref}
               className="text-[11px] font-bold text-slate-500 uppercase tracking-widest hover:text-emerald-600 transition-colors whitespace-nowrap"
             >
               lihat semua →
@@ -388,12 +416,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Wave: slate-50 → putih */}
       <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full block bg-slate-50 -mb-1" xmlns="http://www.w3.org/2000/svg">
         <path d="M0,80 C360,20 720,65 1080,25 C1260,5 1380,45 1440,30 L1440,80 Z" fill="#ffffff" />
       </svg>
 
-      {/* ── 5. CTA — putih ── */}
+      {/* ── 5. CTA ── */}
       <section className="bg-white">
         <div className="max-w-5xl mx-auto px-5 sm:px-6 py-16 sm:py-24 text-center">
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase text-slate-900 mb-4">
