@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://kawaltransaksi.com/';
+const BASE_URL = 'https://kawaltransaksi.com';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -14,12 +14,14 @@ export default function robots(): MetadataRoute.Robots {
           '/cek-ewallet',
           '/check/',
           '/edukasi',
+          '/artikel',
+          '/artikel/',
         ],
         disallow: [
           '/admin',
-          '/database',    // login-only, tidak perlu diindex
+          '/database',
           '/profil',
-          '/report',      // form, tidak perlu diindex
+          '/report',
           '/login',
           '/register',
           '/api/',
