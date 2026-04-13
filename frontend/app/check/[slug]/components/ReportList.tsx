@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { ShieldCheck, ExternalLink, Clock, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Clock, CheckCircle2, AlertCircle, ShieldAlert, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 function cleanChronology(text: string): string {
   return text.replace(/^["'""]+|["'""]+$/g, '').trim();
@@ -48,33 +48,138 @@ function getAllEvidenceUrls(reports: ReportItem[]): string[] {
   return Array.from(urlSet);
 }
 
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialIndex: number; onClose: () => void }) {
+  const [current, setCurrent] = useState(initialIndex);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') setCurrent(prev => (prev > 0 ? prev - 1 : urls.length - 1));
+      if (e.key === 'ArrowRight') setCurrent(prev => (prev < urls.length - 1 ? prev + 1 : 0));
+    };
+    document.addEventListener('keydown', handleKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose, urls.length]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
+      >
+        <X className="w-5 h-5 text-white" />
+      </button>
+
+      {/* Counter */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-sm font-medium bg-black/40 px-3 py-1 rounded-full">
+        {current + 1} / {urls.length}
+      </div>
+
+      {/* Prev button */}
+      {urls.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setCurrent(prev => (prev > 0 ? prev - 1 : urls.length - 1)); }}
+          className="absolute left-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
+        >
+          <ChevronLeft className="w-5 h-5 text-white" />
+        </button>
+      )}
+
+      {/* Image */}
+      <div
+        className="relative max-w-3xl max-h-[80vh] w-full h-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={urls[current]}
+          alt={`Bukti ${current + 1}`}
+          className="w-full h-full object-contain rounded-lg"
+        />
+      </div>
+
+      {/* Next button */}
+      {urls.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setCurrent(prev => (prev < urls.length - 1 ? prev + 1 : 0)); }}
+          className="absolute right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors z-10"
+        >
+          <ChevronRight className="w-5 h-5 text-white" />
+        </button>
+      )}
+
+      {/* Thumbnail strip */}
+      {urls.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 px-4">
+          {urls.map((url, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
+              className={`relative w-10 h-10 rounded-md overflow-hidden border-2 transition-all ${
+                i === current ? 'border-white scale-110' : 'border-white/30 opacity-60'
+              }`}
+            >
+              <img src={url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Evidence Gallery ──────────────────────────────────────────────────────────
 function EvidenceGallery({ urls }: { urls: string[] }) {
   const [showAll, setShowAll] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const PREVIEW_COUNT = 4;
   const displayUrls = showAll ? urls : urls.slice(0, PREVIEW_COUNT);
   const remaining = urls.length - PREVIEW_COUNT;
 
   return (
     <div>
+      {lightboxIndex !== null && (
+        <Lightbox
+          urls={urls}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {displayUrls.map((url, i) => (
-          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-            className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50 hover:border-slate-400 transition-all">
-            <Image src={url} alt={`Bukti ${i + 1}`} fill
+          <button
+            key={i}
+            onClick={() => setLightboxIndex(i)}
+            className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50 hover:border-slate-400 transition-all cursor-pointer"
+          >
+            <Image
+              src={url}
+              alt={`Bukti ${i + 1}`}
+              fill
               className="object-cover group-hover:scale-105 transition-transform duration-200"
-              loading="lazy" unoptimized />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-              <ExternalLink className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              loading="lazy"
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+            <div className="absolute top-1.5 left-1.5 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+              {i + 1}
             </div>
-            <div className="absolute top-1.5 left-1.5 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">{i + 1}</div>
-          </a>
+          </button>
         ))}
       </div>
 
       <div className="flex items-center justify-between mt-2.5">
         <p className="text-[10px] text-slate-400">
-          Klik foto untuk lihat ukuran penuh · {urls.length} foto bukti
+          Ketuk foto untuk lihat · {urls.length} foto bukti
         </p>
         {!showAll && remaining > 0 && (
           <button
@@ -103,7 +208,7 @@ export default function ReportList({ reports, hasWithdrawn = false, hasLinkedRep
   return (
     <div className="space-y-5">
       <div>
-        <div className="mb-2.5 px-0.5 flex items-center justify-between">
+        <div className="mb-2.5 px-0.5 flex items-center justify-between flex-wrap gap-1">
           <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-medium">Riwayat laporan</p>
           {reports.length > 0 && (
             <p className="text-[10px] text-slate-400">{reports.length} laporan dari {reports.length} korban berbeda</p>
@@ -119,7 +224,7 @@ export default function ReportList({ reports, hasWithdrawn = false, hasLinkedRep
                   className={`bg-white rounded-lg border overflow-hidden ${
                     isVerified ? 'border-emerald-200' : 'border-slate-200'
                   }`}>
-                  <div className={`flex items-center justify-between px-4 py-2.5 border-b ${
+                  <div className={`flex items-center justify-between px-3 sm:px-4 py-2.5 border-b flex-wrap gap-1 ${
                     isVerified ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'
                   }`}>
                     <div className="flex items-center gap-2">
@@ -132,11 +237,11 @@ export default function ReportList({ reports, hasWithdrawn = false, hasLinkedRep
                         Laporan #{index + 1} · {isVerified ? 'Terverifikasi' : 'Menunggu Verifikasi'}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-2">
+                    <span className="text-[10px] text-slate-400 font-medium shrink-0">
                       {formatDate(report.incident_date || report.created_at)}
                     </span>
                   </div>
-                  <div className="px-4 py-4">
+                  <div className="px-3 sm:px-4 py-4">
                     <p className="text-sm text-slate-600 leading-relaxed break-words"
                       style={{ fontFamily: 'var(--font-serif, Georgia, serif)' }}>
                       &quot;{cleanChronology(report.chronology)}&quot;
@@ -198,7 +303,7 @@ export default function ReportList({ reports, hasWithdrawn = false, hasLinkedRep
           <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-2.5 font-medium px-0.5">
             Bukti lampiran
           </p>
-          <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <div className="bg-white rounded-lg border border-slate-200 p-3 sm:p-4">
             <EvidenceGallery urls={allEvidenceUrls} />
           </div>
         </div>
