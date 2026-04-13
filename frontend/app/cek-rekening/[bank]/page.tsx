@@ -1,92 +1,105 @@
 import { notFound } from 'next/navigation';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase-server';
 import type { Metadata } from 'next';
 import { maskNumber, formatDateID } from '@/lib/utils';
 import BankPageClient from './BankPageClient';
 
+// ✅ FIX: tambah kodeBank ke setiap entry — diperlukan oleh BankPageClient
 const bankData: Record<string, {
   name: string; fullName: string; logo: string; kodeBank: string;
-  callCenter: string; website: string; websiteLabel: string; description: string;
+  callCenter: string; website: string; websiteLabel: string;
+  helpUrl: string; dbName: string; description: string;
   transferTips: string[]; securityTips: string[];
   faqs: { question: string; answer: string }[];
 }> = {
   bca: {
-    name: 'BCA', fullName: 'Bank Central Asia', logo: '/banks/bca.png', kodeBank: '014',
-    callCenter: '1500888', website: 'https://www.bca.co.id', websiteLabel: 'www.bca.co.id',
-    description: 'PT Bank Central Asia Tbk (BCA) adalah bank swasta terbesar di Indonesia. Didirikan pada 21 Februari 1957, BCA kini melayani jutaan nasabah dengan berbagai layanan perbankan digital dan konvensional.',
-    transferTips: ['Gunakan kode bank BCA 014 saat transfer dari bank lain.', 'Pastikan nomor rekening terdiri dari 10 digit angka.', 'Verifikasi nama penerima yang muncul sebelum konfirmasi.', 'Simpan bukti transfer sebagai referensi transaksi.'],
-    securityTips: ['Jangan pernah berikan kode OTP myBCA ke siapapun termasuk CS BCA.', 'Aktifkan notifikasi transaksi di aplikasi myBCA.', 'Waspada modus social engineering mengatasnamakan BCA.', 'Gunakan hanya aplikasi myBCA resmi untuk transaksi digital.'],
+    name: 'BCA', fullName: 'Bank Central Asia', logo: '/banks/bca.png',
+    kodeBank: '014', callCenter: '1500888',
+    website: 'https://www.bca.co.id', websiteLabel: 'bca.co.id',
+    helpUrl: 'https://www.bca.co.id/id/Tentang-BCA/Hubungi-BCA', dbName: 'BCA',
+    description: 'Bank Central Asia (BCA) adalah bank swasta terbesar di Indonesia yang melayani jutaan nasabah dengan berbagai produk perbankan.',
+    transferTips: ['Login ke myBCA / KlikBCA / BCA mobile.', 'Pilih menu Transfer dan masukkan nomor rekening tujuan.', 'Verifikasi nama penerima yang muncul sebelum konfirmasi.', 'Masukkan jumlah transfer dan konfirmasi dengan KeyBCA / OTP.'],
+    securityTips: ['Jangan pernah bagikan KeyBCA atau kode OTP ke siapapun.', 'Pastikan URL myBCA adalah klikbca.com (bukan situs palsu).', 'Aktifkan notifikasi transaksi di BCA mobile.', 'Hubungi Halo BCA 1500888 jika ada transaksi mencurigakan.'],
     faqs: [
-      { question: 'Cara cek rekening BCA dari penipuan?', answer: 'Masukkan nomor rekening BCA yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
-      { question: 'Cara melaporkan rekening BCA penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening, nama bank (BCA), kronologi penipuan, dan unggah bukti transfer.' },
-      { question: 'Cara menghubungi BCA untuk lapor penipuan?', answer: 'Hubungi Halo BCA di 1500888 (24 jam) atau datang langsung ke kantor cabang BCA terdekat.' },
-      { question: 'Berapa kode bank BCA untuk transfer?', answer: 'Kode bank BCA adalah 014.' },
+      { question: 'Cara cek rekening BCA penipuan?', answer: 'Masukkan nomor rekening BCA ke kolom pencarian di atas, lalu klik "Cek Database".' },
+      { question: 'Cara laporkan rekening BCA penipu?', answer: 'Klik "Lapor Rekening", isi nomor rekening dan kronologi, lalu upload bukti transfer.' },
+      { question: 'Cara blokir rekening BCA penipu?', answer: 'Hubungi Halo BCA 1500888 dan laporkan dengan bukti transaksi lengkap.' },
+      { question: 'Bagaimana cara membekukan rekening BCA penipuan?', answer: 'Datang langsung ke cabang BCA terdekat dengan membawa bukti penipuan, atau hubungi Halo BCA 1500888.' },
     ],
   },
   bri: {
-    name: 'BRI', fullName: 'Bank Rakyat Indonesia', logo: '/banks/bri.png', kodeBank: '002',
-    callCenter: '14017', website: 'https://www.bri.co.id', websiteLabel: 'www.bri.co.id',
-    description: 'PT Bank Rakyat Indonesia (Persero) Tbk adalah bank BUMN terbesar di Indonesia berdasarkan aset. Didirikan pada 16 Desember 1895, BRI fokus melayani segmen UMKM dan masyarakat pedesaan di seluruh Indonesia.',
-    transferTips: ['Gunakan kode bank BRI 002 saat transfer dari bank lain.', 'Nomor rekening BRI terdiri dari 15 digit angka.', 'Verifikasi nama penerima sebelum konfirmasi transfer.', 'Gunakan BRImo untuk transfer real-time 24 jam.'],
-    securityTips: ['Jangan bagikan PIN atau password BRImo ke siapapun.', 'Aktifkan fitur keamanan biometrik di aplikasi BRImo.', 'Waspada penipuan berkedok program BRI subsidi atau hadiah.', 'Laporkan transaksi mencurigakan ke BRI Contact 14017.'],
+    name: 'BRI', fullName: 'Bank Rakyat Indonesia', logo: '/banks/bri.png',
+    kodeBank: '002', callCenter: '1500017',
+    website: 'https://www.bri.co.id', websiteLabel: 'bri.co.id',
+    helpUrl: 'https://bri.co.id/web/guest/kontak', dbName: 'BRI',
+    description: 'Bank Rakyat Indonesia (BRI) adalah salah satu bank BUMN terbesar di Indonesia yang fokus melayani segmen mikro, kecil, dan menengah.',
+    transferTips: ['Login ke BRImo atau Internet Banking BRI.', 'Pilih Transfer dan masukkan nomor rekening tujuan.', 'Pastikan nama penerima sesuai sebelum melanjutkan.', 'Konfirmasi dengan PIN / OTP yang dikirim ke HP terdaftar.'],
+    securityTips: ['Jangan bagikan PIN BRImo atau kode OTP ke siapapun.', 'Waspada SMS/email palsu mengatasnamakan BRI.', 'Aktifkan notifikasi transaksi BRImo.', 'Laporkan ke Contact BRI 1500017 jika ada transaksi mencurigakan.'],
     faqs: [
-      { question: 'Cara cek rekening BRI dari penipuan?', answer: 'Masukkan nomor rekening BRI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
-      { question: 'Cara melaporkan rekening BRI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BRI, kronologi penipuan, dan lampirkan bukti.' },
-      { question: 'Cara menghubungi BRI untuk lapor penipuan?', answer: 'Hubungi Contact BRI di 14017 atau (021) 500017 (24 jam).' },
-      { question: 'Berapa kode bank BRI untuk transfer?', answer: 'Kode bank BRI adalah 002.' },
+      { question: 'Cara cek rekening BRI penipuan?', answer: 'Masukkan nomor rekening BRI ke kolom pencarian di atas.' },
+      { question: 'Cara laporkan rekening BRI penipu?', answer: 'Klik "Lapor Rekening" dan isi formulir dengan nomor rekening, kronologi, serta bukti.' },
+      { question: 'Cara blokir rekening BRI penipu?', answer: 'Hubungi Contact BRI 1500017 atau datang ke cabang BRI terdekat.' },
+      { question: 'Apakah BRI bisa membekukan rekening penipu?', answer: 'Ya, hubungi Contact BRI 1500017 dan sertakan bukti penipuan untuk proses tindak lanjut.' },
     ],
   },
   bni: {
-    name: 'BNI', fullName: 'Bank Negara Indonesia', logo: '/banks/bni.png', kodeBank: '009',
-    callCenter: '1500046', website: 'https://www.bni.co.id', websiteLabel: 'www.bni.co.id',
-    description: 'PT Bank Negara Indonesia (Persero) Tbk adalah bank BUMN tertua di Indonesia, didirikan pada 5 Juli 1946. BNI melayani nasabah ritel, korporasi, dan internasional dengan jaringan luas di dalam dan luar negeri.',
-    transferTips: ['Gunakan kode bank BNI 009 saat transfer dari bank lain.', 'Nomor rekening BNI terdiri dari 10 digit angka.', 'Cek nama penerima sebelum konfirmasi di BNI Mobile.', 'Transfer antar BNI gratis melalui aplikasi BNI Mobile Banking.'],
-    securityTips: ['Jangan pernah berikan kode OTP BNI ke siapapun.', 'Aktifkan notifikasi SMS/email untuk setiap transaksi BNI.', 'Waspada phishing mengatasnamakan BNI melalui email atau SMS.', 'Gunakan hanya website resmi bni.co.id untuk internet banking.'],
+    name: 'BNI', fullName: 'Bank Negara Indonesia', logo: '/banks/bni.png',
+    kodeBank: '009', callCenter: '1500046',
+    website: 'https://www.bni.co.id', websiteLabel: 'bni.co.id',
+    helpUrl: 'https://www.bni.co.id/id-id/beranda/hubungikami', dbName: 'BNI',
+    description: 'Bank Negara Indonesia (BNI) adalah bank BUMN yang melayani berbagai kebutuhan perbankan perorangan dan korporasi di seluruh Indonesia.',
+    transferTips: ['Login ke BNI Mobile Banking atau Internet Banking BNI.', 'Pilih Transfer dan masukkan nomor rekening BNI tujuan.', 'Verifikasi nama penerima yang muncul.', 'Konfirmasi dengan token BNI atau OTP yang dikirim ke HP.'],
+    securityTips: ['Jangan bagikan token BNI atau kode OTP ke siapapun.', 'Selalu akses BNI Mobile Banking via aplikasi resmi BNI.', 'Aktifkan BNI SMS Notifikasi untuk pantau transaksi.', 'Hubungi BNI Call 1500046 jika ada aktivitas mencurigakan.'],
     faqs: [
-      { question: 'Cara cek rekening BNI dari penipuan?', answer: 'Masukkan nomor rekening BNI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
-      { question: 'Cara melaporkan rekening BNI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BNI, kronologi kejadian, dan unggah bukti.' },
-      { question: 'Cara menghubungi BNI untuk lapor penipuan?', answer: 'Hubungi BNI Call di 1500046 (24 jam) atau (021) 1500046.' },
-      { question: 'Berapa kode bank BNI untuk transfer?', answer: 'Kode bank BNI adalah 009.' },
+      { question: 'Cara cek rekening BNI penipuan?', answer: 'Masukkan nomor rekening BNI ke kolom pencarian di atas.' },
+      { question: 'Cara laporkan rekening BNI penipu?', answer: 'Klik "Lapor Rekening" di halaman ini dan isi kronologi penipuan serta bukti transfer.' },
+      { question: 'Cara blokir rekening BNI penipu?', answer: 'Hubungi BNI Call 1500046 dengan menyertakan bukti transaksi.' },
+      { question: 'Bagaimana BNI menangani laporan penipuan?', answer: 'BNI akan memverifikasi laporan dan dapat melakukan pembekuan rekening jika terbukti terlibat penipuan.' },
     ],
   },
   mandiri: {
-    name: 'Mandiri', fullName: 'Bank Mandiri', logo: '/banks/mandiri.png', kodeBank: '008',
-    callCenter: '14000', website: 'https://www.bankmandiri.co.id', websiteLabel: 'www.bankmandiri.co.id',
-    description: 'PT Bank Mandiri (Persero) Tbk adalah bank terbesar di Indonesia berdasarkan total aset. Didirikan pada 2 Oktober 1998 sebagai hasil merger empat bank BUMN.',
-    transferTips: ['Gunakan kode bank Mandiri 008 saat transfer dari bank lain.', 'Nomor rekening Mandiri terdiri dari 13 digit angka.', "Verifikasi nama penerima di aplikasi Livin sebelum konfirmasi.", "Transfer sesama Mandiri gratis melalui Livin' by Mandiri."],
-    securityTips: ['Jangan bagikan MPIN atau kode OTP Mandiri ke siapapun.', "Aktifkan fitur keamanan di aplikasi Livin' by Mandiri.", 'Waspada modus soceng mengatasnamakan Bank Mandiri.', 'Pastikan URL internet banking adalah bankmandiri.co.id.'],
+    name: 'Mandiri', fullName: 'Bank Mandiri', logo: '/banks/mandiri.png',
+    kodeBank: '008', callCenter: '14000',
+    website: 'https://www.bankmandiri.co.id', websiteLabel: 'bankmandiri.co.id',
+    helpUrl: 'https://www.bankmandiri.co.id/kontak-kami', dbName: 'Mandiri',
+    description: 'Bank Mandiri adalah bank BUMN terbesar di Indonesia berdasarkan total aset, yang melayani nasabah perorangan hingga korporasi besar.',
+    transferTips: ['Login ke Livin by Mandiri atau Internet Banking Mandiri.', 'Pilih menu Transfer dan masukkan nomor rekening tujuan.', 'Pastikan nama penerima sesuai sebelum konfirmasi.', 'Konfirmasi transaksi dengan PIN Livin atau token Mandiri.'],
+    securityTips: ['Jangan bagikan PIN Livin atau token Mandiri ke siapapun.', 'Waspada phishing yang mengatasnamakan Mandiri.', 'Aktifkan notifikasi transaksi di Livin by Mandiri.', 'Hubungi Mandiri Call 14000 jika ada transaksi mencurigakan.'],
     faqs: [
-      { question: 'Cara cek rekening Mandiri dari penipuan?', answer: 'Masukkan nomor rekening Mandiri yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
-      { question: 'Cara melaporkan rekening Mandiri penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Lengkapi form dengan nomor rekening Mandiri, kronologi penipuan, dan bukti pendukung.' },
-      { question: 'Cara menghubungi Bank Mandiri untuk lapor penipuan?', answer: 'Hubungi Mandiri Call di 14000 atau (021) 5299-7777 (24 jam).' },
-      { question: 'Berapa kode bank Mandiri untuk transfer?', answer: 'Kode bank Mandiri adalah 008.' },
+      { question: 'Cara cek rekening Mandiri penipuan?', answer: 'Masukkan nomor rekening Mandiri ke kolom pencarian di atas.' },
+      { question: 'Cara laporkan rekening Mandiri penipu?', answer: 'Klik "Lapor Rekening" dan lengkapi formulir dengan bukti penipuan.' },
+      { question: 'Cara blokir rekening Mandiri penipu?', answer: 'Hubungi Mandiri Call 14000 atau kunjungi cabang Mandiri terdekat dengan bukti.' },
+      { question: 'Apakah Mandiri bisa membekukan rekening terduga penipu?', answer: 'Ya, Bank Mandiri dapat memproses pembekuan rekening berdasarkan laporan resmi yang disertai bukti.' },
     ],
   },
   cimb: {
-    name: 'CIMB Niaga', fullName: 'Bank CIMB Niaga', logo: '/banks/cimb.png', kodeBank: '022',
-    callCenter: '14041', website: 'https://www.cimbniaga.co.id', websiteLabel: 'www.cimbniaga.co.id',
-    description: 'PT Bank CIMB Niaga Tbk adalah bank swasta terbesar kedua di Indonesia. Merupakan bagian dari grup CIMB Malaysia.',
-    transferTips: ['Gunakan kode bank CIMB Niaga 022 saat transfer dari bank lain.', 'Nomor rekening CIMB Niaga terdiri dari 13-16 digit angka.', 'Verifikasi nama penerima di aplikasi OCTO Mobile sebelum konfirmasi.', 'Transfer sesama CIMB Niaga gratis melalui aplikasi OCTO Mobile.'],
-    securityTips: ['Jangan bagikan kode OTP OCTO Mobile ke siapapun.', 'Aktifkan OCTO Secure untuk perlindungan transaksi berlapis.', 'Waspada phishing mengatasnamakan CIMB Niaga melalui email.', 'Gunakan hanya aplikasi OCTO Mobile resmi dari Play Store/App Store.'],
+    name: 'CIMB Niaga', fullName: 'Bank CIMB Niaga', logo: '/banks/cimb.png',
+    kodeBank: '022', callCenter: '14041',
+    website: 'https://www.cimbniaga.co.id', websiteLabel: 'cimbniaga.co.id',
+    helpUrl: 'https://www.cimbniaga.co.id/id/personal/bantuan', dbName: 'CIMB',
+    description: 'CIMB Niaga adalah bank swasta terbesar kedua di Indonesia yang menawarkan layanan perbankan lengkap untuk nasabah retail dan korporasi.',
+    transferTips: ['Login ke OCTO Mobile atau CIMB Clicks.', 'Pilih Transfer dan masukkan nomor rekening CIMB Niaga tujuan.', 'Verifikasi nama penerima sebelum konfirmasi.', 'Konfirmasi dengan PIN OCTO Mobile atau token.'],
+    securityTips: ['Jangan bagikan PIN OCTO atau kode OTP ke siapapun.', 'Pastikan menggunakan aplikasi OCTO Mobile resmi dari CIMB Niaga.', 'Aktifkan notifikasi transaksi di OCTO Mobile.', 'Hubungi Phone Banking CIMB Niaga 14041 jika ada masalah.'],
     faqs: [
-      { question: 'Cara cek rekening CIMB Niaga dari penipuan?', answer: 'Masukkan nomor rekening CIMB Niaga yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
-      { question: 'Cara melaporkan rekening CIMB Niaga penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening CIMB Niaga, kronologi penipuan, dan lampirkan bukti transfer.' },
-      { question: 'Cara menghubungi CIMB Niaga untuk lapor penipuan?', answer: 'Hubungi Phone Banking CIMB Niaga di 14041 atau (021) 2997-9999 (24 jam).' },
-      { question: 'Berapa kode bank CIMB Niaga untuk transfer?', answer: 'Kode bank CIMB Niaga adalah 022.' },
+      { question: 'Cara cek rekening CIMB Niaga penipuan?', answer: 'Masukkan nomor rekening CIMB Niaga ke kolom pencarian di atas.' },
+      { question: 'Cara laporkan rekening CIMB Niaga penipu?', answer: 'Klik "Lapor Rekening" di halaman ini dan isi formulir penipuan lengkap.' },
+      { question: 'Cara blokir rekening CIMB Niaga penipu?', answer: 'Hubungi Phone Banking CIMB Niaga 14041 dengan menyertakan bukti transaksi.' },
+      { question: 'Apakah CIMB Niaga bisa membekukan rekening penipu?', answer: 'Ya, CIMB Niaga dapat memproses pembekuan berdasarkan laporan resmi yang disertai bukti.' },
     ],
   },
   bsi: {
-    name: 'BSI', fullName: 'Bank Syariah Indonesia', logo: '/banks/bsi.png', kodeBank: '451',
-    callCenter: '14040', website: 'https://www.bankbsi.co.id', websiteLabel: 'www.bankbsi.co.id',
-    description: 'PT Bank Syariah Indonesia Tbk (BSI) adalah bank syariah terbesar di Indonesia, hasil merger Bank BRI Syariah, Bank BNI Syariah, dan Bank Syariah Mandiri pada 1 Februari 2021.',
-    transferTips: ['Gunakan kode bank BSI 451 saat transfer dari bank lain.', 'Nomor rekening BSI terdiri dari 10-13 digit angka.', 'Verifikasi nama penerima di aplikasi BSI Mobile sebelum konfirmasi.', 'Transfer sesama BSI gratis melalui aplikasi BSI Mobile.'],
-    securityTips: ['Jangan pernah berikan kode OTP BSI Mobile ke siapapun.', 'Aktifkan verifikasi biometrik di aplikasi BSI Mobile.', 'Waspada modus penipuan berkedok program BSI atau promo syariah.', 'Pastikan hanya menggunakan aplikasi BSI Mobile resmi.'],
+    name: 'BSI', fullName: 'Bank Syariah Indonesia', logo: '/banks/bsi.png',
+    kodeBank: '451', callCenter: '14040',
+    website: 'https://www.bankbsi.co.id', websiteLabel: 'bankbsi.co.id',
+    helpUrl: 'https://www.bankbsi.co.id/company-info/hubungi-kami', dbName: 'BSI',
+    description: 'Bank Syariah Indonesia (BSI) adalah bank syariah terbesar di Indonesia hasil merger tiga bank syariah BUMN yang melayani nasabah berdasarkan prinsip syariah.',
+    transferTips: ['Login ke BSI Mobile atau Internet Banking BSI.', 'Pilih Transfer dan masukkan nomor rekening BSI tujuan.', 'Verifikasi nama penerima sebelum melanjutkan.', 'Konfirmasi transaksi dengan PIN atau OTP BSI.'],
+    securityTips: ['Jangan bagikan PIN BSI Mobile atau kode OTP ke siapapun.', 'Pastikan menggunakan aplikasi BSI Mobile resmi dari Play Store/App Store.', 'Aktifkan notifikasi SMS/push notification BSI.', 'Hubungi Contact BSI 14040 jika ada aktivitas mencurigakan.'],
     faqs: [
-      { question: 'Cara cek rekening BSI dari penipuan?', answer: 'Masukkan nomor rekening BSI yang ingin dicek ke kolom pencarian di atas, lalu klik "Cek Database".' },
-      { question: 'Cara melaporkan rekening BSI penipu?', answer: 'Klik tombol "Lapor Rekening" di halaman ini. Isi nomor rekening BSI, kronologi penipuan, dan unggah bukti.' },
-      { question: 'Cara menghubungi BSI untuk lapor penipuan?', answer: 'Hubungi BSI Call di 14040 (24 jam).' },
-      { question: 'Berapa kode bank BSI untuk transfer?', answer: 'Kode bank BSI adalah 451.' },
+      { question: 'Cara cek rekening BSI penipuan?', answer: 'Masukkan nomor rekening BSI ke kolom pencarian di atas.' },
+      { question: 'Cara laporkan rekening BSI penipu?', answer: 'Klik "Lapor Rekening" dan isi formulir dengan nomor rekening, kronologi, dan bukti.' },
+      { question: 'Cara blokir rekening BSI penipu?', answer: 'Hubungi Contact BSI 14040 atau kunjungi cabang BSI terdekat dengan membawa bukti.' },
+      { question: 'Apakah BSI bisa membekukan rekening terduga penipu?', answer: 'Ya, BSI dapat memproses pembekuan rekening berdasarkan laporan resmi yang disertai bukti kuat.' },
     ],
   },
 };
@@ -113,19 +126,7 @@ export default async function BankDetailPage({ params }: PageProps) {
   const data = bankData[bankKey];
   if (!data) notFound();
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch { }
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
   const [
     { data: recentReports },
@@ -133,21 +134,67 @@ export default async function BankDetailPage({ params }: PageProps) {
     { count: verifiedCount },
     { count: pendingCount },
     { data: categoryData },
+    { data: linkedReports },
   ] = await Promise.all([
-    supabase.from('reports').select('target_number, target_name, status, created_at').eq('target_type', 'bank_account').ilike('bank_name', `%${data.name}%`).order('created_at', { ascending: false }).limit(6),
-    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('target_type', 'bank_account').ilike('bank_name', `%${data.name}%`),
-    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('target_type', 'bank_account').ilike('bank_name', `%${data.name}%`).eq('status', 'verified'),
-    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('target_type', 'bank_account').ilike('bank_name', `%${data.name}%`).eq('status', 'pending'),
-    supabase.from('reports').select('category').eq('target_type', 'bank_account').ilike('bank_name', `%${data.name}%`),
+    supabase.from('reports').select('target_number, target_name, status, created_at').ilike('bank_name', `%${data.dbName}%`).order('created_at', { ascending: false }).limit(6),
+    supabase.from('reports').select('*', { count: 'exact', head: true }).ilike('bank_name', `%${data.dbName}%`),
+    supabase.from('reports').select('*', { count: 'exact', head: true }).ilike('bank_name', `%${data.dbName}%`).eq('status', 'verified'),
+    supabase.from('reports').select('*', { count: 'exact', head: true }).ilike('bank_name', `%${data.dbName}%`).eq('status', 'pending'),
+    supabase.from('reports').select('category').ilike('bank_name', `%${data.dbName}%`),
+    // Query nomor tambahan dari target_numbers JSONB yang bank-nya sesuai
+    supabase.from('reports').select('target_numbers, status, created_at').filter('target_numbers', 'cs', `[{"type":"bank_account","bank":"${data.dbName}"}]`).order('created_at', { ascending: false }).limit(20),
   ]);
 
-  const reports = (recentReports ?? []).map((r) => ({
-    target_number: r.target_number as string,
-    target_name: r.target_name as string | null,
-    status: r.status as string,
-    created_at: r.created_at as string,
-    masked: maskNumber(r.target_number as string),
-    dateFormatted: formatDateID(r.created_at as string),
+  type ReportRow = { target_number: string; target_name: string | null; status: string; created_at: string };
+
+  // Kumpulkan nomor dari target_numbers JSONB yang banknya sesuai
+  const linkedRows: ReportRow[] = [];
+  (linkedReports ?? []).forEach((r: any) => {
+    if (!Array.isArray(r.target_numbers)) return;
+    r.target_numbers.forEach((item: any) => {
+      if (
+        typeof item === 'object' &&
+        item.type === 'bank_account' &&
+        item.bank?.toLowerCase() === data.dbName.toLowerCase() &&
+        item.number
+      ) {
+        linkedRows.push({
+          target_number: item.number,
+          target_name: item.name ?? null,
+          status: r.status,
+          created_at: r.created_at,
+        });
+      }
+    });
+  });
+
+  // Merge primary + linked, deduplikasi by target_number
+  // Hitung linked count dari target_numbers JSONB
+  const linkedTotal = linkedRows.length;
+  const linkedVerified = linkedRows.filter(r => r.status === 'verified').length;
+  const linkedPending = linkedRows.filter(r => r.status === 'pending').length;
+
+  // Merge primary + linked count (deduplikasi sudah dilakukan di allReportRows)
+  const finalTotalCount = (totalCount ?? 0) + linkedTotal;
+  const finalVerifiedCount = (verifiedCount ?? 0) + linkedVerified;
+  const finalPendingCount = (pendingCount ?? 0) + linkedPending;
+
+  const seenNumbers = new Set<string>();
+  const allReportRows: ReportRow[] = [];
+  [...(recentReports ?? []), ...linkedRows].forEach((r: any) => {
+    if (!seenNumbers.has(r.target_number)) {
+      seenNumbers.add(r.target_number);
+      allReportRows.push(r);
+    }
+  });
+
+  const reports = allReportRows.slice(0, 6).map((r) => ({
+    target_number: r.target_number,
+    target_name: r.target_name,
+    status: r.status,
+    created_at: r.created_at,
+    masked: maskNumber(r.target_number),
+    dateFormatted: formatDateID(r.created_at),
   }));
 
   const categoryMap: Record<string, number> = {};
@@ -163,9 +210,9 @@ export default async function BankDetailPage({ params }: PageProps) {
       bankId={bankKey}
       bankData={data}
       reports={reports}
-      totalCount={totalCount ?? 0}
-      verifiedCount={verifiedCount ?? 0}
-      pendingCount={pendingCount ?? 0}
+      totalCount={finalTotalCount}
+      verifiedCount={finalVerifiedCount}
+      pendingCount={finalPendingCount}
       categoryBreakdown={categoryBreakdown}
     />
   );

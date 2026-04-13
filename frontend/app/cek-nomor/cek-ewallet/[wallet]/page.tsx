@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase-server';
 import type { Metadata } from 'next';
 import { maskNumber, formatDateID } from '@/lib/utils';
 import EwalletPageClient from './EwalletPageClient';
@@ -100,19 +99,7 @@ export default async function EwalletDetailPage({ params }: PageProps) {
   const data = ewalletData[walletKey];
   if (!data) notFound();
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch { }
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
   const [
     { data: recentReports },
@@ -120,21 +107,65 @@ export default async function EwalletDetailPage({ params }: PageProps) {
     { count: verifiedCount },
     { count: pendingCount },
     { data: categoryData },
+    { data: linkedReports },
   ] = await Promise.all([
     supabase.from('reports').select('target_number, target_name, status, created_at').ilike('bank_name', `%${data.dbName}%`).order('created_at', { ascending: false }).limit(6),
     supabase.from('reports').select('*', { count: 'exact', head: true }).ilike('bank_name', `%${data.dbName}%`),
     supabase.from('reports').select('*', { count: 'exact', head: true }).ilike('bank_name', `%${data.dbName}%`).eq('status', 'verified'),
     supabase.from('reports').select('*', { count: 'exact', head: true }).ilike('bank_name', `%${data.dbName}%`).eq('status', 'pending'),
     supabase.from('reports').select('category').ilike('bank_name', `%${data.dbName}%`),
+    // Query nomor tambahan dari target_numbers JSONB yang e-wallet-nya sesuai
+    supabase.from('reports').select('target_numbers, status, created_at').filter('target_numbers', 'cs', `[{"type":"ewallet","bank":"${data.dbName}"}]`).order('created_at', { ascending: false }).limit(20),
   ]);
 
-  const reports = (recentReports ?? []).map((r) => ({
-    target_number: r.target_number as string,
-    target_name: r.target_name as string | null,
-    status: r.status as string,
-    created_at: r.created_at as string,
-    masked: maskNumber(r.target_number as string),
-    dateFormatted: formatDateID(r.created_at as string),
+  type ReportRow = { target_number: string; target_name: string | null; status: string; created_at: string };
+
+  // Kumpulkan nomor dari target_numbers JSONB yang e-wallet-nya sesuai
+  const linkedRows: ReportRow[] = [];
+  (linkedReports ?? []).forEach((r: any) => {
+    if (!Array.isArray(r.target_numbers)) return;
+    r.target_numbers.forEach((item: any) => {
+      if (
+        typeof item === 'object' &&
+        item.type === 'ewallet' &&
+        item.bank?.toLowerCase() === data.dbName.toLowerCase() &&
+        item.number
+      ) {
+        linkedRows.push({
+          target_number: item.number,
+          target_name: item.name ?? null,
+          status: r.status,
+          created_at: r.created_at,
+        });
+      }
+    });
+  });
+
+  // Merge primary + linked, deduplikasi by target_number
+  const linkedTotal = linkedRows.length;
+  const linkedVerified = linkedRows.filter(r => r.status === 'verified').length;
+  const linkedPending = linkedRows.filter(r => r.status === 'pending').length;
+
+  const finalTotalCount = (totalCount ?? 0) + linkedTotal;
+  const finalVerifiedCount = (verifiedCount ?? 0) + linkedVerified;
+  const finalPendingCount = (pendingCount ?? 0) + linkedPending;
+
+  const seenNumbers = new Set<string>();
+  const allReportRows: ReportRow[] = [];
+  [...(recentReports ?? []), ...linkedRows].forEach((r: any) => {
+    if (!seenNumbers.has(r.target_number)) {
+      seenNumbers.add(r.target_number);
+      allReportRows.push(r);
+    }
+  });
+
+  const reports = allReportRows.slice(0, 6).map((r) => ({
+    target_number: r.target_number,
+    target_name: r.target_name,
+    status: r.status,
+    created_at: r.created_at,
+    masked: maskNumber(r.target_number),
+    dateFormatted: formatDateID(r.created_at),
   }));
 
   const categoryMap: Record<string, number> = {};
@@ -150,9 +181,9 @@ export default async function EwalletDetailPage({ params }: PageProps) {
       walletId={walletKey}
       walletData={data}
       reports={reports}
-      totalCount={totalCount ?? 0}
-      verifiedCount={verifiedCount ?? 0}
-      pendingCount={pendingCount ?? 0}
+      totalCount={finalTotalCount}
+      verifiedCount={finalVerifiedCount}
+      pendingCount={finalPendingCount}
       categoryBreakdown={categoryBreakdown}
     />
   );

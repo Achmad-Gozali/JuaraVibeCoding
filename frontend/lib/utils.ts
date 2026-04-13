@@ -1,3 +1,8 @@
+// ============================================
+// 📁 LOKASI: frontend/lib/utils.ts
+// ✅ UPDATE — tambah formatRupiah unified (replace duplikat di AdminDashboard, cek-nomor, cek-rekening)
+// ============================================
+
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -42,18 +47,40 @@ export function encodeSlug(text: string): string {
 }
 
 export function decodeSlug(slug: string): string {
-  // Kalau sudah angka murni, langsung return
   if (/^\d+$/.test(slug)) return slug;
 
   let base64 = slug.replace(/-/g, '+').replace(/_/g, '/');
   while (base64.length % 4) base64 += '=';
   try {
     const decoded = Buffer.from(base64, 'base64').toString('utf-8');
-    // FIX: Validasi hasil decode — harus angka saja, kalau tidak return string kosong
     if (!/^\d+$/.test(decoded)) return '';
     return decoded;
   } catch {
-    // FIX: Return string kosong bukan slug mentah, cegah inject string aneh ke query DB
     return '';
   }
+}
+
+// ── formatRupiah ──────────────────────────────────────────────────────────────
+// Unified helper — replace semua formatRupiah lokal di:
+// - AdminDashboard.tsx
+// - app/cek-nomor/page.tsx
+// - app/cek-rekening/page.tsx
+export function formatRupiah(amount: number | string): string {
+  const n = Number(amount) || 0;
+  if (n >= 1_000_000_000) {
+    const val = n / 1_000_000_000;
+    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} M+`.replace('.', ',');
+  }
+  if (n >= 1_000_000) {
+    const val = n / 1_000_000;
+    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} Jt+`.replace('.', ',');
+  }
+  if (n >= 1_000) {
+    return `Rp${(n / 1_000).toFixed(0)} Rb+`;
+  }
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(n);
 }

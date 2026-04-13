@@ -1,85 +1,75 @@
 'use client';
 
+// ============================================
+// 📁 LOKASI: frontend/components/WithdrawButton.tsx
+// ✅ FIX — standardize BACKEND_URL: throw jika tidak ada (sama kayak ReportForm)
+// ============================================
+
 import { useState } from 'react';
+import { Loader2, Undo2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Loader2, FilePen } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
+
+const BACKEND_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_BACKEND_URL is not defined');
+  return url;
+})();
 
 interface WithdrawButtonProps {
   reportId: string;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
 export default function WithdrawButton({ reportId }: WithdrawButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleWithdraw = async () => {
-    setIsLoading(true);
-    try {
-      // Ambil token dari Supabase
-      const { createClient } = await import('@/lib/supabase-browser');
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+    if (!confirm('Tarik laporan ini? Status akan berubah menjadi "Sedang Direvisi" dan kamu bisa edit lagi.')) return;
 
-      if (!session) {
-        alert('Sesi habis. Silakan login ulang.');
-        return;
-      }
+    setLoading(true);
+    setError(null);
+
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setError('Sesi habis. Silakan login ulang.'); return; }
 
       const res = await fetch(`${BACKEND_URL}/api/reports/withdraw`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ reportId }),
       });
 
-      const data = await res.json();
-      if (data.success) {
-        router.refresh();
-      } else {
-        alert(data.message || 'Gagal mengajukan revisi.');
-      }
+      const data = await res.json() as { success: boolean; message?: string };
+      if (!data.success) { setError(data.message ?? 'Gagal menarik laporan.'); return; }
+
+      router.refresh();
     } catch {
-      alert('Terjadi kesalahan. Coba lagi.');
+      setError('Terjadi kesalahan. Coba lagi.');
     } finally {
-      setIsLoading(false);
-      setShowConfirm(false);
+      setLoading(false);
     }
   };
 
-  if (showConfirm) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] text-zinc-500 font-medium">Tarik laporan untuk direvisi?</span>
-        <button
-          onClick={handleWithdraw}
-          disabled={isLoading}
-          className="px-3 py-1.5 bg-zinc-900 text-white text-[11px] font-bold rounded-lg hover:bg-black transition-all disabled:opacity-50 flex items-center gap-1"
-        >
-          {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Ya, Ajukan'}
-        </button>
-        <button
-          onClick={() => setShowConfirm(false)}
-          disabled={isLoading}
-          className="px-3 py-1.5 bg-zinc-100 text-zinc-600 text-[11px] font-bold rounded-lg hover:bg-zinc-200 transition-all"
-        >
-          Batal
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <button
-      onClick={() => setShowConfirm(true)}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-500 text-[11px] font-bold rounded-lg hover:bg-zinc-200 hover:text-zinc-900 transition-all"
-    >
-      <FilePen className="w-3 h-3" />
-      Ajukan Revisi
-    </button>
+    <div className="flex flex-col gap-1">
+      <button
+        onClick={handleWithdraw}
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-zinc-500 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50"
+      >
+        {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Undo2 className="w-3 h-3" />}
+        {loading ? 'Memproses...' : 'Tarik Laporan'}
+      </button>
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
+    </div>
   );
 }

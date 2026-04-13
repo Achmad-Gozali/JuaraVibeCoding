@@ -299,7 +299,6 @@ export default async function HomePage() {
       {/* ── 2. APA ITU KAWALTRANSAKSI ── */}
       <section className="bg-slate-50 pt-10 sm:pt-24 pb-12 sm:pb-16">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center">
-          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-3">Tentang Platform</p>
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter uppercase text-slate-900 mb-4 sm:mb-5">
             Apa itu KawalTransaksi?
           </h2>

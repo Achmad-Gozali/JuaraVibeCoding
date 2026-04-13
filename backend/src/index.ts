@@ -4,6 +4,7 @@ import authRoutes from './routes/auth';
 import reportsRoutes from './routes/reports';
 import adminRoutes from './routes/admin';
 import searchRoutes from './routes/search';
+import articlesRoutes, { generateWeeklyArticle } from './routes/articles';
 import type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -49,7 +50,6 @@ app.use('/api/auth/*', originValidator);
 app.use('/api/search/*', originValidator);
 
 // ── Lapis 1: Cloudflare native rate limit — /api/auth/* ──────────────────────
-// 100 req/60 detik per IP, di-check paling duluan sebelum KV
 app.use('/api/auth/*', async (c, next) => {
   if (c.env.AUTH_RATE_LIMITER) {
     const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
@@ -67,7 +67,6 @@ app.use('/api/auth/*', async (c, next) => {
 });
 
 // ── Lapis 2: KV global rate limit — semua /api/* ─────────────────────────────
-// 20 req / 60 detik per IP
 app.use('/api/*', async (c, next) => {
   if (!c.env.LIMITER) {
     console.warn('[RATE LIMIT] KV binding LIMITER tidak tersedia.');
@@ -98,7 +97,6 @@ app.use('/api/*', async (c, next) => {
 });
 
 // ── Lapis 3: KV auth rate limit — khusus /api/auth/* ─────────────────────────
-// 5 req / 60 detik per IP
 app.use('/api/auth/*', async (c, next) => {
   if (!c.env.LIMITER) return next();
 
@@ -129,10 +127,12 @@ app.use('/api/auth/*', async (c, next) => {
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.route('/api/auth', authRoutes);
 app.route('/api/reports', reportsRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/search', searchRoutes);
+app.route('/api/articles', articlesRoutes);
 
 app.notFound((c) => c.json({ success: false, message: 'Endpoint tidak ditemukan.' }, 404));
 app.onError((err, c) => {
@@ -140,4 +140,11 @@ app.onError((err, c) => {
   return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
 });
 
-export default app;
+// ── Cron Handler ──────────────────────────────────────────────────────────────
+export default {
+  fetch: app.fetch,
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    console.log('[CRON] Mulai generate artikel mingguan...');
+    ctx.waitUntil(generateWeeklyArticle(env));
+  },
+};

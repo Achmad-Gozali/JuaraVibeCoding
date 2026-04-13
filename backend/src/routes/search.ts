@@ -1,23 +1,9 @@
 import { Hono } from 'hono';
 import { getSupabaseAdmin } from '../lib/supabase';
+import { verifyTurnstile } from '../lib/turnstile';
 import type { Env } from '../types';
 
 const search = new Hono<{ Bindings: Env }>();
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-async function verifyTurnstile(token: string, secretKey: string): Promise<boolean> {
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret: secretKey, response: token }),
-  });
-
-  const data = await res.json() as { success: boolean; 'error-codes'?: string[] };
-  if (!data.success) {
-    console.error('[TURNSTILE ERROR]:', data['error-codes']);
-  }
-  return data.success;
-}
 
 // Decode JWT optional — kalau ada token valid, return userId. Kalau tidak, return null.
 async function getOptionalUserId(authHeader: string | undefined, env: Env): Promise<string | null> {
@@ -37,7 +23,7 @@ async function getOptionalUserId(authHeader: string | undefined, env: Env): Prom
 
 // ── Search Rate Limiter Middleware ───────────────────────────────────────────
 // Anonymous : max 5 request/menit per IP
-// Login     : max 15 request/menit per user ID + max 15 per IP (dua-duanya dicek)
+// Login     : max 15 request/menit per user ID + max 15 per IP
 search.use('*', async (c, next) => {
   if (!c.env.LIMITER) {
     console.warn('[SEARCH RATE LIMIT] KV LIMITER tidak tersedia. Rate limiting dinonaktifkan.');
@@ -47,12 +33,10 @@ search.use('*', async (c, next) => {
   const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
   const userId = await getOptionalUserId(c.req.header('Authorization'), c.env);
   const isLoggedIn = !!userId;
-
   const maxRequests = isLoggedIn ? 15 : 5;
 
   try {
     if (isLoggedIn) {
-      // ── Cek rate limit per user ID ─────────────────────────────────────
       const userKey = `search_user_${userId}`;
       const userCount = await c.env.LIMITER.get(userKey);
       const userHits = userCount ? parseInt(userCount) : 0;
@@ -64,7 +48,6 @@ search.use('*', async (c, next) => {
         }, 429);
       }
 
-      // ── Cek rate limit per IP (untuk login) ────────────────────────────
       const ipKey = `search_auth_ip_${ip}`;
       const ipCount = await c.env.LIMITER.get(ipKey);
       const ipHits = ipCount ? parseInt(ipCount) : 0;
@@ -76,14 +59,12 @@ search.use('*', async (c, next) => {
         }, 429);
       }
 
-      // Increment keduanya sekaligus
       await Promise.all([
         c.env.LIMITER.put(userKey, (userHits + 1).toString(), { expirationTtl: 60 }),
         c.env.LIMITER.put(ipKey, (ipHits + 1).toString(), { expirationTtl: 60 }),
       ]);
 
     } else {
-      // ── Cek rate limit per IP (untuk anonymous) ────────────────────────
       const ipKey = `search_anon_ip_${ip}`;
       const ipCount = await c.env.LIMITER.get(ipKey);
       const ipHits = ipCount ? parseInt(ipCount) : 0;
@@ -114,7 +95,7 @@ search.post('/verify-turnstile', async (c) => {
       return c.json({ success: false, message: 'Token tidak ditemukan.' }, 400);
     }
 
-    // ── Cek apakah token Turnstile sudah pernah dipakai (blacklist) ──────
+    // Cek apakah token sudah pernah dipakai (blacklist)
     if (c.env.LIMITER) {
       try {
         const blacklistKey = `turnstile_used_${token}`;
@@ -127,18 +108,15 @@ search.post('/verify-turnstile', async (c) => {
         }
       } catch (err) {
         console.error('[TURNSTILE BLACKLIST] Error cek KV:', err);
-        // Kalau KV error, tetap lanjut
       }
     }
 
-    // ── Verifikasi token ke Cloudflare ───────────────────────────────────
     const isValid = await verifyTurnstile(token, c.env.TURNSTILE_SECRET_KEY);
     if (!isValid) {
       return c.json({ success: false, message: 'Verifikasi keamanan gagal.' }, 400);
     }
 
-    // ── Blacklist token yang sudah valid — hanya boleh dipakai 1x ────────
-    // TTL 5 menit (token Turnstile expired dalam 5 menit anyway)
+    // Blacklist token — hanya boleh dipakai 1x
     if (c.env.LIMITER) {
       try {
         const blacklistKey = `turnstile_used_${token}`;

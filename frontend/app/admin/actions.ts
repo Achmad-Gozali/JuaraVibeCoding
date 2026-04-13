@@ -1,31 +1,15 @@
 'use server';
 
-import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8787';
+const VALID_STATUSES = ['verified', 'rejected', 'pending', 'withdrawn'] as const;
+const VALID_ROLES = ['user', 'admin', 'moderator'] as const;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function createClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch { }
-        },
-      },
-    }
-  );
-}
+type ValidStatus = typeof VALID_STATUSES[number];
+type ValidRole = typeof VALID_ROLES[number];
 
 function createAdminClient() {
   return createSupabaseAdmin(
@@ -33,13 +17,6 @@ function createAdminClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
-}
-
-async function getAuthToken(): Promise<string> {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('Unauthorized');
-  return session.access_token;
 }
 
 async function validateAdmin() {
@@ -59,62 +36,67 @@ async function validateAdmin() {
 
 export async function updateReportStatus(
   reportId: string,
-  status: 'verified' | 'rejected' | 'pending' | 'withdrawn'
+  status: ValidStatus
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  // Validasi UUID
+  if (!UUID_REGEX.test(reportId)) throw new Error('ID laporan tidak valid.');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || !['admin', 'moderator'].includes(profile.role)) {
-    throw new Error('Forbidden');
+  // Validasi status whitelist
+  if (!VALID_STATUSES.includes(status)) {
+    throw new Error(`Status tidak valid. Nilai yang diizinkan: ${VALID_STATUSES.join(', ')}.`);
   }
 
-  const { error } = await supabase.rpc('update_report_status', {
-    report_id: reportId,
-    new_status: status,
-  });
+  await validateAdmin();
 
-  if (error) throw new Error('Gagal update status');
+  // Pakai admin client dengan service role — konsisten dengan action lain
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from('reports')
+    .update({ status })
+    .eq('id', reportId);
+
+  if (error) throw new Error('Gagal update status: ' + error.message);
 
   revalidatePath('/admin');
   revalidatePath('/');
   revalidatePath('/dashboard');
 }
 
-export async function updateUserRole(userId: string, role: 'user' | 'admin' | 'moderator') {
+export async function updateUserRole(userId: string, role: ValidRole) {
+  if (!UUID_REGEX.test(userId)) throw new Error('ID pengguna tidak valid.');
+  if (!VALID_ROLES.includes(role)) throw new Error('Role tidak valid.');
+
   const admin = await validateAdmin();
   if (admin.id === userId) throw new Error('Tidak dapat mengubah role diri sendiri.');
 
   const supabase = createAdminClient();
   const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
-  if (error) throw new Error('Gagal update role');
+  if (error) throw new Error('Gagal update role: ' + error.message);
 
   revalidatePath('/admin');
 }
 
 export async function banUser(userId: string) {
+  if (!UUID_REGEX.test(userId)) throw new Error('ID pengguna tidak valid.');
+
   const admin = await validateAdmin();
   if (admin.id === userId) throw new Error('Tidak dapat memban diri sendiri.');
 
   const supabase = createAdminClient();
   const { error } = await supabase.from('profiles').update({ is_banned: true }).eq('id', userId);
-  if (error) throw new Error('Gagal memblokir pengguna');
+  if (error) throw new Error('Gagal memblokir pengguna: ' + error.message);
 
   revalidatePath('/admin');
 }
 
 export async function unbanUser(userId: string) {
+  if (!UUID_REGEX.test(userId)) throw new Error('ID pengguna tidak valid.');
+
   await validateAdmin();
 
   const supabase = createAdminClient();
   const { error } = await supabase.from('profiles').update({ is_banned: false }).eq('id', userId);
-  if (error) throw new Error('Gagal membuka blokir pengguna');
+  if (error) throw new Error('Gagal membuka blokir pengguna: ' + error.message);
 
   revalidatePath('/admin');
 }

@@ -1,29 +1,12 @@
 import { Hono } from 'hono';
 import { getSupabaseAdmin, getSupabaseClient } from '../lib/supabase';
+import { verifyTurnstile } from '../lib/turnstile';
 import type { Env } from '../types';
 
 const auth = new Hono<{ Bindings: Env }>();
 
 const LOCK_DURATION_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
-
-async function verifyTurnstile(token: string, secretKey: string): Promise<boolean> {
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret: secretKey, response: token }),
-    });
-    const data = await res.json() as { success: boolean; 'error-codes'?: string[] };
-    if (!data.success) {
-      console.error('[TURNSTILE ERROR]:', data['error-codes']);
-    }
-    return data.success;
-  } catch (err) {
-    console.error('[TURNSTILE] Fetch error:', err);
-    return false;
-  }
-}
 
 async function checkAndBlacklistTurnstile(
   limiter: KVNamespace | undefined,
@@ -62,35 +45,7 @@ async function checkRateLimit(
   }
 }
 
-auth.post('/verify-recaptcha', async (c) => {
-  try {
-    const { token, action } = await c.req.json();
-    if (!token) return c.json({ success: false, message: 'Token tidak ditemukan.' }, 400);
-
-    const ALLOWED_ACTIONS = ['login', 'register'];
-    if (!action || !ALLOWED_ACTIONS.includes(action)) {
-      return c.json({ success: false, message: 'Action tidak valid.' }, 400);
-    }
-
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${c.env.RECAPTCHA_SECRET_KEY}&response=${token}`;
-    const response = await fetch(verifyUrl, { method: 'POST' });
-    const data = await response.json() as { success: boolean; score: number; action?: string };
-
-    if (!data.success) return c.json({ success: false, message: 'Verifikasi reCAPTCHA gagal.' }, 400);
-
-    if (data.action && data.action !== action) {
-      return c.json({ success: false, message: 'Token keamanan tidak valid untuk aksi ini.' }, 403);
-    }
-
-    const threshold = 0.3;
-    if (data.score < threshold) return c.json({ success: false, message: 'Terdeteksi aktivitas mencurigakan.' }, 403);
-
-    return c.json({ success: true, score: data.score });
-  } catch {
-    return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
-  }
-});
-
+// ── POST /api/auth/register ───────────────────────────────────────────────────
 auth.post('/register', async (c) => {
   try {
     const { email, password, fullName, turnstileToken } = await c.req.json();
@@ -194,6 +149,7 @@ auth.post('/register', async (c) => {
   }
 });
 
+// ── POST /api/auth/login ──────────────────────────────────────────────────────
 auth.post('/login', async (c) => {
   try {
     const { email, password, turnstileToken } = await c.req.json();

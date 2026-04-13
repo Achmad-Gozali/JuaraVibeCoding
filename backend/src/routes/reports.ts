@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth';
 import { getSupabaseAdmin } from '../lib/supabase';
 import { analyzeChronologyText, analyzeEvidenceImage, AnalysisResult } from '../lib/groq';
+import { verifyTurnstile } from '../lib/turnstile';
 import type { Env } from '../types';
 
 const reports = new Hono<{ Bindings: Env; Variables: { userId: string; userEmail: string } }>();
@@ -55,7 +56,6 @@ function isValidHttpUrl(url: unknown): string | null {
   }
 }
 
-// FIX: Hapus replace slash (/&#x2F;) supaya platform tidak jadi "Twitter&#x2F;X"
 function sanitizeText(input: string): string {
   return input
     .replace(/&/g, '&amp;')
@@ -96,16 +96,6 @@ function determineAutoStatus(params: {
   return 'pending';
 }
 
-async function verifyTurnstile(token: string, secretKey: string): Promise<boolean> {
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret: secretKey, response: token }),
-  });
-  const data = await res.json() as { success: boolean };
-  return data.success;
-}
-
 // ── POST /api/reports ─────────────────────────────────────────────────────────
 reports.post('/', authMiddleware, async (c) => {
   try {
@@ -133,8 +123,7 @@ reports.post('/', authMiddleware, async (c) => {
       return c.json({ success: false, message: 'Batas laporan harian tercapai.' }, 429);
     }
 
-    // FIX: Cek duplikat — 1 user tidak boleh lapor nomor yang sama 2x
-    // (kecuali laporan sebelumnya sudah withdrawn)
+    // Cek duplikat
     const cleanNumberCheck = String(body.target_number).replace(/[^0-9]/g, '');
     const { count: duplicateCount } = await supabase.from('reports')
       .select('*', { count: 'exact', head: true })
@@ -163,13 +152,48 @@ reports.post('/', authMiddleware, async (c) => {
       }, 400);
     }
 
-    const cleanNumber = String(body.target_number).replace(/[^0-9]/g, '');
-    const sanitizedChronology = sanitizeChronology(String(body.chronology));
+    const cleanNumber = String(body.target_number).replace(/[^0-9]/g, "");
+
+    // Deklarasi sanitized vars dulu sebelum dipakai di cleanTargetNumbers
     const sanitizedTargetName = body.target_name ? sanitizeText(String(body.target_name)) : null;
+    const sanitizedChronology = sanitizeChronology(String(body.chronology));
     const sanitizedBankName = body.bank_name ? sanitizeText(String(body.bank_name)) : null;
     const sanitizedPlatform = body.platform ? sanitizeText(String(body.platform)) : null;
     const sanitizedSocialAccounts = body.social_media_accounts
       ? sanitizeArray(body.social_media_accounts as string[]) : [];
+
+    // target_numbers sekarang JSONB — simpan sebagai array of object { number, type, bank, name }
+    const rawTargetNumbers = Array.isArray(body.target_numbers) ? body.target_numbers : [];
+    const cleanTargetNumbers = rawTargetNumbers
+      .map((item: unknown) => {
+        if (typeof item === 'object' && item !== null && 'number' in item) {
+          const obj = item as { number: string; type?: string; bank?: string; name?: string };
+          const num = String(obj.number).replace(/[^0-9]/g, '');
+          if (!num) return null;
+          return {
+            number: num,
+            type: obj.type ?? 'phone',
+            bank: obj.bank ?? null,
+            name: obj.name ?? null,
+          };
+        }
+        const num = String(item).replace(/[^0-9]/g, '');
+        if (!num) return null;
+        return { number: num, type: 'phone', bank: null, name: null };
+      })
+      .filter(Boolean)
+      .slice(0, 5);
+
+    // Tambahkan primary number ke target_numbers kalau belum ada
+    const primaryInList = cleanTargetNumbers.some((t: any) => t?.number === cleanNumber);
+    if (!primaryInList) {
+      cleanTargetNumbers.unshift({
+        number: cleanNumber,
+        type: body.target_type ?? 'phone',
+        bank: body.bank_name ?? null,
+        name: sanitizedTargetName ?? null,
+      });
+    }
 
     const evidenceUrls = sanitizeEvidenceUrls(
       body.evidence_urls?.length > 0 ? body.evidence_urls : body.evidence_url ? [body.evidence_url] : []
@@ -234,6 +258,7 @@ reports.post('/', authMiddleware, async (c) => {
       has_other_victims: body.has_other_victims || null,
       reported_to: body.reported_to ?? [],
       suspect_photo_url: suspectPhotoUrl,
+      target_numbers: cleanTargetNumbers,
     });
 
     if (error) {

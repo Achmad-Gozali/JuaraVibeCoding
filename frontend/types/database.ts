@@ -1,10 +1,10 @@
 // ============================================
 // 📁 LOKASI: types/database.ts
-// ✅ UPDATE: Tambah 'withdrawn' ke ReportStatus dan Enums
+// ✅ UPDATE: Tambah tabel articles
 // ============================================
 
 export type TargetType = 'phone' | 'bank_account' | 'ewallet';
-export type ReportStatus = 'pending' | 'verified' | 'rejected' | 'withdrawn'; // ✅ tambah withdrawn
+export type ReportStatus = 'pending' | 'verified' | 'rejected' | 'withdrawn';
 export type UserRole = 'user' | 'admin' | 'moderator';
 
 export interface Profile {
@@ -137,6 +137,51 @@ export interface Database {
         };
         Relationships: [];
       };
+      articles: {
+        Row: {
+          id: string;
+          title: string;
+          slug: string;
+          summary: string;
+          content: string;
+          published_at: string;
+          total_reports: number | null;
+          total_loss: number | null;
+          top_category: string | null;
+          top_platform: string | null;
+          top_bank: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          slug: string;
+          summary: string;
+          content: string;
+          published_at?: string;
+          total_reports?: number | null;
+          total_loss?: number | null;
+          top_category?: string | null;
+          top_platform?: string | null;
+          top_bank?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          slug?: string;
+          summary?: string;
+          content?: string;
+          published_at?: string;
+          total_reports?: number | null;
+          total_loss?: number | null;
+          top_category?: string | null;
+          top_platform?: string | null;
+          top_bank?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -181,7 +226,7 @@ export interface Database {
     };
     Enums: {
       target_type_enum: 'phone' | 'bank_account';
-      report_status_enum: 'pending' | 'verified' | 'rejected' | 'withdrawn'; // ✅ tambah withdrawn
+      report_status_enum: 'pending' | 'verified' | 'rejected' | 'withdrawn';
     };
     CompositeTypes: {
       [_ in never]: never;

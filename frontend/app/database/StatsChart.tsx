@@ -120,13 +120,22 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
     const count: Record<string, number> = {};
     filteredReports.forEach(r => {
       const bankKey = r.bank_name?.toLowerCase() ?? '';
-      let platform = 'Nomor HP';
+      let platform = 'HP/WA'; // ← FIX: lebih pendek dari "Nomor HP"
       if (r.target_type === 'bank_account' && r.bank_name) {
-        platform = r.bank_name.toUpperCase();
+        // Singkat nama bank biar muat di X-axis
+        const bankShort: Record<string, string> = {
+          'bank central asia': 'BCA',
+          'bank rakyat indonesia': 'BRI',
+          'bank negara indonesia': 'BNI',
+          'bank mandiri': 'Mandiri',
+          'cimb niaga': 'CIMB',
+          'bank syariah indonesia': 'BSI',
+        };
+        platform = bankShort[r.bank_name.toLowerCase()] ?? r.bank_name;
       } else if (r.target_type === 'ewallet' && r.bank_name) {
-        platform = bankKey.charAt(0).toUpperCase() + bankKey.slice(1);
+        platform = r.bank_name; // GoPay, Dana, OVO sudah pendek
       } else if (r.target_type === 'phone' && r.bank_name && ewalletNames.includes(bankKey)) {
-        platform = bankKey.charAt(0).toUpperCase() + bankKey.slice(1);
+        platform = r.bank_name;
       }
       count[platform] = (count[platform] ?? 0) + 1;
     });
@@ -149,17 +158,17 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
 
   return (
     <div className="space-y-4">
-      {/* ── Toggle Global ── */}
-      <div className="flex items-center gap-3">
+      {/* Toggle Range */}
+      <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">
           Rentang:
         </span>
-        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5">
+        <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-0.5">
           {rangeOptions.map(opt => (
             <button
               key={opt.val}
               onClick={() => setRange(opt.val)}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all duration-200 ${
                 range === opt.val
                   ? 'bg-slate-900 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-700'
@@ -174,33 +183,33 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
         </span>
       </div>
 
-      {/* ── Charts Grid ── */}
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
         {/* Line Chart - Tren */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
-          <div className="mb-4">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tren Laporan</p>
-            <p className="text-base font-black text-slate-900">
+        <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-5">
+          <div className="mb-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Tren Laporan</p>
+            <p className="text-sm font-black text-slate-900">
               {range === 'all' ? 'Semua Waktu' : range === '30' ? '30 Hari Terakhir' : '7 Hari Terakhir'}
             </p>
           </div>
           {!hasTrend ? (
-            <div className="h-36 flex items-center justify-center text-sm text-slate-400 font-bold">
+            <div className="h-36 flex items-center justify-center text-xs text-slate-400 font-bold">
               Belum ada data
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer width="100%" height={150}>
               <LineChart data={trendData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
                   tickLine={false}
                   axisLine={false}
                   interval={tickInterval}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
                   tickLine={false}
                   axisLine={false}
                   allowDecimals={false}
@@ -210,12 +219,12 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
                   type="monotone"
                   dataKey="count"
                   stroke="#10b981"
-                  strokeWidth={3}
+                  strokeWidth={2.5}
                   dot={trendDays <= 14
-                    ? { fill: '#10b981', strokeWidth: 0, r: 4 }
+                    ? { fill: '#10b981', strokeWidth: 0, r: 3 }
                     : false
                   }
-                  activeDot={{ r: 6, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 5, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -223,24 +232,24 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
         </div>
 
         {/* Donut Chart - Kategori */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
-          <div className="mb-4">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Jenis Penipuan</p>
-            <p className="text-base font-black text-slate-900">Terbanyak Dilaporkan</p>
+        <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-5">
+          <div className="mb-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Jenis Penipuan</p>
+            <p className="text-sm font-black text-slate-900">Terbanyak Dilaporkan</p>
           </div>
           {!hasData || categoryData.length === 0 ? (
-            <div className="h-36 flex items-center justify-center text-sm text-slate-400 font-bold">
+            <div className="h-36 flex items-center justify-center text-xs text-slate-400 font-bold">
               Belum ada data
             </div>
           ) : (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="shrink-0">
-                <ResponsiveContainer width={130} height={130}>
+                <ResponsiveContainer width={120} height={120}>
                   <PieChart>
                     <Pie
                       data={categoryData}
                       cx="50%" cy="50%"
-                      innerRadius={32} outerRadius={62}
+                      innerRadius={28} outerRadius={56}
                       dataKey="value"
                       labelLine={false}
                       label={renderCustomLabel}
@@ -252,12 +261,12 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex-1 space-y-2 min-w-0">
+              <div className="flex-1 space-y-1.5 min-w-0">
                 {categoryData.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="text-xs font-bold text-slate-600 truncate leading-tight">{item.name}</span>
-                    <span className="text-xs font-black text-slate-900 ml-auto shrink-0">{item.value}</span>
+                  <div key={i} className="flex items-center gap-1.5 min-w-0">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="text-[11px] font-semibold text-slate-600 truncate leading-tight">{item.name}</span>
+                    <span className="text-[11px] font-black text-slate-900 ml-auto shrink-0">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -266,32 +275,32 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
         </div>
 
         {/* Bar Chart - Platform */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm sm:col-span-2 lg:col-span-1">
-          <div className="mb-4">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Platform</p>
-            <p className="text-base font-black text-slate-900">Paling Banyak Digunakan</p>
+        <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-5 sm:col-span-2 lg:col-span-1">
+          <div className="mb-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Platform</p>
+            <p className="text-sm font-black text-slate-900">Paling Banyak Digunakan</p>
           </div>
           {!hasData || platformData.length === 0 ? (
-            <div className="h-36 flex items-center justify-center text-sm text-slate-400 font-bold">
+            <div className="h-36 flex items-center justify-center text-xs text-slate-400 font-bold">
               Belum ada data
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={platformData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barSize={18}>
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={platformData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barSize={16}>
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
                   tickLine={false}
                   axisLine={false}
                   allowDecimals={false}
                 />
                 <Tooltip content={<CustomTooltipBar />} />
-                <Bar dataKey="value" radius={[5, 5, 0, 0]}>
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                   {platformData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}

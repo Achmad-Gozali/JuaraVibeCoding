@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -18,26 +17,6 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 30;
-
-async function createClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch { }
-        },
-      },
-    }
-  );
-}
 
 const statusConfig = {
   pending:   { label: 'Menunggu',        icon: Clock,        className: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -69,7 +48,6 @@ export default async function LaporanPage() {
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="max-w-5xl mx-auto px-4 py-12 space-y-10">
-
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -82,10 +60,7 @@ export default async function LaporanPage() {
             <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight">Riwayat Laporan</h1>
             <p className="text-zinc-400 text-sm mt-1 truncate max-w-xs">{user.email}</p>
           </div>
-          <Link
-            href="/report"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-zinc-900 text-white font-bold text-sm rounded-xl hover:bg-black transition-all active:scale-95 hover:scale-[1.02] shadow-lg shadow-zinc-900/10 self-start sm:self-auto"
-          >
+          <Link href="/report" className="inline-flex items-center gap-2 px-5 py-3 bg-zinc-900 text-white font-bold text-sm rounded-xl hover:bg-black transition-all active:scale-95 hover:scale-[1.02] shadow-lg shadow-zinc-900/10 self-start sm:self-auto">
             <PlusCircle className="w-4 h-4" /> Buat Laporan
           </Link>
         </motion.div>
@@ -136,8 +111,7 @@ export default async function LaporanPage() {
               <p className="text-sm text-zinc-400 mb-6 max-w-xs mx-auto">
                 Kamu belum pernah membuat laporan. Bantu komunitas dengan melaporkan nomor penipu.
               </p>
-              <Link href="/report"
-                className="inline-flex items-center gap-2 px-5 py-3 bg-zinc-900 text-white font-bold text-sm rounded-xl hover:bg-black transition-all active:scale-95">
+              <Link href="/report" className="inline-flex items-center gap-2 px-5 py-3 bg-zinc-900 text-white font-bold text-sm rounded-xl hover:bg-black transition-all active:scale-95">
                 <PlusCircle className="w-4 h-4" /> Buat Laporan Pertama
               </Link>
             </motion.div>
@@ -156,9 +130,7 @@ export default async function LaporanPage() {
                     initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + i * 0.06, ease: [0.16, 1, 0.3, 1] }}
                     whileHover={{ y: -1 }}
-                    className={`bg-white border rounded-2xl p-5 hover:shadow-md transition-all ${
-                      isWithdrawn ? 'border-blue-100' : 'border-zinc-200 hover:border-zinc-300'
-                    }`}
+                    className={`bg-white border rounded-2xl p-5 hover:shadow-md transition-all ${isWithdrawn ? 'border-blue-100' : 'border-zinc-200 hover:border-zinc-300'}`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4 min-w-0">
@@ -167,12 +139,8 @@ export default async function LaporanPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="text-base font-extrabold tracking-tight text-zinc-900">
-                              {maskNumber(report.target_number)}
-                            </span>
-                            {report.target_name && (
-                              <span className="text-sm text-zinc-400">· {report.target_name}</span>
-                            )}
+                            <span className="text-base font-extrabold tracking-tight text-zinc-900">{maskNumber(report.target_number)}</span>
+                            {report.target_name && <span className="text-sm text-zinc-400">· {report.target_name}</span>}
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{report.category}</span>
@@ -181,16 +149,13 @@ export default async function LaporanPage() {
                           </div>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-bold ${status.className}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {status.label}
+                          <StatusIcon className="w-3 h-3" />{status.label}
                         </div>
                         {report.status === 'verified' && (
                           <Link href={`/check/${report.target_number}`}
-                            className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center hover:bg-zinc-900 hover:text-white transition-all group/btn"
-                            title="Lihat halaman publik">
+                            className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center hover:bg-zinc-900 hover:text-white transition-all group/btn" title="Lihat halaman publik">
                             <ArrowRight className="w-3.5 h-3.5 text-zinc-500 group-hover/btn:text-white" />
                           </Link>
                         )}

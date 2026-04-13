@@ -11,7 +11,7 @@ import {
   TrendingDown, Undo2, FilePen, Ban, ShieldOff, Mail, FileBarChart,
 } from 'lucide-react';
 import { updateReportStatus, updateUserRole, banUser, unbanUser } from './actions';
-import { formatDateID } from '@/lib/utils';
+import { formatDateID, formatRupiah } from '@/lib/utils';
 import DailyChart from './DailyChart';
 
 // ── TYPES ─────────────────────────────────────────────────────────────────────
@@ -51,14 +51,6 @@ interface AdminUser {
 interface Stats { total: number; pending: number; verified: number; rejected: number; }
 type Tab = 'dashboard' | 'laporan' | 'statistik' | 'pengguna';
 type StatusFilter = 'semua' | 'pending' | 'verified' | 'rejected' | 'withdrawn';
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function formatRupiah(num: number | string): string {
-  const n = Number(num) || 0;
-  if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)}M`;
-  if (n >= 1_000_000)     return `Rp ${(n / 1_000_000).toFixed(1)}jt`;
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
-}
 
 const reportedToLabel: Record<string, string> = {
   polisi:   '🚔 Polisi',
@@ -107,7 +99,6 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
 
   const setActiveTab = (tab: Tab) => router.push(`/admin?tab=${tab}`);
 
-  // ── Computed data ───────────────────────────────────────────────────────────
   const uniqueBanks     = useMemo(() => Array.from(new Set(reports.map(r => r.bank_name).filter(Boolean) as string[])).sort(), [reports]);
   const uniquePlatforms = useMemo(() => Array.from(new Set(reports.map(r => r.platform).filter(Boolean) as string[])).sort(), [reports]);
 
@@ -157,20 +148,6 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   }, [reports]);
   const maxPlat = platformStats[0]?.[1] || 1;
 
-  const dailyStats = useMemo(() => {
-    const days: Record<string, number> = {};
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      days[d.toLocaleDateString('en-CA')] = 0;
-    }
-    reports.forEach(r => {
-      const d = new Date(r.created_at).toLocaleDateString('en-CA');
-      if (d in days) days[d]++;
-    });
-    return Object.entries(days);
-  }, [reports]);
-  const maxDaily = Math.max(...dailyStats.map(d => d[1]), 1);
-
   const filteredUsers = useMemo(() => {
     if (!userSearch) return users;
     const q = userSearch.toLowerCase();
@@ -191,7 +168,14 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   // ── Report actions ──────────────────────────────────────────────────────────
   const handleAction = async (id: string, status: 'verified' | 'rejected' | 'pending' | 'withdrawn') => {
     setLoadingId(id);
-    try { await updateReportStatus(id, status); router.refresh(); } catch (err) { console.error(err); } finally { setLoadingId(null); }
+    try {
+      await updateReportStatus(id, status);
+      router.refresh();
+    } catch {
+      // Silent fail — user tidak perlu lihat raw error
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const handleBulkAction = async (status: 'verified' | 'rejected') => {
@@ -199,8 +183,13 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     setBulkLoading(true);
     try {
       await Promise.all([...selectedIds].map(id => updateReportStatus(id, status)));
-      setSelectedIds(new Set()); router.refresh();
-    } catch (err) { console.error(err); } finally { setBulkLoading(false); }
+      setSelectedIds(new Set());
+      router.refresh();
+    } catch {
+      // Silent fail
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
   const toggleSelect = (id: string) => {
@@ -228,9 +217,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     a.download = `laporan-${todayStr}.csv`; a.click();
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ─── DASHBOARD TAB ────────────────────────────────────────────────────────
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ── DASHBOARD TAB ─────────────────────────────────────────────────────────
   if (currentTab === 'dashboard') return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <SectionTitle title="Dashboard" subtitle="Overview semua laporan masuk" />
@@ -303,9 +290,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     </div>
   );
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ─── LAPORAN TAB ──────────────────────────────────────────────────────────
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ── LAPORAN TAB ───────────────────────────────────────────────────────────
   if (currentTab === 'laporan') return (
     <div className="space-y-5 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
@@ -460,17 +445,10 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
                 </div>
                 {isExp && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 bg-slate-50/60 space-y-5">
-                    {/* FIX: <img> → <Image /> dengan unoptimized untuk URL eksternal dinamis */}
                     {report.suspect_photo_url && (
                       <div className="flex items-start gap-4 p-4 bg-red-50 border border-red-100 rounded-xl">
                         <div className="relative w-16 h-16 shrink-0">
-                          <Image
-                            src={report.suspect_photo_url}
-                            alt="Foto penipu"
-                            fill
-                            className="object-cover rounded-xl border-2 border-red-200"
-                            unoptimized
-                          />
+                          <Image src={report.suspect_photo_url} alt="Foto penipu" fill className="object-cover rounded-xl border-2 border-red-200" unoptimized />
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1"><UserX className="w-3 h-3" /> Foto Profil Penipu</p>
@@ -539,9 +517,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     </div>
   );
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ─── STATISTIK TAB ────────────────────────────────────────────────────────
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ── STATISTIK TAB ─────────────────────────────────────────────────────────
   if (currentTab === 'statistik') return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <SectionTitle title="Statistik" subtitle="Analisis data laporan" />
@@ -618,9 +594,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     </div>
   );
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ─── PENGGUNA TAB ─────────────────────────────────────────────────────────
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ── PENGGUNA TAB ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
       <SectionTitle title="Pengguna" subtitle={`${users.length} total pengguna terdaftar`} />
@@ -652,17 +626,17 @@ function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }
 
   const handleRole = async (r: 'user' | 'admin') => {
     setLoading(true); setAction(r);
-    try { await updateUserRole(user.id, r); onRefresh(); } catch (e) { console.error(e); } finally { setLoading(false); setAction(null); }
+    try { await updateUserRole(user.id, r); onRefresh(); } catch { /* silent */ } finally { setLoading(false); setAction(null); }
   };
 
   const handleBan = async () => {
     setLoading(true); setAction('ban');
-    try { await banUser(user.id); onRefresh(); } catch (e) { console.error(e); } finally { setLoading(false); setAction(null); }
+    try { await banUser(user.id); onRefresh(); } catch { /* silent */ } finally { setLoading(false); setAction(null); }
   };
 
   const handleUnban = async () => {
     setLoading(true); setAction('unban');
-    try { await unbanUser(user.id); onRefresh(); } catch (e) { console.error(e); } finally { setLoading(false); setAction(null); }
+    try { await unbanUser(user.id); onRefresh(); } catch { /* silent */ } finally { setLoading(false); setAction(null); }
   };
 
   const initial = (user.full_name || 'U').charAt(0).toUpperCase();
@@ -683,25 +657,13 @@ function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }
             <p className={`text-sm font-semibold truncate ${isBanned ? 'text-red-700 line-through' : 'text-slate-900'}`}>
               {user.full_name || 'Tanpa Nama'}
             </p>
-            {isAdmin && (
-              <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-50 text-red-600 border-red-200">Admin</span>
-            )}
-            {isBanned && (
-              <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-100 text-red-700 border-red-300">Banned</span>
-            )}
+            {isAdmin && <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-50 text-red-600 border-red-200">Admin</span>}
+            {isBanned && <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-100 text-red-700 border-red-300">Banned</span>}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
-            {user.email && (
-              <span className="flex items-center gap-1 truncate max-w-[200px]">
-                <Mail className="w-3 h-3 shrink-0" /> {user.email}
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 shrink-0" /> {joinDate}
-            </span>
-            <span className="flex items-center gap-1">
-              <FileBarChart className="w-3 h-3 shrink-0" /> {user.report_count} laporan
-            </span>
+            {user.email && <span className="flex items-center gap-1 truncate max-w-[200px]"><Mail className="w-3 h-3 shrink-0" /> {user.email}</span>}
+            <span className="flex items-center gap-1"><Calendar className="w-3 h-3 shrink-0" /> {joinDate}</span>
+            <span className="flex items-center gap-1"><FileBarChart className="w-3 h-3 shrink-0" /> {user.report_count} laporan</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">

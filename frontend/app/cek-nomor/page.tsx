@@ -3,8 +3,8 @@ import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import NomorSearchForm from '@/components/NomorSearchForm';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase-server';
+import { formatRupiah } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Cek Nomor HP - KawalTransaksi',
@@ -30,36 +30,9 @@ const articles = [
   { title: 'Nomor HP Penipu Sosial Media', desc: 'KawalTransaksi menerima laporan nomor HP untuk modus phishing, soceng, investasi bodong, dan penipuan berkedok hadiah.' },
 ];
 
-function formatRupiah(amount: number): string {
-  if (amount >= 1_000_000_000) {
-    const val = amount / 1_000_000_000;
-    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} M+`.replace('.', ',');
-  }
-  if (amount >= 1_000_000) {
-    const val = amount / 1_000_000;
-    return `Rp${val % 1 === 0 ? val : val.toFixed(1)} Jt+`.replace('.', ',');
-  }
-  if (amount >= 1_000) {
-    return `Rp${(amount / 1_000).toFixed(0)} Rb+`;
-  }
-  return `Rp${amount.toLocaleString('id-ID')}`;
-}
-
 async function getStats() {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet) {
-            try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch { }
-          },
-        },
-      }
-    );
+    const supabase = await createClient();
 
     const { count: totalLaporan } = await supabase
       .from('reports')
@@ -114,8 +87,6 @@ export default async function CekNomorPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-
-      {/* ── HERO ── */}
       <section className="relative pt-10 sm:pt-24 pb-0 overflow-hidden bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-10 pb-10 sm:pb-24">
@@ -141,7 +112,6 @@ export default async function CekNomorPage() {
         </svg>
       </section>
 
-      {/* ── STATS CARD ── */}
       <section className="bg-slate-50 pb-8 sm:pb-12">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6 sm:-mt-14 relative z-10">
           <div className="bg-white border border-slate-200 rounded-xl shadow-md overflow-hidden">
@@ -169,7 +139,6 @@ export default async function CekNomorPage() {
         </div>
       </section>
 
-      {/* ── APA ITU CEK NOMOR ── */}
       <section className="bg-slate-50 py-8 sm:py-12">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 items-center text-left">
@@ -188,7 +157,6 @@ export default async function CekNomorPage() {
         </div>
       </section>
 
-      {/* ── CEK PER E-WALLET ── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-14 mb-10 sm:mb-20 text-left">
         <div className="flex items-end justify-between mb-4 sm:mb-6 border-b border-slate-200 pb-3 sm:pb-4">
           <div>
@@ -216,7 +184,6 @@ export default async function CekNomorPage() {
         </div>
       </section>
 
-      {/* ── ARTIKEL ── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-24 text-left">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 sm:gap-x-16 gap-y-6 sm:gap-y-12">
           {articles.map((article, i) => (

@@ -1,206 +1,118 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Loader2, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
-import { encodeSlug } from '@/lib/utils';
+import { Search, Loader2, AlertCircle } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { createClient } from '@/lib/supabase-browser';
+import { encodeSlug } from '@/lib/utils';
 
-const SEARCH_COOLDOWN_MS = 2000;
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_BACKEND_URL is not defined');
+  return url;
+})();
 
-function isValidRekening(num: string): boolean {
-  const cleaned = num.replace(/\s/g, '');
-  if (cleaned.startsWith('08') || cleaned.startsWith('62')) return false;
-  return /^\d{10,20}$/.test(cleaned);
-}
-
-function getRekeningError(num: string): string | null {
-  if (!num) return null;
-  const cleaned = num.replace(/\s/g, '');
-  if (cleaned.startsWith('08') || cleaned.startsWith('62')) {
-    return 'Ini terlihat seperti nomor HP. Untuk cek nomor HP atau WhatsApp, gunakan halaman Cek Nomor HP.';
-  }
-  if (cleaned.length < 10) return 'Nomor rekening terlalu pendek. Minimal 10 digit.';
-  if (cleaned.length > 20) return 'Nomor rekening terlalu panjang. Maksimal 20 digit.';
-  return null;
-}
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 
 export default function RekeningSearchForm() {
   const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [touched, setTouched] = useState(false);
-  const [cooldown, setCooldown] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileStatus, setTurnstileStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('loading');
-  const [captchaError, setCaptchaError] = useState<string | null>(null);
-  const lastSearchRef = useRef<number>(0);
+  const [turnstileKey, setTurnstileKey] = useState(0);
   const router = useRouter();
-  const supabase = createClient();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const error = touched ? getRekeningError(query) : null;
-  const isValid = isValidRekening(query);
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken(null);
+    setTurnstileKey((prev) => prev + 1);
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSuccess = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched(true);
-    setCaptchaError(null);
+    setError(null);
 
+    const cleaned = query.replace(/\D/g, '');
+    if (!cleaned || cleaned.length < 6) {
+      setError('Masukkan nomor rekening yang valid (minimal 6 digit).');
+      return;
+    }
     if (!turnstileToken) {
-      setCaptchaError('Selesaikan verifikasi keamanan terlebih dahulu.');
+      setError('Selesaikan verifikasi keamanan terlebih dahulu.');
       return;
     }
 
-    if (!query.trim() || !isValid) return;
-
-    const now = Date.now();
-    if (now - lastSearchRef.current < SEARCH_COOLDOWN_MS) return;
-    lastSearchRef.current = now;
-
-    setIsLoading(true);
-    setCooldown(true);
-    setTimeout(() => setCooldown(false), SEARCH_COOLDOWN_MS);
-
+    setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token ?? null;
-
-      const verifyRes = await fetch(`${BACKEND_URL}/api/search/verify-turnstile`, {
+      const res = await fetch(`${BACKEND_URL}/api/search/verify-turnstile`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: turnstileToken }),
       });
-      const verifyData = await verifyRes.json() as { success: boolean; message?: string };
+      const data = (await res.json()) as { success: boolean; message?: string };
 
-      if (verifyRes.status === 429) {
-        setCaptchaError(verifyData.message || 'Terlalu banyak pencarian. Tunggu sebentar lalu coba lagi.');
-        setIsLoading(false);
+      if (!data.success) {
+        setError(data.message ?? 'Verifikasi keamanan gagal. Coba lagi.');
+        resetTurnstile();
+        setLoading(false);
         return;
       }
 
-      if (!verifyData.success) {
-        setCaptchaError('Verifikasi keamanan gagal. Coba refresh halaman.');
-        setIsLoading(false);
-        return;
-      }
-
-      router.push(`/check/${encodeSlug(query)}?type=bank`);
+      router.push(`/check/${encodeSlug(cleaned)}?type=bank`);
     } catch {
-      setCaptchaError('Gagal menghubungi server. Periksa koneksi internet.');
-      setIsLoading(false);
+      setError('Terjadi kesalahan. Coba lagi.');
+      resetTurnstile();
+    } finally {
+      setLoading(false);
     }
   };
 
-  const examples = ['1234567890', '1122334455'];
-
   return (
-    <div className="w-full max-w-2xl mx-auto px-2 sm:px-0">
-      <form onSubmit={handleSubmit} className="group relative">
-
-        {/* Input nomor rekening */}
-        <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-xl shadow-sm border p-1.5 transition-all duration-300 ${
-          error
-            ? 'border-red-400 ring-2 ring-red-400/10'
-            : 'border-slate-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/10'
-        }`}>
-          <div className="relative flex-grow flex items-center">
-            <div className="absolute left-4 sm:left-5 pointer-events-none">
-              <Search className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors ${
-                error ? 'text-red-400' : 'text-slate-400 group-focus-within:text-emerald-500'
-              }`} />
-            </div>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value.replace(/[^0-9]/g, ''));
-                setTouched(true);
-              }}
-              onBlur={() => setTouched(true)}
-              placeholder="Masukkan nomor rekening..."
-              className="w-full pl-11 sm:pl-12 pr-4 py-3.5 sm:py-3 bg-transparent placeholder-slate-400 focus:outline-none text-sm sm:text-base font-bold text-slate-900"
-              disabled={isLoading}
-              maxLength={20}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading || !query.trim() || cooldown || turnstileStatus !== 'ready'}
-            className="mt-2 sm:mt-0 px-6 sm:px-8 py-3.5 sm:py-3 bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-lg hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 shrink-0"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : turnstileStatus === 'loading' ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Memuat...</>
-            ) : (
-              <>CEK DATABASE <ArrowRight className="w-4 h-4" /></>
-            )}
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-col items-start gap-2">
-          <Turnstile
-            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-            onSuccess={(token) => {
-              setTurnstileToken(token);
-              setTurnstileStatus('ready');
-              setCaptchaError(null);
-            }}
-            onExpire={() => {
-              setTurnstileToken(null);
-              setTurnstileStatus('loading');
-            }}
-            onError={() => {
-              setTurnstileToken(null);
-              setTurnstileStatus('error');
-              setCaptchaError('Widget keamanan gagal dimuat. Coba refresh halaman.');
-            }}
+    <form onSubmit={handleSearch} className="w-full max-w-lg space-y-3">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="tel"
+            inputMode="numeric"
+            value={query}
+            onChange={(e) => setQuery(e.target.value.replace(/\D/g, ''))}
+            placeholder="Contoh: 1234567890"
+            maxLength={20}
+            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
           />
-          {turnstileStatus === 'ready' && !captchaError && (
-            <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Verifikasi keamanan selesai
-            </p>
-          )}
-          {turnstileStatus === 'loading' && (
-            <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-              <Loader2 className="w-3 h-3 animate-spin" /> Memuat verifikasi keamanan...
-            </p>
-          )}
         </div>
-
-        {error && (
-          <div className="mt-2.5 flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-            <p className="text-xs font-semibold text-red-600 leading-relaxed">{error}</p>
-          </div>
-        )}
-
-        {captchaError && (
-          <div className="mt-2.5 flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
-            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs font-semibold text-amber-600 leading-relaxed">{captchaError}</p>
-          </div>
-        )}
-      </form>
-
-      <div className="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contoh Pencarian:</span>
-        {examples.map((num) => (
-          <button
-            key={num}
-            type="button"
-            onClick={() => { setQuery(num); setTouched(false); }}
-            className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-[10px] font-bold text-slate-500 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm"
-          >
-            {num}
-          </button>
-        ))}
+        <button
+          type="submit"
+          disabled={loading || !turnstileToken}
+          className="px-5 py-3 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cek'}
+        </button>
       </div>
-    </div>
+
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {TURNSTILE_SITE_KEY && (
+        <Turnstile
+          key={turnstileKey}
+          siteKey={TURNSTILE_SITE_KEY}
+          onSuccess={handleSuccess}
+          onExpire={resetTurnstile}
+          onError={resetTurnstile}
+          options={{ theme: 'light', size: 'normal' }}
+        />
+      )}
+    </form>
   );
 }

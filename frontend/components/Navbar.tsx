@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
-import { LogOut, Menu, X, User, FileText, ChevronDown, Home, Phone, Building2, Flag, BookOpen, Database } from 'lucide-react';
+import { LogOut, Menu, X, User, FileText, ChevronDown, Home, Phone, Building2, Flag, Database, Newspaper } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const publicMenuItems = [
@@ -13,7 +13,7 @@ const publicMenuItems = [
   { href: '/cek-nomor',    label: 'Cek Nomor',    icon: Phone     },
   { href: '/cek-rekening', label: 'Cek Rekening', icon: Building2 },
   { href: '/report',       label: 'Laporkan',     icon: Flag      },
-  { href: '/edukasi',      label: 'Edukasi',      icon: BookOpen  },
+  { href: '/artikel',      label: 'Artikel',      icon: Newspaper },
 ];
 
 const privateMenuItems = [
@@ -22,7 +22,7 @@ const privateMenuItems = [
   { href: '/cek-rekening', label: 'Cek Rekening',   icon: Building2 },
   { href: '/database',     label: 'Laporan Publik', icon: Database  },
   { href: '/report',       label: 'Laporkan',       icon: Flag      },
-  { href: '/edukasi',      label: 'Edukasi',        icon: BookOpen  },
+  { href: '/artikel',      label: 'Artikel',        icon: Newspaper },
 ];
 
 export default function Navbar() {
