@@ -2,9 +2,10 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Loader2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { encodeSlug } from '@/lib/utils';
+import Link from 'next/link';
 
 const BACKEND_URL = (() => {
   const url = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -13,6 +14,17 @@ const BACKEND_URL = (() => {
 })();
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+
+function isLikelyHP(num: string): boolean {
+  if (num.length === 0) return false;
+  if (num.startsWith('08')) return true;
+  if (num.startsWith('8')) return true;
+  if (num.startsWith('628')) return true;
+  if (num.startsWith('0') && num.length === 1) return true; // mungkin mau ketik 08
+  if (num.startsWith('6') && num.length === 1) return false; // belum tau
+  if (num.startsWith('62') && num.length === 2) return true; // mungkin mau ketik 628
+  return false;
+}
 
 export default function RekeningSearchForm() {
   const [query, setQuery] = useState('');
@@ -32,11 +44,18 @@ export default function RekeningSearchForm() {
     setTurnstileToken(token);
   }, []);
 
+  const cleaned = query.replace(/\D/g, '');
+  const isWrongInput = isLikelyHP(cleaned);
+
+  const handleChange = (val: string) => {
+    setQuery(val.replace(/\D/g, ''));
+    setError(null);
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const cleaned = query.replace(/\D/g, '');
     if (!cleaned || cleaned.length < 6) {
       setError('Masukkan nomor rekening yang valid (minimal 6 digit).');
       return;
@@ -81,20 +100,37 @@ export default function RekeningSearchForm() {
             type="tel"
             inputMode="numeric"
             value={query}
-            onChange={(e) => setQuery(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => handleChange(e.target.value)}
             placeholder="Contoh: 1234567890"
             maxLength={20}
-            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+            className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+              isWrongInput
+                ? 'border-amber-400 focus:border-amber-400 focus:ring-amber-100'
+                : 'border-slate-200 focus:border-emerald-400 focus:ring-emerald-100'
+            }`}
           />
         </div>
         <button
           type="submit"
-          disabled={loading || !turnstileToken}
+          disabled={loading || !turnstileToken || isWrongInput}
           className="px-5 py-3 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cek'}
         </button>
       </div>
+
+      {isWrongInput && (
+        <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>
+            Sepertinya ini nomor HP/WA, bukan nomor rekening.{' '}
+            <Link href="/cek-nomor" className="font-bold underline underline-offset-2 hover:text-amber-900">
+              Gunakan halaman Cek Nomor HP
+            </Link>{' '}
+            untuk hasil yang akurat.
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

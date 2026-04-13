@@ -33,7 +33,7 @@ const VALID_CATEGORIES = [
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const ALLOWED_STORAGE_HOSTNAME = 'gqnajsdvwhaokxbdummj.supabase.co';
+const ALLOWED_STORAGE_HOSTNAME = 'xcljigqrbwtqkiuraohr.supabase.co';
 const MAX_EVIDENCE_FILES = 10;
 
 function isValidEvidenceUrl(url: unknown): boolean {

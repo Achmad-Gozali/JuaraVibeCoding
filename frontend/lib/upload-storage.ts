@@ -46,16 +46,16 @@ export async function uploadToStorage(file: File): Promise<string> {
   const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const { error } = await supabase.storage
-    .from('evidence')
+    .from('reports')
     .upload(fileName, file, {
-      contentType: file.type,
-      upsert: false,
-    });
+    contentType: file.type,
+    upsert: false,
+  });
 
   if (error) throw new Error(`Gagal mengupload file: ${error.message}`);
 
   const { data: { publicUrl } } = supabase.storage
-    .from('evidence')
+    .from('reports')
     .getPublicUrl(fileName);
 
   return publicUrl;
