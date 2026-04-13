@@ -28,7 +28,7 @@ export default async function ArtikelPage() {
 
   const { data: articles } = await supabase
     .from('articles')
-    .select('id, title, slug, summary, total_reports, total_loss, top_category, published_at')
+    .select('id, title, slug, summary, total_reports, total_loss, published_at')
     .order('published_at', { ascending: false })
     .limit(20);
 
@@ -36,13 +36,13 @@ export default async function ArtikelPage() {
     <main className="bg-white min-h-screen font-sans">
 
       {/* Header */}
-      <section className="bg-slate-50 px-4 pt-10 pb-8 sm:pt-14 sm:pb-10">
+      <section className="bg-slate-50 px-4 pt-10 pb-8 sm:pt-16 sm:pb-12">
         <div className="max-w-4xl mx-auto">
           <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-3">
             Diperbarui setiap minggu
           </p>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase mb-3 leading-tight">
-            Artikel Penipuan Mingguan
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tighter uppercase mb-3 leading-tight">
+            Artikel Penipuan<br className="sm:hidden" /> Mingguan
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-xl leading-relaxed">
             Laporan otomatis berdasarkan pola penipuan yang masuk ke database KawalTransaksi setiap minggunya.
@@ -72,7 +72,7 @@ export default async function ArtikelPage() {
                 <Link
                   key={article.id}
                   href={`/artikel/${article.slug}`}
-                  className="group flex flex-col bg-white border border-slate-100 rounded-xl p-5 hover:border-emerald-200 hover:shadow-md transition-all duration-200"
+                  className="group flex flex-col bg-white border border-slate-100 rounded-xl p-5 hover:border-emerald-200 hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
                   {/* Nomor + Tanggal */}
                   <div className="flex items-center justify-between mb-3">
@@ -94,7 +94,7 @@ export default async function ArtikelPage() {
                     {article.summary}
                   </p>
 
-                  {/* Badges */}
+                  {/* Badges — hanya jumlah laporan + kerugian */}
                   <div className="flex flex-wrap gap-1.5 mb-4">
                     {(article.total_reports ?? 0) > 0 && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
@@ -106,15 +106,10 @@ export default async function ArtikelPage() {
                         {formatLoss(article.total_loss!)}
                       </span>
                     )}
-                    {article.top_category && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
-                        {article.top_category}
-                      </span>
-                    )}
                   </div>
 
                   {/* Tombol */}
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 group-hover:bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest transition-colors self-start">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 group-hover:bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest transition-colors self-start">
                     Baca Artikel →
                   </span>
                 </Link>

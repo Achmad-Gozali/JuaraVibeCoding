@@ -73,6 +73,23 @@ const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent
   );
 };
 
+// Custom label di atas bar — nampilin nama platform
+const renderBarLabel = ({ x, y, width, value, index, data }: any) => {
+  const name = data?.[index]?.name ?? '';
+  return (
+    <text
+      x={x + width / 2}
+      y={y - 4}
+      fill="#64748b"
+      textAnchor="middle"
+      fontSize={9}
+      fontWeight={700}
+    >
+      {name}
+    </text>
+  );
+};
+
 export default function StatsChart({ rawReports }: StatsChartProps) {
   const [range, setRange] = useState<Range>('30');
 
@@ -120,9 +137,8 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
     const count: Record<string, number> = {};
     filteredReports.forEach(r => {
       const bankKey = r.bank_name?.toLowerCase() ?? '';
-      let platform = 'HP/WA'; // ← FIX: lebih pendek dari "Nomor HP"
+      let platform = 'HP/WA';
       if (r.target_type === 'bank_account' && r.bank_name) {
-        // Singkat nama bank biar muat di X-axis
         const bankShort: Record<string, string> = {
           'bank central asia': 'BCA',
           'bank rakyat indonesia': 'BRI',
@@ -130,10 +146,22 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
           'bank mandiri': 'Mandiri',
           'cimb niaga': 'CIMB',
           'bank syariah indonesia': 'BSI',
+          'bank tabungan negara': 'BTN',
+          'bank danamon': 'Danamon',
+          'bank permata': 'Permata',
+          'bank mega': 'Mega',
+          'bank ocbc': 'OCBC',
+          'seabank': 'SeaBank',
+          'allo bank': 'Allo Bank',
+          'blu by bca': 'blu BCA',
+          'jenius': 'Jenius',
+          'line bank': 'LINE Bank',
+          'bank jago': 'Jago',
+          'neobank': 'Neo+',
         };
         platform = bankShort[r.bank_name.toLowerCase()] ?? r.bank_name;
       } else if (r.target_type === 'ewallet' && r.bank_name) {
-        platform = r.bank_name; // GoPay, Dana, OVO sudah pendek
+        platform = r.bank_name;
       } else if (r.target_type === 'phone' && r.bank_name && ewalletNames.includes(bankKey)) {
         platform = r.bank_name;
       }
@@ -285,28 +313,47 @@ export default function StatsChart({ rawReports }: StatsChartProps) {
               Belum ada data
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={150}>
-              <BarChart data={platformData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barSize={16}>
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                  tickLine={false}
-                  axisLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip content={<CustomTooltipBar />} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {platformData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              {/* Legend nama platform */}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
+                {platformData.map((item, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <div
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                    />
+                    <span className="text-[10px] font-bold text-slate-500">{item.name}</span>
+                    <span className="text-[10px] font-black text-slate-900">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+              <ResponsiveContainer width="100%" height={120}>
+                <BarChart
+                  data={platformData}
+                  margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
+                  barSize={20}
+                >
+                  <XAxis
+                    dataKey="name"
+                    tick={false}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<CustomTooltipBar />} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {platformData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </>
           )}
         </div>
 

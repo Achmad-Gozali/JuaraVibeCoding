@@ -149,11 +149,26 @@ Panjang artikel: 400-600 kata. Gunakan bahasa yang informatif tapi mudah dipaham
     return;
   }
 
-  // Buat title dan slug
-  const weekNum = Math.ceil(periodEnd.getDate() / 7);
-  const monthStr = periodEnd.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-  const title = `Laporan Penipuan Minggu ke-${weekNum} ${monthStr}`;
-  const slug = `laporan-minggu-${weekNum}-${periodEnd.toISOString().slice(0, 7)}`;
+  // Buat title — format: "Laporan Penipuan 7–13 April 2026"
+  const startDay = periodStart.getDate();
+  const endDay = periodEnd.getDate();
+  const endMonthYear = periodEnd.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const startMonth = periodStart.toLocaleDateString('id-ID', { month: 'long' });
+
+  // Kalau bulannya beda (misal 31 Maret – 6 April), tampilin bulan keduanya
+  const isSameMonth = periodStart.getMonth() === periodEnd.getMonth();
+  const startLabel = isSameMonth
+    ? `${startDay}`
+    : `${startDay} ${startMonth}`;
+
+  const title = `Laporan Penipuan ${startLabel}–${endDay} ${endMonthYear}`;
+
+  // Slug: laporan-7-13-april-2026
+  const endMonthSlug = periodEnd.toLocaleDateString('id-ID', { month: 'long' })
+    .toLowerCase()
+    .replace(/ /g, '-');
+  const endYear = periodEnd.getFullYear();
+  const slug = `laporan-${startDay}-${endDay}-${endMonthSlug}-${endYear}`;
 
   // Summary — ambil kalimat pertama dari artikel
   const summary = content.split('.')[0] + '.';
@@ -180,4 +195,4 @@ Panjang artikel: 400-600 kata. Gunakan bahasa yang informatif tapi mudah dipaham
   }
 
   console.log(`[CRON] Artikel berhasil di-generate: ${title}`);
-}
+} 

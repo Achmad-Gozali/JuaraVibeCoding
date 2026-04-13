@@ -95,27 +95,6 @@ export default async function ArtikelDetailPage({ params }: Props) {
           {article.title}
         </h1>
 
-        {/* Stats badges */}
-        {(article.top_category || article.top_platform || article.top_bank) && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {article.top_category && (
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                Modus: {article.top_category}
-              </span>
-            )}
-            {article.top_platform && (
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                Platform: {article.top_platform}
-              </span>
-            )}
-            {article.top_bank && (
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
-                Bank: {article.top_bank}
-              </span>
-            )}
-          </div>
-        )}
-
         <div className="h-px bg-slate-100 mb-7" />
 
         {/* Konten artikel */}
@@ -128,26 +107,40 @@ export default async function ArtikelDetailPage({ params }: Props) {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 p-5 sm:p-6 bg-slate-900 rounded-xl">
-          <p className="text-sm sm:text-base font-bold text-white mb-1">
-            Mau cek nomor sebelum transaksi?
-          </p>
-          <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-            Lindungi diri kamu dari penipuan — gratis dan berbasis laporan komunitas.
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            <Link
-              href="/cek-nomor"
-              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-widest"
-            >
-              Cek Nomor HP
-            </Link>
-            <Link
-              href="/cek-rekening"
-              className="px-4 py-2.5 border border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-widest"
-            >
-              Cek Rekening
-            </Link>
+        <div className="mt-12 rounded-2xl overflow-hidden border border-slate-200">
+          <div className="bg-slate-900 px-6 py-7 sm:px-8 sm:py-8">
+            {/* Label */}
+            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">
+              Verifikasi Sebelum Bertransaksi
+            </p>
+
+            {/* Headline */}
+            <p className="text-lg sm:text-xl font-black text-white leading-snug mb-2">
+              Jangan jadi korban berikutnya.
+            </p>
+
+            {/* Subtext */}
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-6 max-w-md">
+              Periksa nomor HP atau rekening bank sebelum melakukan transfer.
+              Database kami dibangun dari laporan nyata komunitas — gratis, tanpa registrasi.
+            </p>
+
+            {/* Buttons — full width di mobile */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/cek-nomor"
+                className="flex-1 sm:flex-none text-center px-5 py-3 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors uppercase tracking-widest"
+              >
+                Cek Nomor HP
+              </Link>
+              <Link
+                href="/cek-rekening"
+                className="flex-1 sm:flex-none text-center px-5 py-3 bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white text-xs font-bold rounded-xl transition-colors uppercase tracking-widest"
+              >
+                Cek Rekening Bank
+              </Link>
+
+            </div>
           </div>
         </div>
       </section>
