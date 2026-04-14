@@ -47,10 +47,13 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) return [];
+
     return [
       {
         source: '/api/sb/:path*',
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`,
+        destination: `${supabaseUrl}/:path*`,
       },
     ];
   },
@@ -64,8 +67,15 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), xr-spatial-tracking=(self "https://challenges.cloudflare.com")' },
-          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          {
+            key: 'Permissions-Policy',
+            value:
+              'camera=(), microphone=(), geolocation=(), payment=(), xr-spatial-tracking=(self "https://challenges.cloudflare.com")',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
           { key: 'Expect-CT', value: 'max-age=86400, enforce' },
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
           { key: 'Cross-Origin-Embedder-Policy', value: 'unsafe-none' },
@@ -97,7 +107,10 @@ const nextConfig: NextConfig = {
       {
         source: '/_next/image(.*)',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
         ],
       },
       {
@@ -109,7 +122,10 @@ const nextConfig: NextConfig = {
       {
         source: '/(banks|ewallets|icons)/(.*)',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
         ],
       },
     ];
