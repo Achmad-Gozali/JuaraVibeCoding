@@ -134,7 +134,7 @@ export default function Navbar() {
 
             {/* LOGO */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0">
-              <Image src="/logo.png" alt="KawalTransaksi" width={32} height={32} className="rounded-lg" priority />
+              <Image src="/logo.png" alt="KawalTransaksi" width={36} height={36} className="rounded-lg" priority />
               <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
                 Kawal<span className="text-emerald-600">Transaksi</span>
               </span>
@@ -238,7 +238,7 @@ export default function Navbar() {
           <div className="relative w-72 bg-white h-full shadow-2xl flex flex-col animate-slide-in-left">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <Link href="/" className="flex items-center gap-2">
-                <Image src="/logo.png" alt="KawalTransaksi" width={28} height={28} className="rounded-lg" />
+                <Image src="/logo.png" alt="KawalTransaksi" width={32} height={32} className="rounded-lg" />
                 <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
                   Kawal<span className="text-emerald-600">Transaksi</span>
                 </span>
