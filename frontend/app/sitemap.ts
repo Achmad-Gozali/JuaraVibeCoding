@@ -4,6 +4,8 @@ import { encodeSlug } from '@/lib/utils';
 
 const BASE_URL = 'https://kawaltransaksi.com';
 
+
+export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
