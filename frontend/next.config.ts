@@ -96,6 +96,9 @@ const nextConfig: NextConfig = {
               "form-action 'self'",
             ].join('; '),
           },
+          // Hide stack fingerprint
+          { key: 'X-Powered-By', value: '' },
+          { key: 'server', value: '' },
         ],
       },
       {

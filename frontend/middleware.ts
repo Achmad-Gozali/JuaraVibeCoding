@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, {
               ...options,
-              httpOnly: true, // WAJIB: Biar aman dari maling session
+              httpOnly: true,
               secure: true,
               sameSite: 'lax'
             })
@@ -43,6 +43,14 @@ export async function middleware(request: NextRequest) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role !== 'admin') return NextResponse.redirect(new URL('/', request.url));
   }
+
+  // Strip Vercel/Next.js fingerprint headers
+  supabaseResponse.headers.delete('x-vercel-id');
+  supabaseResponse.headers.delete('x-vercel-cache');
+  supabaseResponse.headers.delete('x-vercel-ip-country');
+  supabaseResponse.headers.delete('x-vercel-ip-country-region');
+  supabaseResponse.headers.delete('x-vercel-ip-city');
+  supabaseResponse.headers.delete('server');
 
   return supabaseResponse;
 }

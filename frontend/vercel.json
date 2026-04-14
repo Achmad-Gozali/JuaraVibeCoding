@@ -4,7 +4,12 @@
       "source": "/(.*)",
       "headers": [
         { "key": "Server", "value": "webserver" },
-        { "key": "X-Powered-By", "value": "" }
+        { "key": "X-Powered-By", "value": "" },
+        { "key": "x-vercel-id", "value": "" },
+        { "key": "x-vercel-cache", "value": "" },
+        { "key": "x-vercel-ip-country", "value": "" },
+        { "key": "x-vercel-ip-country-region", "value": "" },
+        { "key": "x-vercel-ip-city", "value": "" }
       ]
     }
   ]
