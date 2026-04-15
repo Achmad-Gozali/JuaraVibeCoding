@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getSupabaseAdmin, getSupabaseClient } from '../lib/supabase';
 import { verifyTurnstile } from '../lib/turnstile';
+import { sendWelcomeEmail } from '../lib/resend';
 import type { Env } from '../types';
 
 const auth = new Hono<{ Bindings: Env }>();
@@ -135,6 +136,15 @@ auth.post('/register', async (c) => {
       email: normalizedEmail,
       password,
     });
+
+    // Kirim welcome email (non-blocking, tidak gagalkan register)
+    c.executionCtx.waitUntil(
+      sendWelcomeEmail({
+        to: normalizedEmail,
+        fullName: sanitizedFullName,
+        apiKey: c.env.RESEND_API_KEY,
+      })
+    );
 
     return c.json({
       success: true,
