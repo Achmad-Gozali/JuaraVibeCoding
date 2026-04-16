@@ -9,13 +9,22 @@ const auth = new Hono<{ Bindings: Env }>();
 const LOCK_DURATION_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 
+async function hashToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function checkAndBlacklistTurnstile(
   limiter: KVNamespace | undefined,
   token: string
 ): Promise<{ blocked: boolean; message?: string }> {
   if (!limiter) return { blocked: false };
   try {
-    const blacklistKey = `turnstile_used_${token}`;
+    const hashed = await hashToken(token);
+    const blacklistKey = `turnstile_used_${hashed}`;
     const alreadyUsed = await limiter.get(blacklistKey);
     if (alreadyUsed) {
       return { blocked: true, message: 'Token verifikasi sudah digunakan. Muat ulang halaman.' };
@@ -128,10 +137,10 @@ auth.post('/register', async (c) => {
       return c.json({ success: false, message: 'Terjadi kesalahan saat mendaftar. Coba lagi.' }, 500);
     }
 
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-          email: normalizedEmail,
-          options: {
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: normalizedEmail,
+      options: {
         redirectTo: `${c.env.FRONTEND_URL}/auth/confirm`,
       },
     });
