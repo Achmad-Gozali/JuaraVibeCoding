@@ -62,14 +62,14 @@ function getStatusBadge(status: string, reportCount: number) {
   }
 }
 
-export default async function DatabasePage({
+export default async function LaporanPublikPage({
   searchParams,
 }: {
   searchParams: Promise<{ type?: string; sort?: string; q?: string; page?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login?redirectTo=/database');
+  if (!user) redirect('/login?redirectTo=/laporan-publik');
 
   const params = await searchParams;
   const type = params.type ?? 'all';
@@ -78,14 +78,12 @@ export default async function DatabasePage({
   const page = parseInt(params.page ?? '1');
   const perPage = 12;
 
-  // Stats query
   const { data: allReportsForStats } = await supabase
     .from('reports')
     .select('target_type, bank_name, category, status, created_at')
     .in('status', ['verified', 'pending', 'withdrawn'])
     .order('created_at', { ascending: true });
 
-  // Main query
   let query = supabase
     .from('reports')
     .select('id, target_number, target_name, target_type, bank_name, category, status, created_at')
@@ -95,12 +93,10 @@ export default async function DatabasePage({
   if (type === 'phone') query = query.eq('target_type', 'phone');
   if (type === 'bank_account') query = query.eq('target_type', 'bank_account');
   if (type === 'ewallet') query = query.eq('target_type', 'ewallet');
-
   if (q) query = query.ilike('target_number', `%${q.replace(/\D/g, '')}%`);
 
   const { data: allReports } = await query;
 
-  // Group by target_number
   const grouped = new Map<string, {
     target_number: string;
     target_name: string | null;
@@ -141,7 +137,6 @@ export default async function DatabasePage({
 
   let groupedArray = Array.from(grouped.values());
 
-  // Sort
   if (sort === 'oldest') {
     groupedArray.sort((a, b) => new Date(a.earliest_at).getTime() - new Date(b.earliest_at).getTime());
   } else {
@@ -159,13 +154,12 @@ export default async function DatabasePage({
     if (p.get('sort') === 'latest') p.delete('sort');
     if (!p.get('q')) p.delete('q');
     if (p.get('page') === '1') p.delete('page');
-    return `/database?${p.toString()}`;
+    return `/laporan-publik?${p.toString()}`;
   };
 
   return (
     <main className="bg-white text-slate-900 font-sans min-h-screen">
 
-      {/* Header */}
       <section className="bg-slate-50 px-4 pt-10 pb-8 sm:pt-14 sm:pb-10">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase mb-2 leading-tight">
@@ -182,7 +176,6 @@ export default async function DatabasePage({
         <path d="M0,50 C360,10 720,40 1080,15 C1260,2 1380,30 1440,50 Z" fill="#ffffff" />
       </svg>
 
-      {/* Stats */}
       <section className="px-4 pt-6 pb-2">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-2 mb-4">
@@ -196,17 +189,10 @@ export default async function DatabasePage({
         </div>
       </section>
 
-      {/* Filter & Search */}
       <section className="px-4 mt-8 pb-4 border-y border-slate-100 bg-white sticky top-16 z-10">
         <div className="max-w-5xl mx-auto space-y-4 py-4">
-
-          {/* Search */}
           <SearchBar defaultValue={q} type={type} sort={sort} />
-
-          {/* Tipe & Sort */}
           <div className="flex items-start gap-6 flex-wrap sm:flex-nowrap">
-
-            {/* Tipe */}
             <div className="flex flex-col gap-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tipe</span>
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -228,10 +214,8 @@ export default async function DatabasePage({
               </div>
             </div>
 
-            {/* Divider */}
             <div className="hidden sm:block w-px self-stretch bg-slate-100 mt-5" />
 
-            {/* Urutkan */}
             <div className="flex flex-col gap-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Urutkan</span>
               <div className="flex items-center gap-1.5">
@@ -251,20 +235,18 @@ export default async function DatabasePage({
               </div>
             </div>
 
-            {/* Count + reset */}
             <div className="sm:ml-auto flex items-end pb-0.5 gap-3">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                 {totalUniqueNumbers} nomor
               </span>
               {(q || type !== 'all' || sort !== 'latest') && (
-                <Link href="/database" className="text-xs text-slate-400 hover:text-red-500 font-semibold transition-colors">
+                <Link href="/laporan-publik" className="text-xs text-slate-400 hover:text-red-500 font-semibold transition-colors">
                   Reset
                 </Link>
               )}
             </div>
           </div>
 
-          {/* Active search indicator */}
           {q && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Hasil pencarian untuk</span>
@@ -276,7 +258,6 @@ export default async function DatabasePage({
         </div>
       </section>
 
-      {/* Cards */}
       <section className="px-4 py-6 sm:py-8">
         <div className="max-w-5xl mx-auto">
           {paginatedReports.length === 0 ? (
@@ -285,7 +266,7 @@ export default async function DatabasePage({
                 {q ? `Tidak ada hasil untuk "${q}"` : 'Tidak ada laporan ditemukan'}
               </p>
               <p className="text-xs text-slate-400 mb-4">Coba ubah filter atau kata kunci pencarian</p>
-              <Link href="/database" className="text-xs font-bold text-emerald-600 hover:underline">
+              <Link href="/laporan-publik" className="text-xs font-bold text-emerald-600 hover:underline">
                 Reset filter
               </Link>
             </div>
@@ -297,8 +278,6 @@ export default async function DatabasePage({
                 const logoSrc = getPlatformLogo(report.target_type, report.bank_name);
                 const aggStatus = getAggregateStatus(report.verified_count, report.pending_count);
                 const badge = getStatusBadge(aggStatus, report.verified_count);
-
-                // Sembunyikan nama kalau belum ada verified report
                 const isVerified = report.verified_count > 0;
                 const displayName = isVerified ? report.target_name : null;
 
@@ -351,7 +330,6 @@ export default async function DatabasePage({
             </div>
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-8">
               {page > 1 && (

@@ -17,12 +17,12 @@ const publicMenuItems = [
 ];
 
 const privateMenuItems = [
-  { href: '/',             label: 'Beranda',        icon: Home      },
-  { href: '/cek-nomor',    label: 'Cek Nomor',      icon: Phone     },
-  { href: '/cek-rekening', label: 'Cek Rekening',   icon: Building2 },
-  { href: '/database',     label: 'Laporan Publik', icon: Database  },
-  { href: '/report',       label: 'Laporkan',       icon: Flag      },
-  { href: '/artikel',      label: 'Artikel',        icon: Newspaper },
+  { href: '/',                label: 'Beranda',        icon: Home      },
+  { href: '/cek-nomor',       label: 'Cek Nomor',      icon: Phone     },
+  { href: '/cek-rekening',    label: 'Cek Rekening',   icon: Building2 },
+  { href: '/laporan-publik',  label: 'Laporan Publik', icon: Database  },
+  { href: '/report',          label: 'Laporkan',       icon: Flag      },
+  { href: '/artikel',         label: 'Artikel',        icon: Newspaper },
 ];
 
 interface BeforeInstallPromptEvent extends Event {
@@ -134,7 +134,6 @@ export default function Navbar() {
             {/* LOGO */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0">
               <Image src="/logo.png" alt="KawalTransaksi" width={36} height={36} className="rounded-lg" priority />
-              {/* FIX: emerald-700 untuk kontras lebih baik di atas putih (ratio ~4.5:1) */}
               <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
                 Kawal<span className="text-emerald-700">Transaksi</span>
               </span>
@@ -239,7 +238,6 @@ export default function Navbar() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <Link href="/" className="flex items-center gap-2">
                 <Image src="/logo.png" alt="KawalTransaksi" width={32} height={32} className="rounded-lg" />
-                {/* FIX: emerald-700 untuk kontras */}
                 <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
                   Kawal<span className="text-emerald-700">Transaksi</span>
                 </span>

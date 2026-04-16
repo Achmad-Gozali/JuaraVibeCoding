@@ -11,7 +11,7 @@ export default async function LoginPage({
   const params = await searchParams;
   const isBanned = params.error === 'banned';
   const isOauthFailed = params.error === 'oauth_failed';
-  const isFromDatabase = params.redirectTo === '/database';
+  const isFromDatabase = params.redirectTo === '/laporan-publik';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900 px-4">

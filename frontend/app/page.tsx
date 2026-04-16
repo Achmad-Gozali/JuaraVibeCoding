@@ -245,7 +245,7 @@ export default async function HomePage() {
     getUser(),
   ]);
 
-  const lihatSemuaHref = user ? '/database' : '/login?redirectTo=/database';
+  const lihatSemuaHref = user ? '/laporan-publik' : '/login?redirectTo=/laporan-publik';
 
   return (
     <main className="bg-white text-slate-900 font-sans overflow-x-hidden">

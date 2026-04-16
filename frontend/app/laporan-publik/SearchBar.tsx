@@ -19,7 +19,7 @@ export default function SearchBar({ defaultValue = '', type, sort }: Props) {
     if (type !== 'all') params.set('type', type);
     if (sort !== 'latest') params.set('sort', sort);
     if (q.trim()) params.set('q', q.trim().replace(/\D/g, '') || q.trim());
-    router.push(`/database?${params.toString()}`);
+    router.push(`/laporan-publik?${params.toString()}`);
   };
 
   const handleClear = () => {
@@ -27,7 +27,7 @@ export default function SearchBar({ defaultValue = '', type, sort }: Props) {
     const params = new URLSearchParams();
     if (type !== 'all') params.set('type', type);
     if (sort !== 'latest') params.set('sort', sort);
-    router.push(`/database?${params.toString()}`);
+    router.push(`/laporan-publik?${params.toString()}`);
   };
 
   return (
