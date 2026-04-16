@@ -8,7 +8,7 @@ export interface Env {
   TURNSTILE_SECRET_KEY: string;
   FRONTEND_URL: string;
   NODE_ENV: string;
-  RESEND_API_KEY: string; // ← tambah ini
+  RESEND_API_KEY: string;
 
   // Cloudflare KV
   LIMITER: KVNamespace;

@@ -137,6 +137,7 @@ function AuthFormInner({ type }: AuthFormProps) {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileStatus, setTurnstileStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const turnstileRef = useRef<TurnstileInstance>(null);
 
@@ -204,7 +205,6 @@ function AuthFormInner({ type }: AuthFormProps) {
 
     setIsLoading(true);
     try {
-
       if (type === 'register') {
         const normalizedEmail = normalizeEmail(sanitizedEmail);
 
@@ -222,7 +222,7 @@ function AuthFormInner({ type }: AuthFormProps) {
         const registerData = await registerRes.json().catch(() => ({})) as {
           success?: boolean;
           message?: string;
-          session?: { access_token: string; refresh_token: string };
+          requiresVerification?: boolean;
         };
 
         if (!registerData.success) {
@@ -233,17 +233,8 @@ function AuthFormInner({ type }: AuthFormProps) {
           return;
         }
 
-        // Auto login setelah register berhasil
-        if (registerData.session) {
-          await supabase.auth.setSession({
-            access_token: registerData.session.access_token,
-            refresh_token: registerData.session.refresh_token,
-          });
-        }
-
-        setSuccess('Akun berhasil dibuat! Mengalihkan...');
-        router.refresh();
-        setTimeout(() => router.push(redirectTo), 500);
+        setVerificationSent(true);
+        setIsLoading(false);
         return;
       }
 
@@ -315,6 +306,37 @@ function AuthFormInner({ type }: AuthFormProps) {
     : isWarning
     ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
     : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />;
+
+  // Tampilan setelah register berhasil — suruh cek email
+  if (verificationSent) {
+    return (
+      <div className="w-full text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+            <Mail className="w-8 h-8 text-emerald-600" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Cek Email Kamu!</h2>
+          <p className="text-sm text-slate-500 font-medium leading-relaxed">
+            Kami sudah kirim link verifikasi ke <span className="font-bold text-slate-700">{email}</span>.
+            Klik link tersebut untuk mengaktifkan akun kamu.
+          </p>
+          <p className="text-xs text-slate-400">
+            Tidak ada email? Cek folder spam atau sampah kamu.
+          </p>
+        </div>
+        <div className="pt-2">
+          <a
+            href="/login"
+            className="text-xs font-black text-slate-800 hover:text-emerald-700 uppercase tracking-widest flex items-center justify-center gap-1 transition-colors"
+          >
+            Kembali ke Halaman Login <ArrowRight className="w-3 h-3" />
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getSupabaseAdmin, getSupabaseClient } from '../lib/supabase';
 import { verifyTurnstile } from '../lib/turnstile';
-import { sendWelcomeEmail } from '../lib/resend';
+import { sendVerificationEmail } from '../lib/resend';
 import type { Env } from '../types';
 
 const auth = new Hono<{ Bindings: Env }>();
@@ -96,7 +96,6 @@ auth.post('/register', async (c) => {
     }
 
     const supabaseAdmin = getSupabaseAdmin(c.env);
-    const supabaseClient = getSupabaseClient(c.env);
 
     const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
@@ -114,42 +113,47 @@ auth.post('/register', async (c) => {
     const { data: signUpData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
       email: normalizedEmail,
       password,
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: { full_name: sanitizedFullName },
     });
 
     if (signUpError) {
       console.error('[REGISTER] Supabase error:', signUpError.message);
-
       if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
         return c.json({
           success: false,
           message: 'Terjadi kesalahan saat mendaftar. Coba gunakan email lain atau masuk jika sudah punya akun.',
         }, 409);
       }
-
       return c.json({ success: false, message: 'Terjadi kesalahan saat mendaftar. Coba lagi.' }, 500);
     }
 
-    // Auto login setelah register
-    const { data: signInData } = await supabaseClient.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+          email: normalizedEmail,
+          options: {
+        redirectTo: `${c.env.FRONTEND_URL}/auth/callback?next=/dashboard`,
+      },
     });
 
-    // Kirim welcome email (non-blocking, tidak gagalkan register)
+    if (linkError || !linkData) {
+      console.error('[REGISTER] Gagal generate link:', linkError?.message);
+      return c.json({ success: false, message: 'Gagal mengirim email verifikasi. Coba lagi.' }, 500);
+    }
+
     c.executionCtx.waitUntil(
-      sendWelcomeEmail({
+      sendVerificationEmail({
         to: normalizedEmail,
         fullName: sanitizedFullName,
+        verificationLink: linkData.properties.action_link,
         apiKey: c.env.RESEND_API_KEY,
       })
     );
 
     return c.json({
       success: true,
-      message: 'Akun berhasil dibuat!',
-      session: signInData?.session ?? null,
+      requiresVerification: true,
+      message: 'Akun berhasil dibuat! Cek email kamu untuk verifikasi.',
       userId: signUpData.user?.id,
     });
 
