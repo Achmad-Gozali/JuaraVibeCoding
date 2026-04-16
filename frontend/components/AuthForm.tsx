@@ -139,6 +139,28 @@ function AuthFormInner({ type }: AuthFormProps) {
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
 
+const [resendCooldown, setResendCooldown] = useState(0);
+
+const handleResend = async () => {
+  setIsLoading(true);
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+  });
+  setIsLoading(false);
+  if (error) {
+    setError(translateError(error.message));
+  } else {
+    setResendCooldown(60);
+    const interval = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) { clearInterval(interval); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+};
+
   const turnstileRef = useRef<TurnstileInstance>(null);
 
   const { minutes, seconds, isExpired } = useCountdown(lockedUntilMs);
@@ -307,7 +329,7 @@ function AuthFormInner({ type }: AuthFormProps) {
     ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
     : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />;
 
-  // Tampilan setelah register berhasil — suruh cek email
+// Tampilan setelah register berhasil — suruh cek email
   if (verificationSent) {
     return (
       <div className="w-full text-center space-y-4">
@@ -325,6 +347,13 @@ function AuthFormInner({ type }: AuthFormProps) {
           <p className="text-xs text-slate-400">
             Tidak ada email? Cek folder spam atau sampah kamu.
           </p>
+          <button
+            onClick={handleResend}
+            disabled={isLoading || resendCooldown > 0}
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-800 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? 'Mengirim...' : resendCooldown > 0 ? `Kirim ulang (${resendCooldown}s)` : 'Kirim Ulang Email'}
+          </button>
         </div>
         <div className="pt-2">
           <a

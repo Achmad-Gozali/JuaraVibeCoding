@@ -50,21 +50,8 @@ export default function RegisterPage() {
         {/* Card */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-emerald-900/5 p-6 sm:p-8">
           <AuthForm type="register" />
-
-          {/* Footer link */}
-          <div className="mt-7 pt-7 border-t border-slate-100 text-center">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Sudah punya akses?
-            </p>
-            <Link
-              href="/login"
-              className="text-xs font-black text-slate-800 hover:text-emerald-700 uppercase tracking-widest flex items-center justify-center gap-1 transition-colors"
-            >
-              Masuk ke Portal Kontributor <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </div>
-
+          
+          </div> 
         {/* Legal Links */}
         <div className="mt-10 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center justify-center gap-4 sm:gap-6 flex-wrap">
           <Link href="/syarat-ketentuan" className="hover:text-emerald-600 transition-colors">
