@@ -18,17 +18,36 @@ export default function DailyChart({ reports }: DailyChartProps) {
     const days: Record<string, number> = {};
 
     if (period === 'all') {
-      // Group by bulan
+      // Cek apakah semua data dalam bulan yang sama
+      const months = new Set(
+        reports.map((r) => {
+          const d = new Date(r.created_at);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        })
+      );
+
+      const useDaily = months.size <= 1; // semua dalam 1 bulan → group by hari
+
       reports.forEach((r) => {
         const d = new Date(r.created_at);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const key = useDaily
+          ? d.toLocaleDateString('en-CA') // YYYY-MM-DD
+          : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         days[key] = (days[key] || 0) + 1;
       });
+
       const sorted = Object.entries(days).sort((a, b) => a[0].localeCompare(b[0]));
       return {
         labels: sorted.map(([key]) => {
+          if (useDaily) {
+            const d = new Date(key);
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+          }
           const [y, m] = key.split('-');
-          return new Date(Number(y), Number(m) - 1).toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+          return new Date(Number(y), Number(m) - 1).toLocaleDateString('id-ID', {
+            month: 'short',
+            year: '2-digit',
+          });
         }),
         data: sorted.map(([, count]) => count),
       };
@@ -128,7 +147,7 @@ export default function DailyChart({ reports }: DailyChartProps) {
               ticks: {
                 color: textColor,
                 font: { size: 10 },
-                maxRotation: period === '30d' ? 0 : 0,
+                maxRotation: 0,
                 autoSkip: period === '30d',
                 maxTicksLimit: period === '30d' ? 10 : undefined,
               },
