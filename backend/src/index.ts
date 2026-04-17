@@ -28,7 +28,6 @@ app.use('*', cors({
 
 // ── Origin validation ─────────────────────────────────────────────────────────
 const originValidator = async (c: any, next: any) => {
-
   if (c.req.method === 'OPTIONS') return next();
   const allowedOrigins = [
     'http://localhost:3000',
@@ -121,6 +120,34 @@ app.use('/api/auth/*', async (c, next) => {
     await c.env.LIMITER.put(key, (count + 1).toString(), { expirationTtl: 60 });
   } catch (err) {
     console.error('[AUTH RATE LIMIT] Error KV auth:', err);
+  }
+
+  return next();
+});
+
+// ── Lapis 4: KV search rate limit — khusus /api/search/* ─────────────────────
+app.use('/api/search/*', async (c, next) => {
+  if (!c.env.LIMITER) return next();
+
+  const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
+  const key = `rl_search_${ip}`;
+
+  try {
+    const current = await c.env.LIMITER.get(key);
+    const count = current ? parseInt(current) : 0;
+
+    if (count >= 30) {
+      console.warn(`[SEARCH RATE LIMIT] IP diblokir sementara: ${ip}`);
+      return c.json({
+        success: false,
+        message: 'Terlalu banyak permintaan pencarian. Tunggu 1 menit.',
+        retry_after: 60,
+      }, 429);
+    }
+
+    await c.env.LIMITER.put(key, (count + 1).toString(), { expirationTtl: 60 });
+  } catch (err) {
+    console.error('[SEARCH RATE LIMIT] Error KV search:', err);
   }
 
   return next();

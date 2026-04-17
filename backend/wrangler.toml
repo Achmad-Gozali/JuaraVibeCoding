@@ -9,8 +9,8 @@ routes = [
 
 [vars]
 NODE_ENV = "production"
-TURNSTILE_SECRET_KEY = "0x4AAAAAAC17fXUhsrX8gqZGaPrc0uSFEfU"
 FRONTEND_URL = "https://kawaltransaksi.com"
+# TURNSTILE_SECRET_KEY & SUPABASE secrets → gunakan: wrangler secret put
 
 [[kv_namespaces]]
 binding = "LIMITER"

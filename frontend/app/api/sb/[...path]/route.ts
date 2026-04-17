@@ -1,14 +1,30 @@
-// frontend/app/api/sb/[...path]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+// Allowlist path yang boleh diakses lewat proxy
+const ALLOWED_PATHS = [
+  'auth/v1',
+  'rest/v1',
+  'storage/v1/object/public',
+  'storage/v1/object/sign',
+  'storage/v1/upload',
+];
 
 async function handler(
   req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ): Promise<NextResponse> {
   const { path } = await params;
-  const targetUrl = `${SUPABASE_URL}/${path.join('/')}${req.nextUrl.search}`;
+  const pathStr = path.join('/');
+
+  // Blokir path yang tidak ada di allowlist
+  const isAllowed = ALLOWED_PATHS.some(p => pathStr.startsWith(p));
+  if (!isAllowed) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const targetUrl = `${SUPABASE_URL}/${pathStr}${req.nextUrl.search}`;
 
   const headers = new Headers();
   req.headers.forEach((value, key) => {
