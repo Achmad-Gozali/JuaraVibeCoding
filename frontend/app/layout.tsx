@@ -3,6 +3,7 @@ import { Inter, Roboto_Mono } from 'next/font/google';
 import './globals.css';
 import SiteShell from '@/components/SiteShell';
 import { Analytics } from '@vercel/analytics/next'
+import CookieNotice from '@/components/CookieNotice';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,18 +35,87 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   keywords: [
+    // ── Cek Nomor HP ──────────────────────────────────────────────────────────
     'cek nomor penipu',
-    'cek rekening penipu',
+    'cek nomor hp penipu',
+    'cek nomor telepon penipu',
     'nomor hp penipu',
+    'nomor penipu indonesia',
+    'cek nomor penipuan',
+    'lacak nomor penipu',
+    'cek nomor wa penipu',
+    'cek nomor whatsapp penipu',
+    'nomor wa penipu',
+
+    // ── Cek Rekening ──────────────────────────────────────────────────────────
+    'cek rekening penipu',
+    'cek rekening bank penipu',
     'rekening penipuan',
+    'cek rekening BCA penipu',
+    'cek rekening BRI penipu',
+    'cek rekening BNI penipu',
+    'cek rekening Mandiri penipu',
+    'cek rekening BSI penipu',
+    'cek rekening CIMB penipu',
+    'nomor rekening penipu',
+    'rekening bank penipu',
+    'cek nomor rekening',
+
+    // ── Cek E-Wallet ──────────────────────────────────────────────────────────
     'cek ewallet penipu',
-    'lapor penipuan online',
-    'anti penipuan indonesia',
-    'database penipu',
-    'cek nomor BCA',
-    'cek nomor BRI',
     'cek GoPay penipu',
+    'cek OVO penipu',
+    'cek Dana penipu',
+    'cek ShopeePay penipu',
+    'cek LinkAja penipu',
+    'gopay penipu',
+    'ovo penipu',
+    'dana penipu',
+    'shopeepay penipu',
+    'dompet digital penipu',
+
+    // ── Lapor Penipuan ────────────────────────────────────────────────────────
+    'lapor penipuan online',
+    'laporkan penipu',
+    'laporan penipuan online indonesia',
+    'cara lapor penipuan online',
+    'lapor rekening penipu',
+    'lapor nomor penipu',
+    'lapor penipuan jual beli online',
+    'lapor investasi bodong',
+
+    // ── Modus Penipuan ────────────────────────────────────────────────────────
+    'modus penipuan online',
+    'penipuan jual beli online',
+    'investasi bodong',
+    'pinjaman online ilegal',
+    'pinjol ilegal',
+    'phishing indonesia',
+    'social engineering',
+    'penipuan transfer dana',
+    'penipuan COD',
+    'penipuan marketplace',
+    'penipuan tokopedia',
+    'penipuan shopee',
+    'penipuan olx',
+    'penipuan facebook marketplace',
+
+    // ── Anti Penipuan ─────────────────────────────────────────────────────────
+    'anti penipuan indonesia',
+    'database penipu indonesia',
+    'database nomor penipu',
+    'database rekening penipu',
+    'cek penipuan online',
+    'hindari penipuan online',
+    'waspada penipuan online',
+    'komunitas anti penipuan',
+    'blacklist penipu',
+    'blacklist rekening penipu',
+
+    // ── Brand ─────────────────────────────────────────────────────────────────
     'kawaltransaksi',
+    'kawal transaksi',
+    'kawaltransaksi.com',
   ],
   authors: [{ name: 'KawalTransaksi' }],
   creator: 'KawalTransaksi',
@@ -101,6 +171,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="fixed inset-0 -z-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50" />
         <SiteShell>{children}</SiteShell>
         <Analytics />
+        <CookieNotice />
       </body>
     </html>
   );
