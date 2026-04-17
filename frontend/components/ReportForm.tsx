@@ -24,14 +24,12 @@ const MAX_EVIDENCE_FILES = 10;
 const MAX_TARGET_NUMBERS = 5;
 
 const bankList = [
-  // Bank BUMN
   { value: 'BCA', label: 'BCA (Bank Central Asia)' },
   { value: 'BRI', label: 'BRI (Bank Rakyat Indonesia)' },
   { value: 'BNI', label: 'BNI (Bank Negara Indonesia)' },
   { value: 'Mandiri', label: 'Bank Mandiri' },
   { value: 'BTN', label: 'BTN (Bank Tabungan Negara)' },
   { value: 'BSI', label: 'BSI (Bank Syariah Indonesia)' },
-  // Bank Swasta Besar
   { value: 'CIMB Niaga', label: 'CIMB Niaga' },
   { value: 'Danamon', label: 'Bank Danamon' },
   { value: 'Permata', label: 'Bank Permata' },
@@ -45,7 +43,6 @@ const bankList = [
   { value: 'Commonwealth', label: 'Commonwealth Bank' },
   { value: 'UOB', label: 'UOB Indonesia' },
   { value: 'HSBC', label: 'HSBC Indonesia' },
-  // Bank Digital
   { value: 'Jago', label: 'Bank Jago' },
   { value: 'SeaBank', label: 'SeaBank' },
   { value: 'Blu BCA', label: 'Blu by BCA Digital' },
@@ -53,7 +50,6 @@ const bankList = [
   { value: 'Neo Commerce', label: 'Bank Neo Commerce' },
   { value: 'Allo Bank', label: 'Allo Bank' },
   { value: 'Superbank', label: 'Superbank' },
-  // Bank Daerah
   { value: 'BJB', label: 'BJB (Bank Jabar Banten)' },
   { value: 'Bank DKI', label: 'Bank DKI' },
   { value: 'BPD Jateng', label: 'BPD Jawa Tengah' },
@@ -63,13 +59,11 @@ const bankList = [
 ];
 
 const ewalletList = [
-  // E-Wallet Utama
   { value: 'GoPay', label: 'GoPay' },
   { value: 'Dana', label: 'DANA' },
   { value: 'OVO', label: 'OVO' },
   { value: 'ShopeePay', label: 'ShopeePay' },
   { value: 'LinkAja', label: 'LinkAja' },
-  // E-Wallet Lain
   { value: 'iSaku', label: 'iSaku' },
   { value: 'DOKU', label: 'DOKU Wallet' },
   { value: 'Sakuku', label: 'Sakuku (BCA)' },
@@ -83,38 +77,32 @@ const ewalletList = [
 ];
 
 const platformList = [
-  // Pesan & Chat
   { value: 'WhatsApp', label: 'WhatsApp' },
   { value: 'Telegram', label: 'Telegram' },
   { value: 'SMS', label: 'SMS' },
   { value: 'Telepon', label: 'Telepon langsung' },
-  // Media Sosial
   { value: 'Instagram', label: 'Instagram' },
   { value: 'Facebook', label: 'Facebook / Marketplace' },
   { value: 'TikTok', label: 'TikTok / TikTok Shop' },
   { value: 'Twitter/X', label: 'Twitter / X' },
   { value: 'YouTube', label: 'YouTube' },
   { value: 'LinkedIn', label: 'LinkedIn' },
-  // Marketplace
   { value: 'Tokopedia', label: 'Tokopedia' },
   { value: 'Shopee', label: 'Shopee' },
   { value: 'Lazada', label: 'Lazada' },
   { value: 'Bukalapak', label: 'Bukalapak' },
   { value: 'OLX', label: 'OLX / Jual Beli Online' },
-  // Lainnya
   { value: 'Email', label: 'Email' },
   { value: 'Website', label: 'Website / Toko Online' },
   { value: 'Lainnya', label: 'Platform Lainnya' },
 ];
 
 const categoryList = [
-  // Paling umum
   { value: 'Jual Beli Online', label: 'Jual Beli Online — barang tidak dikirim / tidak sesuai' },
   { value: 'Investasi Bodong', label: 'Investasi Bodong — janji untung besar tapi uang raib' },
   { value: 'Pinjaman Online', label: 'Pinjaman Online Ilegal — bunga mencekik / penagihan kasar' },
   { value: 'Phishing / Soceng', label: 'Phishing / Soceng — minta OTP, PIN, atau data pribadi' },
   { value: 'Modus Kurir/APK', label: 'Modus Kurir / File APK — disuruh install aplikasi mencurigakan' },
-  // Tambahan
   { value: 'Arisan Online', label: 'Arisan Online Fiktif — uang arisan tidak dibayar' },
   { value: 'Rental / Sewa Fiktif', label: 'Rental / Sewa Fiktif — kendaraan atau properti tidak ada' },
   { value: 'Lowongan Kerja Palsu', label: 'Lowongan Kerja Palsu — minta uang pelatihan / seragam' },
@@ -140,7 +128,6 @@ const STEPS = [
 
 type TargetType = 'phone' | 'bank_account' | 'ewallet';
 
-// Satu entry nomor (primary atau additional)
 interface TargetEntry {
   number: string;
   name: string;
@@ -212,7 +199,7 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
   return (
     <div className="mb-5">
       <p className="text-base font-semibold text-slate-800">{title}</p>
-      {subtitle && <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>}
+      {subtitle && <p className="text-sm text-slate-400 mt-0.5 leading-relaxed">{subtitle}</p>}
     </div>
   );
 }
@@ -232,11 +219,11 @@ function TargetEntryCard({
   onRemove?: () => void;
 }) {
   return (
-    <div className={`rounded-2xl border p-5 space-y-4 ${isPrimary ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50'}`}>
+    <div className={`rounded-2xl border p-4 space-y-4 ${isPrimary ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50'}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isPrimary ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isPrimary ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}>
             {index + 1}
           </span>
           <span className="text-sm font-semibold text-slate-700">
@@ -251,23 +238,29 @@ function TargetEntryCard({
         )}
       </div>
 
-      {/* Tipe */}
+      {/* 
+        FIX: Tab HP / Rekening / E-Wallet
+        - Sebelumnya: gap-1, icon + teks semua inline → sempit di mobile
+        - Sekarang: flex-1 penuh, teks selalu tampil, padding cukup
+      */}
       <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
         {[
           { id: 'phone', label: 'HP / WA', icon: Phone },
           { id: 'bank_account', label: 'Rekening', icon: Building2 },
           { id: 'ewallet', label: 'E-Wallet', icon: Wallet },
         ].map((item) => (
-          <button key={item.id} type="button"
+          <button
+            key={item.id}
+            type="button"
             onClick={() => onChange({ ...entry, type: item.id as TargetType })}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-1 rounded-lg text-xs font-semibold transition-all leading-tight ${
               entry.type === item.id
                 ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
                 : 'text-slate-400 hover:text-slate-600'
-            }`}>
+            }`}
+          >
             <item.icon className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">{item.label}</span>
-            <span className="sm:hidden">{item.label.split(' ')[0]}</span>
+            <span className="truncate">{item.label}</span>
           </button>
         ))}
       </div>
@@ -276,7 +269,8 @@ function TargetEntryCard({
       {entry.type !== 'phone' && (
         <Sel
           value={entry.type === 'bank_account' ? entry.bank_name : entry.ewallet_name}
-          onChange={(e) => onChange({ ...entry, [entry.type === 'bank_account' ? 'bank_name' : 'ewallet_name']: e.target.value })}>
+          onChange={(e) => onChange({ ...entry, [entry.type === 'bank_account' ? 'bank_name' : 'ewallet_name']: e.target.value })}
+        >
           <option value="">Pilih {entry.type === 'bank_account' ? 'bank' : 'e-wallet'}...</option>
           {(entry.type === 'bank_account' ? bankList : ewalletList).map(item => (
             <option key={item.value} value={item.value}>{item.label}</option>
@@ -284,12 +278,19 @@ function TargetEntryCard({
         </Sel>
       )}
 
-      {/* Nomor + Nama */}
-      <div className="grid sm:grid-cols-2 gap-3">
+      {/* 
+        FIX: Nomor + Nama
+        - Sebelumnya: grid sm:grid-cols-2 → di mobile tetap 1 kolom tapi terkadang sempit
+        - Sekarang: selalu 1 kolom (stack), di sm ke atas baru 2 kolom
+      */}
+      <div className="flex flex-col gap-3">
         <div>
-          <Label>Nomor {entry.type === 'phone' ? 'HP / WA' : entry.type === 'bank_account' ? 'Rekening' : 'E-Wallet'}</Label>
+          <Label>
+            Nomor {entry.type === 'phone' ? 'HP / WA' : entry.type === 'bank_account' ? 'Rekening' : 'E-Wallet'}
+          </Label>
           <Input
             type="text"
+            inputMode="numeric"
             value={entry.number}
             onChange={(e) => onChange({ ...entry, number: e.target.value.replace(/[^0-9+]/g, '') })}
             placeholder={entry.type === 'phone' ? '0812xxxxxxxx' : '12345678...'}
@@ -321,10 +322,10 @@ function ImageAnalysisResult({ analysis }: { analysis: AnalysisResult }) {
   const Icon = config.icon;
   return (
     <div className={`rounded-xl border ${config.bg} ${config.border} mt-3 overflow-hidden`}>
-      <div className={`px-4 py-3 flex items-center gap-2 border-b ${config.border}`}>
-        <Icon className={`w-4 h-4 ${config.iconColor}`} />
+      <div className={`px-4 py-3 flex flex-wrap items-center gap-2 border-b ${config.border}`}>
+        <Icon className={`w-4 h-4 ${config.iconColor} shrink-0`} />
         <span className={`text-sm font-semibold ${config.text}`}>{config.label}</span>
-        <span className={`ml-auto text-xs ${config.text}`}>
+        <span className={`ml-auto text-xs ${config.text} shrink-0`}>
           Keaslian <b>{analysis.authenticity_score}%</b> · Relevansi <b>{analysis.relevance_score}%</b>
         </span>
       </div>
@@ -345,10 +346,10 @@ function TextAnalysisResult({ analysis }: { analysis: { risk_level: string; chro
     : { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700', badge: 'bg-slate-100 text-slate-600 border-slate-200', label: 'Risiko Rendah', score: 'text-slate-500' };
   return (
     <div className={`rounded-xl border ${config.bg} ${config.border} mt-4 overflow-hidden`}>
-      <div className={`px-4 py-3 flex items-center gap-2 border-b ${config.border}`}>
-        <Brain className={`w-4 h-4 ${config.score}`} />
+      <div className={`px-4 py-3 flex flex-wrap items-center gap-2 border-b ${config.border}`}>
+        <Brain className={`w-4 h-4 ${config.score} shrink-0`} />
         <span className={`text-sm font-semibold ${config.text}`}>Hasil Analisis AI</span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 shrink-0">
           <span className={`text-xs px-2.5 py-0.5 rounded-full border font-semibold ${config.badge}`}>{config.label}</span>
           <span className={`text-sm font-bold ${config.score}`}>{analysis.chronology_score}/100</span>
         </div>
@@ -356,8 +357,8 @@ function TextAnalysisResult({ analysis }: { analysis: { risk_level: string; chro
       <div className="px-4 py-3 space-y-2">
         <p className={`text-sm leading-relaxed ${config.text}`}>{analysis.analysis}</p>
         {analysis.suggested_category && (
-          <div className={`flex items-center gap-2 pt-2 border-t ${config.border}`}>
-            <Info className={`w-3.5 h-3.5 ${config.score}`} />
+          <div className={`flex items-start gap-2 pt-2 border-t ${config.border}`}>
+            <Info className={`w-3.5 h-3.5 ${config.score} shrink-0 mt-0.5`} />
             <p className={`text-sm ${config.text}`}>Kategori disarankan: <b>{analysis.suggested_category}</b></p>
           </div>
         )}
@@ -386,7 +387,6 @@ export default function ReportForm() {
   const [turnstileStatus, setTurnstileStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const router = useRouter();
 
-  // Multiple target numbers — index 0 = primary
   const [targets, setTargets] = useState<TargetEntry[]>([defaultEntry()]);
 
   const [formData, setFormData] = useState({
@@ -410,7 +410,6 @@ export default function ReportForm() {
 
   const chronologyProgress = Math.min((formData.chronology.length / 150) * 100, 100);
 
-  // ── Target handlers ───────────────────────────────────────────────────────
   const updateTarget = (index: number, updated: TargetEntry) => {
     setTargets(prev => prev.map((t, i) => i === index ? updated : t));
   };
@@ -424,7 +423,6 @@ export default function ReportForm() {
     setTargets(prev => prev.filter((_, i) => i !== index));
   };
 
-  // ── Step navigation ───────────────────────────────────────────────────────
   const handleNextStep = () => {
     setError(null);
     if (currentStep === 1) {
@@ -432,7 +430,6 @@ export default function ReportForm() {
         setError('Nomor HP atau rekening utama wajib diisi.');
         return;
       }
-      // Cek nomor tambahan yang tidak diisi
       const emptyAdditional = targets.slice(1).some(t => !t.number.trim());
       if (emptyAdditional) {
         setError('Nomor tambahan yang ditambahkan wajib diisi, atau hapus jika tidak perlu.');
@@ -453,7 +450,6 @@ export default function ReportForm() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── Evidence handlers ─────────────────────────────────────────────────────
   const handleEvidenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -530,7 +526,6 @@ export default function ReportForm() {
   const updateSocialField = (i: number, val: string) => setFormData(f => { const arr = [...f.social_media_accounts]; arr[i] = val; return { ...f, social_media_accounts: arr }; });
   const toggleReportedTo = (val: string) => setFormData(f => ({ ...f, reported_to: f.reported_to.includes(val) ? f.reported_to.filter(v => v !== val) : [...f.reported_to, val] }));
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!turnstileToken) { setError('Selesaikan verifikasi keamanan terlebih dahulu.'); return; }
     setIsLoading(true); setError(null); setUploadProgress(null);
@@ -561,8 +556,6 @@ export default function ReportForm() {
       const providerName = primary.type === 'bank_account' ? primary.bank_name
         : primary.type === 'ewallet' ? primary.ewallet_name : null;
 
-      // Semua nomor sebagai array (termasuk primary)
-      // Kirim sebagai array object { number, type, bank } — sesuai format JSONB baru
       const allNumbers = targets
         .map(t => ({
           number: t.number.trim(),
@@ -579,14 +572,11 @@ export default function ReportForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          // Primary (existing fields)
           target_number: primary.number,
           target_name: primary.name || null,
           target_type: primary.type,
           bank_name: providerName || null,
-          // Semua nomor terkait (new field)
           target_numbers: allNumbers,
-          // Form fields
           category: formData.category,
           chronology: formData.chronology,
           evidence_url: uploadedUrls[0] || null,
@@ -611,7 +601,6 @@ export default function ReportForm() {
     finally { setIsLoading(false); setUploadProgress(null); }
   };
 
-  // ── SUCCESS ───────────────────────────────────────────────────────────────
   if (isSuccess) return (
     <div className="flex flex-col items-center justify-center py-28 text-center">
       <div className="w-20 h-20 bg-emerald-50 border border-emerald-100 rounded-3xl flex items-center justify-center mb-6">
@@ -623,7 +612,7 @@ export default function ReportForm() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6">
 
       {/* ── STEP INDICATOR ── */}
       <div className="flex items-center">
@@ -632,20 +621,20 @@ export default function ReportForm() {
           const isActive = currentStep === step.number;
           return (
             <React.Fragment key={step.number}>
-              <div className="flex flex-col items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+              <div className="flex flex-col items-center gap-1.5">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                   isDone ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-200'
                   : isActive ? 'bg-slate-900 text-white'
                   : 'bg-white text-slate-300 border-2 border-slate-100'
                 }`}>
-                  {isDone ? <CheckCircle2 className="w-5 h-5" /> : step.number}
+                  {isDone ? <CheckCircle2 className="w-4 h-4" /> : step.number}
                 </div>
-                <span className={`text-xs font-semibold uppercase tracking-wide whitespace-nowrap transition-colors ${
+                <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-colors ${
                   isActive ? 'text-slate-900' : isDone ? 'text-emerald-500' : 'text-slate-300'
                 }`}>{step.label}</span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-px mx-0 transition-all duration-500 ${currentStep > step.number ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                <div className={`flex-1 h-px mx-1 transition-all duration-500 ${currentStep > step.number ? 'bg-emerald-400' : 'bg-slate-200'}`} />
               )}
             </React.Fragment>
           );
@@ -666,7 +655,7 @@ export default function ReportForm() {
 
           {/* Multiple nomor */}
           <Card>
-            <div className="p-6">
+            <div className="p-5">
               <SectionTitle
                 title="Nomor Penipu"
                 subtitle={`Tambahkan semua nomor terkait pelaku yang sama — maks ${MAX_TARGET_NUMBERS} nomor`}
@@ -686,7 +675,7 @@ export default function ReportForm() {
 
               {targets.length < MAX_TARGET_NUMBERS && (
                 <button type="button" onClick={addTarget}
-                  className="mt-4 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-semibold text-slate-400 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50/30 transition-all">
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-semibold text-slate-400 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50/30 transition-all active:scale-95">
                   <Plus className="w-4 h-4" />
                   Tambah Nomor Lain ({targets.length}/{MAX_TARGET_NUMBERS})
                 </button>
@@ -696,20 +685,24 @@ export default function ReportForm() {
 
           {/* Akun sosmed */}
           <Card>
-            <div className="p-6">
+            <div className="p-5">
               <SectionTitle title="Akun Media Sosial Penipu" subtitle="Instagram, TikTok, Facebook, Telegram, dll." />
               <div className="space-y-3">
                 {formData.social_media_accounts.map((val, i) => (
                   <div key={i} className="flex gap-2.5">
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 min-w-0">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-base font-medium select-none">@</span>
-                      <input type="text" value={val} onChange={(e) => updateSocialField(i, e.target.value)}
+                      <input
+                        type="text"
+                        value={val}
+                        onChange={(e) => updateSocialField(i, e.target.value)}
                         placeholder="username atau link profil"
-                        className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-800 placeholder:text-slate-300 font-medium focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all" />
+                        className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-800 placeholder:text-slate-300 font-medium focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all"
+                      />
                     </div>
                     {formData.social_media_accounts.length > 1 && (
                       <button type="button" onClick={() => removeSocialField(i)}
-                        className="p-3 text-slate-300 hover:text-red-400 hover:bg-red-50 rounded-xl border border-slate-200 transition-all">
+                        className="p-3 text-slate-300 hover:text-red-400 hover:bg-red-50 rounded-xl border border-slate-200 transition-all shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
@@ -727,7 +720,7 @@ export default function ReportForm() {
 
           {/* Foto penipu */}
           <Card>
-            <div className="p-6">
+            <div className="p-5">
               <SectionTitle title="Foto Profil Penipu" subtitle="Upload foto identitas visual pelaku jika ada" />
               {!suspectPhotoPreview ? (
                 <label className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center gap-3 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all cursor-pointer group">
@@ -756,7 +749,7 @@ export default function ReportForm() {
 
           {/* Kategori */}
           <Card>
-            <div className="p-6">
+            <div className="p-5">
               <Label>Kategori Penipuan</Label>
               <Sel value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
                 {categoryList.map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
@@ -766,31 +759,49 @@ export default function ReportForm() {
 
           {/* Detail tambahan */}
           <Card>
-            <div className="p-6">
+            <div className="p-5">
               <SectionTitle title="Detail Tambahan" subtitle="Opsional — semakin lengkap semakin cepat diverifikasi" />
-              <div className="grid grid-cols-2 gap-4 mb-6 items-end">
+
+              {/*
+                FIX UTAMA: Grid detail tambahan
+                - Sebelumnya: grid-cols-2 semua → Tanggal Kejadian offside di mobile
+                - Sekarang: flex-col (stack) di mobile, grid-cols-2 hanya di sm ke atas
+              */}
+              <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2 mb-6">
+                {/* Kerugian */}
                 <div>
                   <Label optional>Kerugian</Label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold select-none">Rp</span>
-                    <input type="text" value={formData.loss_amount}
-                      onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); setFormData({ ...formData, loss_amount: val ? new Intl.NumberFormat('id-ID').format(parseInt(val)) : '' }); }}
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.loss_amount}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setFormData({ ...formData, loss_amount: val ? new Intl.NumberFormat('id-ID').format(parseInt(val)) : '' });
+                      }}
                       placeholder="0"
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-800 placeholder:text-slate-300 font-medium focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all" />
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-800 placeholder:text-slate-300 font-medium focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all"
+                    />
                   </div>
                 </div>
+
+                {/* Tanggal Kejadian — FIX: tidak lagi offside */}
                 <div>
                   <Label optional>Tanggal Kejadian</Label>
-                    <input
-                      type="date"
-                        max={new Date().toISOString().split('T')[0]}
-                          value={formData.incident_date}
-                        onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
-                      className={`w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-medium focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all [&::-webkit-datetime-edit]:text-slate-800 [&::-webkit-date-and-time-value]:text-slate-800 ${
-                    !formData.incident_date ? 'text-slate-300' : 'text-slate-800'
+                  <input
+                    type="date"
+                    max={new Date().toISOString().split('T')[0]}
+                    value={formData.incident_date}
+                    onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
+                    className={`w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-medium focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all [&::-webkit-datetime-edit]:text-slate-800 [&::-webkit-date-and-time-value]:text-slate-800 ${
+                      !formData.incident_date ? 'text-slate-300' : 'text-slate-800'
                     }`}
-                    />
+                  />
                 </div>
+
+                {/* Platform */}
                 <div>
                   <Label optional>Platform</Label>
                   <Sel value={formData.platform} onChange={(e) => setFormData({ ...formData, platform: e.target.value })}>
@@ -798,40 +809,57 @@ export default function ReportForm() {
                     {platformList.map(p => <option key={p.value} value={p.value}>{p.value}</option>)}
                   </Sel>
                 </div>
+
+                {/* Link / URL */}
                 <div>
                   <Label optional>Link / URL</Label>
-                  <Input type="url" value={formData.link_url} onChange={(e) => setFormData({ ...formData, link_url: e.target.value })} placeholder="https://..." />
+                  <Input
+                    type="url"
+                    inputMode="url"
+                    value={formData.link_url}
+                    onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
+                    placeholder="https://..."
+                  />
                 </div>
               </div>
 
               <div className="space-y-5">
+                {/* Ada korban lain */}
                 <div>
                   <Label optional>Ada korban lain yang kamu tahu?</Label>
                   <div className="flex gap-3 mt-1">
                     {[{ val: 'yes', label: 'Ya, ada korban lain' }, { val: 'no', label: 'Hanya saya' }].map(opt => (
-                      <button key={opt.val} type="button"
+                      <button
+                        key={opt.val}
+                        type="button"
                         onClick={() => setFormData(f => ({ ...f, has_other_victims: f.has_other_victims === opt.val ? '' : opt.val as 'yes' | 'no' }))}
-                        className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border transition-all ${
+                        className={`flex-1 py-3 px-3 rounded-xl text-sm font-semibold border transition-all active:scale-95 ${
                           formData.has_other_victims === opt.val
                             ? 'bg-slate-900 text-white border-slate-900'
                             : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                        }`}>
+                        }`}
+                      >
                         {opt.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
+                {/* Sudah lapor ke */}
                 <div>
                   <Label optional>Sudah lapor ke mana?</Label>
                   <div className="grid grid-cols-2 gap-3 mt-1">
                     {reportedToOptions.map(opt => {
                       const active = formData.reported_to.includes(opt.value);
                       return (
-                        <button key={opt.value} type="button" onClick={() => toggleReportedTo(opt.value)}
-                          className={`py-3 px-4 rounded-xl text-sm font-semibold border text-left transition-all ${
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => toggleReportedTo(opt.value)}
+                          className={`py-3 px-4 rounded-xl text-sm font-semibold border text-left transition-all active:scale-95 ${
                             active ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                          }`}>
+                          }`}
+                        >
                           {opt.label}
                         </button>
                       );
@@ -848,20 +876,27 @@ export default function ReportForm() {
       {currentStep === 2 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <Card>
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-5">
+            <div className="p-5">
+              <div className="flex items-start justify-between mb-5 gap-3">
                 <SectionTitle title="Kronologi Kejadian" subtitle="Ceritakan dengan detail agar laporan cepat diverifikasi" />
-                <button type="button" onClick={handleAITextAnalysis} disabled={isAnalyzingText || formData.chronology.length < 20}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-xl text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-30 transition-all shrink-0 ml-4">
+                <button
+                  type="button"
+                  onClick={handleAITextAnalysis}
+                  disabled={isAnalyzingText || formData.chronology.length < 20}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-xl text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-30 transition-all shrink-0"
+                >
                   {isAnalyzingText ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                   Analisis AI
                 </button>
               </div>
 
-              <textarea rows={10} value={formData.chronology}
+              <textarea
+                rows={10}
+                value={formData.chronology}
                 onChange={(e) => setFormData({ ...formData, chronology: e.target.value })}
                 placeholder="Ceritakan bagaimana penipuan terjadi. Sertakan nominal kerugian, tanggal kejadian, cara komunikasi, dan detail identitas pelaku yang kamu ketahui..."
-                className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-800 placeholder:text-slate-300 leading-relaxed focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all resize-none" />
+                className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-800 placeholder:text-slate-300 leading-relaxed focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 outline-none transition-all resize-none"
+              />
 
               <div className="mt-4 space-y-2">
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -869,11 +904,11 @@ export default function ReportForm() {
                     chronologyProgress >= 100 ? 'bg-emerald-500' : chronologyProgress > 50 ? 'bg-amber-400' : 'bg-slate-300'
                   }`} style={{ width: `${chronologyProgress}%` }} />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-400">
+                <div className="flex justify-between gap-2">
+                  <span className="text-xs text-slate-400 leading-relaxed">
                     {formData.chronology.length < 150 ? 'Tambahkan lebih banyak detail untuk memperkuat laporan' : '✓ Kronologi sudah cukup lengkap'}
                   </span>
-                  <span className={`text-sm font-semibold ${formData.chronology.length >= 150 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                  <span className={`text-xs font-semibold shrink-0 ${formData.chronology.length >= 150 ? 'text-emerald-500' : 'text-slate-400'}`}>
                     {formData.chronology.length} / 150
                   </span>
                 </div>
@@ -889,8 +924,11 @@ export default function ReportForm() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
 
           <Card>
-            <div className="p-6">
-              <SectionTitle title="Bukti Foto" subtitle={`Upload hingga ${MAX_EVIDENCE_FILES} foto · Screenshot percakapan, struk transfer · JPG, PNG · maks 5MB per file`} />
+            <div className="p-5">
+              <SectionTitle
+                title="Bukti Foto"
+                subtitle={`Upload hingga ${MAX_EVIDENCE_FILES} foto · Screenshot percakapan, struk transfer · JPG, PNG · maks 5MB per file`}
+              />
               {evidenceFiles.length > 0 && (
                 <div className="space-y-3 mb-4">
                   {evidenceFiles.map((item, index) => (
@@ -901,17 +939,19 @@ export default function ReportForm() {
                           className="absolute top-3 right-3 p-1.5 bg-black/50 text-white rounded-lg hover:bg-black/80 transition-colors backdrop-blur-sm">
                           <X className="w-4 h-4" />
                         </button>
-                        <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/50 text-white text-xs font-semibold rounded-lg backdrop-blur-sm">Foto {index + 1}</span>
+                        <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/50 text-white text-xs font-semibold rounded-lg backdrop-blur-sm">
+                          Foto {index + 1}
+                        </span>
                       </div>
-                      <div className="px-4 py-3 flex justify-between items-center">
-                        <span className="text-sm text-slate-400 truncate max-w-[200px]">{item.file.name}</span>
+                      <div className="px-4 py-3 flex justify-between items-center gap-3">
+                        <span className="text-sm text-slate-400 truncate min-w-0">{item.file.name}</span>
                         {!item.analysis ? (
                           <button type="button" onClick={() => handleAIImageAnalysis(index)} disabled={item.isAnalyzing}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold disabled:opacity-50 shrink-0">
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold disabled:opacity-50 shrink-0 active:scale-95">
                             {item.isAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Sparkles className="w-3.5 h-3.5" /> Scan AI</>}
                           </button>
                         ) : (
-                          <span className="text-sm text-emerald-600 font-semibold flex items-center gap-1.5">
+                          <span className="text-sm text-emerald-600 font-semibold flex items-center gap-1.5 shrink-0">
                             <CheckCircle2 className="w-4 h-4" /> Teranalisis
                           </span>
                         )}
@@ -938,9 +978,9 @@ export default function ReportForm() {
             </div>
           </Card>
 
-          {/* Verifikasi */}
+          {/* Verifikasi Turnstile */}
           <Card>
-            <div className="p-6">
+            <div className="p-5">
               <div className="flex items-center gap-4 mb-5">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
                   turnstileStatus === 'success' ? 'bg-emerald-50 border border-emerald-100'
@@ -951,21 +991,21 @@ export default function ReportForm() {
                   : turnstileStatus === 'error' ? <ShieldX className="w-6 h-6 text-red-400" />
                   : <ShieldEllipsis className="w-6 h-6 text-slate-400" />}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-base font-semibold text-slate-800">Verifikasi Keamanan</p>
-                  <p className="text-sm text-slate-400 mt-0.5">
+                  <p className="text-sm text-slate-400 mt-0.5 leading-snug">
                     {turnstileStatus === 'success' ? 'Verifikasi berhasil — siap kirim laporan'
                     : turnstileStatus === 'error' ? 'Verifikasi gagal, coba refresh halaman'
                     : 'Selesaikan verifikasi untuk mengirim laporan'}
                   </p>
                 </div>
                 {turnstileStatus === 'success' && (
-                  <span className="text-sm font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl shrink-0">
+                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl shrink-0">
                     ✓ Terverifikasi
                   </span>
                 )}
               </div>
-              <div className="flex items-center justify-center bg-slate-50 rounded-xl py-4 border border-slate-100">
+              <div className="flex items-center justify-center bg-slate-50 rounded-xl py-4 border border-slate-100 overflow-hidden">
                 <Turnstile
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
                   onSuccess={(token) => { setTurnstileToken(token); setTurnstileStatus('success'); setError(null); }}
@@ -982,7 +1022,7 @@ export default function ReportForm() {
       <div className={`flex gap-3 ${currentStep === 1 ? 'justify-end' : 'justify-between'}`}>
         {currentStep > 1 && (
           <button type="button" onClick={handlePrevStep}
-            className="flex items-center gap-2 px-6 py-3 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all">
+            className="flex items-center gap-2 px-6 py-3 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95">
             <ArrowLeft className="w-4 h-4" /> Kembali
           </button>
         )}
@@ -1001,7 +1041,7 @@ export default function ReportForm() {
       </div>
 
       {currentStep === 3 && (
-        <p className="text-center text-xs text-slate-300 uppercase tracking-widest font-medium">
+        <p className="text-center text-xs text-slate-300 uppercase tracking-widest font-medium pb-4">
           Laporan divalidasi tim moderator · Identitas pelapor terlindungi
         </p>
       )}
