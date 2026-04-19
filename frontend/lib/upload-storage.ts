@@ -17,6 +17,61 @@ async function validateFileSignature(file: File): Promise<boolean> {
   return false;
 }
 
+// ── Strip EXIF dengan redraw ke canvas ───────────────────────────────────────
+async function stripExif(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(file); // fallback ke file asli kalau canvas tidak support
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+
+        const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const quality = file.type === 'image/png' ? undefined : 0.92;
+
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(objectUrl);
+            if (!blob) {
+              resolve(file); // fallback ke file asli
+              return;
+            }
+            const strippedFile = new File([blob], file.name, {
+              type: mimeType,
+              lastModified: Date.now(),
+            });
+            resolve(strippedFile);
+          },
+          mimeType,
+          quality
+        );
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Gagal memuat gambar untuk strip EXIF.'));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
 // ── Upload satu file ke Supabase Storage ─────────────────────────────────────
 export async function uploadToStorage(file: File): Promise<string> {
   // Validasi ukuran
@@ -35,6 +90,9 @@ export async function uploadToStorage(file: File): Promise<string> {
     throw new Error('File tidak valid atau telah dimanipulasi.');
   }
 
+  // Strip EXIF metadata sebelum upload
+  const cleanFile = await stripExif(file);
+
   const supabase = createClient();
 
   // Ambil user ID dari session
@@ -42,15 +100,15 @@ export async function uploadToStorage(file: File): Promise<string> {
   if (!session) throw new Error('Sesi habis. Silakan login ulang.');
 
   const userId = session.user.id;
-  const ext = file.type === 'image/png' ? 'png' : 'jpg';
+  const ext = cleanFile.type === 'image/png' ? 'png' : 'jpg';
   const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const { error } = await supabase.storage
     .from('reports')
-    .upload(fileName, file, {
-    contentType: file.type,
-    upsert: false,
-  });
+    .upload(fileName, cleanFile, {
+      contentType: cleanFile.type,
+      upsert: false,
+    });
 
   if (error) throw new Error(`Gagal mengupload file: ${error.message}`);
 
@@ -61,7 +119,7 @@ export async function uploadToStorage(file: File): Promise<string> {
   return publicUrl;
 }
 
-// ── Upload multiple files sekaligus ─────────────────────────────────────────
+// ── Upload multiple files sekaligus ──────────────────────────────────────────
 export async function uploadMultipleToStorage(
   files: File[],
   onProgress?: (current: number, total: number) => void
