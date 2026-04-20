@@ -8,7 +8,6 @@ import { cookies } from 'next/headers';
 
 export const revalidate = 60;
 
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const ewalletNames = ['gopay', 'dana', 'ovo', 'shopeepay', 'linkaja'];
 
 const bankLogoMap: Record<string, string> = {
@@ -51,7 +50,6 @@ const HOW_IT_WORKS = [
   },
 ];
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
 function getPlatformLogo(type: string, bankName: string | null): string | null {
   if (!bankName) return null;
   const key = bankName.toLowerCase();
@@ -79,7 +77,6 @@ function formatLoss(amount: number): string {
   return `Rp${amount.toLocaleString('id-ID')}`;
 }
 
-// ── TYPES ─────────────────────────────────────────────────────────────────────
 interface ReportItem {
   id: string;
   target_number: string;
@@ -97,7 +94,6 @@ interface Stats {
   totalLoss: number;
 }
 
-// ── DATA FETCHING ─────────────────────────────────────────────────────────────
 async function getRecentReports(): Promise<ReportItem[]> {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -145,7 +141,6 @@ async function getStats(): Promise<Stats> {
   }
 }
 
-// ── GET USER (server-side) ────────────────────────────────────────────────────
 async function getUser() {
   try {
     const cookieStore = await cookies();
@@ -166,7 +161,6 @@ async function getUser() {
   }
 }
 
-// ── CARA KERJA STEPS ─────────────────────────────────────────────────────────
 function HowItWorksSteps() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto">
@@ -174,7 +168,6 @@ function HowItWorksSteps() {
         <div key={i} className={`${i > 0 ? 'lg:pl-8 lg:border-l border-slate-200' : ''}`}>
           <p className="text-3xl font-black text-emerald-600 mb-2 leading-none">{item.number}</p>
           <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-snug mb-2">{item.title}</p>
-          {/* FIX: slate-500 untuk kontras lebih baik (ratio ~4.6:1) */}
           <p className="text-[11px] text-slate-500 leading-relaxed">{item.desc}</p>
         </div>
       ))}
@@ -182,7 +175,6 @@ function HowItWorksSteps() {
   );
 }
 
-// ── STATS CARD ────────────────────────────────────────────────────────────────
 function StatsCard({ stats }: { stats: Stats }) {
   return (
     <motion.div
@@ -193,51 +185,26 @@ function StatsCard({ stats }: { stats: Stats }) {
       className="bg-white rounded-2xl border border-slate-200 shadow-lg shadow-slate-100 overflow-hidden"
     >
       <div className="grid grid-cols-2 sm:grid-cols-3 sm:divide-x divide-slate-100">
-        {/* Laporan */}
         <div className="px-5 py-5 sm:px-8 sm:py-6 border-r border-b sm:border-b-0 border-slate-100">
-          {/* FIX: slate-600 untuk kontras label (ratio ~4.6:1 di atas putih) */}
-          <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">
-            Laporan
-          </p>
-          <p className="text-2xl sm:text-4xl font-black text-slate-900 leading-none tabular-nums">
-            {stats.total}+
-          </p>
-          <p className="text-[9px] sm:text-[11px] text-slate-600 mt-1.5 leading-snug">
-            Kasus dilaporkan
-          </p>
+          <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">Laporan</p>
+          <p className="text-2xl sm:text-4xl font-black text-slate-900 leading-none tabular-nums">{stats.total}+</p>
+          <p className="text-[9px] sm:text-[11px] text-slate-600 mt-1.5 leading-snug">Kasus dilaporkan</p>
         </div>
-
-        {/* Verified */}
         <div className="px-5 py-5 sm:px-8 sm:py-6 border-b sm:border-b-0 border-slate-100">
-          <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">
-            Verified
-          </p>
-          <p className="text-2xl sm:text-4xl font-black text-emerald-700 leading-none tabular-nums">
-            {stats.verified}+
-          </p>
-          <p className="text-[9px] sm:text-[11px] text-slate-600 mt-1.5 leading-snug">
-            Terbukti penipuan
-          </p>
+          <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">Verified</p>
+          <p className="text-2xl sm:text-4xl font-black text-emerald-700 leading-none tabular-nums">{stats.verified}+</p>
+          <p className="text-[9px] sm:text-[11px] text-slate-600 mt-1.5 leading-snug">Terbukti penipuan</p>
         </div>
-
-        {/* Kerugian */}
         <div className="col-span-2 sm:col-span-1 px-5 py-5 sm:px-8 sm:py-6 sm:border-l border-slate-100">
-          <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">
-            Kerugian
-          </p>
-          <p className="text-2xl sm:text-4xl font-black text-red-500 leading-none tabular-nums">
-            {formatLoss(stats.totalLoss)}
-          </p>
-          <p className="text-[9px] sm:text-[11px] text-slate-600 mt-1.5 leading-snug">
-            Total kerugian dilaporkan
-          </p>
+          <p className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">Kerugian</p>
+          <p className="text-2xl sm:text-4xl font-black text-red-500 leading-none tabular-nums">{formatLoss(stats.totalLoss)}</p>
+          <p className="text-[9px] sm:text-[11px] text-slate-600 mt-1.5 leading-snug">Total kerugian dilaporkan</p>
         </div>
       </div>
     </motion.div>
   );
 }
 
-// ── PAGE ──────────────────────────────────────────────────────────────────────
 export default async function HomePage() {
   const [recentReports, stats, user] = await Promise.all([
     getRecentReports(),
@@ -253,10 +220,8 @@ export default async function HomePage() {
       {/* ── 1. HERO ── */}
       <section className="relative min-h-[500px] sm:min-h-[600px] flex items-stretch overflow-hidden bg-white">
         <div className="relative z-10 flex flex-col justify-center px-5 sm:px-12 md:pl-20 lg:pl-28 py-14 md:py-20 w-full md:w-[52%]">
-          {/* FIX: h1 sebagai heading utama halaman */}
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter leading-[0.9] uppercase mb-5 sm:mb-6">
             Transaksi{' '}
-            {/* FIX: emerald-700 untuk kontras di atas putih */}
             <span className="text-emerald-700 italic">Aman,</span>
             <br />
             Hati Tenang
@@ -286,14 +251,16 @@ export default async function HomePage() {
               src="/poster1.png"
               alt="Ilustrasi keamanan transaksi digital"
               fill
-              className="object-contain"
               priority
+              fetchPriority="high"
+              className="object-contain"
+              sizes="(max-width: 768px) 0px, 460px"
             />
           </div>
         </div>
       </section>
 
-      {/* ── STATS CARD — desktop (floating) ── */}
+      {/* ── STATS CARD — desktop ── */}
       <div className="relative bg-white hidden sm:block">
         <svg viewBox="0 0 1440 100" preserveAspectRatio="none" className="w-full block" xmlns="http://www.w3.org/2000/svg">
           <path d="M0,0 C240,80 480,30 720,60 C960,90 1200,40 1440,65 L1440,100 L0,100 Z" fill="#f8fafc" />
@@ -305,7 +272,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* ── STATS CARD — mobile (inline) ── */}
+      {/* ── STATS CARD — mobile ── */}
       <div className="sm:hidden bg-slate-50 px-4 pt-4 pb-6">
         <StatsCard stats={stats} />
       </div>
@@ -313,7 +280,6 @@ export default async function HomePage() {
       {/* ── 2. APA ITU KAWALTRANSAKSI ── */}
       <section className="bg-slate-50 pt-10 sm:pt-24 pb-12 sm:pb-16">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center">
-          {/* FIX: h2 setelah h1 di hero — urutan heading benar */}
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter uppercase text-slate-900 mb-4 sm:mb-5">
             Apa itu KawalTransaksi?
           </h2>
