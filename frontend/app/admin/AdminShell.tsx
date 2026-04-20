@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase-browser';
 import {
   LayoutDashboard, FileText, BarChart2, Users,
   Home, LogOut, ChevronLeft, ChevronRight,
-  Search, X, Shield,
+  Search, X, Shield, ShieldX,
 } from 'lucide-react';
 
 interface AdminShellProps {
@@ -16,10 +16,11 @@ interface AdminShellProps {
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/admin?tab=dashboard' },
-  { id: 'laporan',   label: 'Laporan',   icon: FileText,         href: '/admin?tab=laporan' },
-  { id: 'statistik', label: 'Statistik', icon: BarChart2,        href: '/admin?tab=statistik' },
-  { id: 'pengguna',  label: 'Pengguna',  icon: Users,            href: '/admin?tab=pengguna' },
+  { id: 'dashboard', label: 'Dashboard',    icon: LayoutDashboard, href: '/admin?tab=dashboard' },
+  { id: 'laporan',   label: 'Laporan',      icon: FileText,         href: '/admin?tab=laporan' },
+  { id: 'statistik', label: 'Statistik',    icon: BarChart2,        href: '/admin?tab=statistik' },
+  { id: 'pengguna',  label: 'Pengguna',     icon: Users,            href: '/admin?tab=pengguna' },
+  { id: 'blacklist', label: 'IP Blacklist', icon: ShieldX,          href: '/admin?tab=blacklist' },
 ];
 
 export default function AdminShell({ email, children }: AdminShellProps) {
@@ -138,7 +139,6 @@ export default function AdminShell({ email, children }: AdminShellProps) {
 
         {/* Top header */}
         <header className="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 shrink-0 sticky top-0 z-30">
-          {/* Mobile: logo kiri */}
           <div className="flex items-center gap-2 lg:hidden">
             <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center">
               <Shield className="w-3.5 h-3.5 text-white" />
@@ -146,7 +146,6 @@ export default function AdminShell({ email, children }: AdminShellProps) {
             <span className="text-sm font-bold text-slate-900">Kawal<span className="text-emerald-600">Transaksi</span></span>
           </div>
 
-          {/* Search bar */}
           <form onSubmit={handleGlobalSearch} className="flex-1 max-w-lg mx-3 sm:mx-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -165,7 +164,6 @@ export default function AdminShell({ email, children }: AdminShellProps) {
             </div>
           </form>
 
-          {/* Desktop: avatar + email */}
           <div className="hidden lg:flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">
               {initial}
@@ -173,7 +171,6 @@ export default function AdminShell({ email, children }: AdminShellProps) {
             <span className="text-xs text-slate-500 max-w-[160px] truncate">{email}</span>
           </div>
 
-          {/* Mobile: avatar only */}
           <div className="flex lg:hidden items-center shrink-0">
             <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">
               {initial}
@@ -181,7 +178,6 @@ export default function AdminShell({ email, children }: AdminShellProps) {
           </div>
         </header>
 
-        {/* Main content — padding bawah extra di mobile untuk bottom nav */}
         <main className="flex-1 p-3 sm:p-5 lg:p-8 pb-24 lg:pb-8">
           {children}
         </main>

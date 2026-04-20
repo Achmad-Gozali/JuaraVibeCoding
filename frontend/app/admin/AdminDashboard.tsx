@@ -6,13 +6,16 @@ import Image from 'next/image';
 import {
   CheckCircle2, XCircle, Clock, Eye, ExternalLink,
   Phone, Building2, ChevronDown, ChevronUp, Loader2,
-  Search, Users, FileText, DollarSign, X, TrendingUp, ChevronRight,
-  AlertCircle, Download, Globe, AtSign, ShieldAlert, UserX, Calendar,
+  Search, Users, FileText, X, TrendingUp, ChevronRight,
+  AlertCircle, Download, AtSign, ShieldAlert, UserX, Calendar,
   TrendingDown, Undo2, FilePen, Ban, ShieldOff, Mail, FileBarChart,
+  ShieldX, Plus, Activity,
 } from 'lucide-react';
 import { updateReportStatus, updateUserRole, banUser, unbanUser } from './actions';
 import { formatDateID, formatRupiah } from '@/lib/utils';
 import DailyChart from './DailyChart';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL!;
 
 // ── TYPES ─────────────────────────────────────────────────────────────────────
 interface Report {
@@ -48,8 +51,23 @@ interface AdminUser {
   updated_at: string | null;
 }
 
+interface BlacklistEntry {
+  ip: string;
+  reason: string;
+  auto: boolean;
+  admin?: string;
+  created_at: string;
+}
+
+interface IpLogEntry {
+  ip: string;
+  reason: string;
+  endpoint: string;
+  created_at: string;
+}
+
 interface Stats { total: number; pending: number; verified: number; rejected: number; }
-type Tab = 'dashboard' | 'laporan' | 'statistik' | 'pengguna';
+type Tab = 'dashboard' | 'laporan' | 'statistik' | 'pengguna' | 'blacklist';
 type StatusFilter = 'semua' | 'pending' | 'verified' | 'rejected' | 'withdrawn';
 
 const reportedToLabel: Record<string, string> = {
@@ -81,33 +99,308 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
   );
 }
 
+// ── BLACKLIST TAB ─────────────────────────────────────────────────────────────
+function BlacklistTab({ token }: { token: string }) {
+  const [entries, setEntries] = useState<BlacklistEntry[]>([]);
+  const [logs, setLogs] = useState<IpLogEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [loadingIp, setLoadingIp] = useState<string | null>(null);
+  const [fetched, setFetched] = useState(false);
+  const [fetchedLogs, setFetchedLogs] = useState(false);
+  const [newIp, setNewIp] = useState('');
+  const [newReason, setNewReason] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const fetchBlacklist = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blacklist`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) { setEntries(data.data); setFetched(true); }
+      else setError('Gagal memuat blacklist.');
+    } catch { setError('Gagal memuat blacklist.'); }
+    finally { setLoading(false); }
+  };
+
+  const fetchLogs = async () => {
+    setLoadingLogs(true);
+    setError(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/iplogs`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) { setLogs(data.data); setFetchedLogs(true); }
+      else setError('Gagal memuat log IP.');
+    } catch { setError('Gagal memuat log IP.'); }
+    finally { setLoadingLogs(false); }
+  };
+
+  const handleAdd = async () => {
+    if (!newIp.trim()) return;
+    setAdding(true); setError(null); setSuccess(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blacklist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ip: newIp.trim(), reason: newReason.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess('IP berhasil ditambahkan ke blacklist.');
+        setNewIp(''); setNewReason('');
+        fetchBlacklist();
+      } else setError(data.message || 'Gagal menambahkan IP.');
+    } catch { setError('Gagal menambahkan IP.'); }
+    finally { setAdding(false); }
+  };
+
+  const handleRemove = async (ip: string) => {
+    setLoadingIp(ip); setError(null); setSuccess(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blacklist/${ip}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess('IP berhasil dihapus dari blacklist.');
+        setEntries(prev => prev.filter(e => e.ip !== ip));
+      } else setError(data.message || 'Gagal menghapus IP.');
+    } catch { setError('Gagal menghapus IP.'); }
+    finally { setLoadingIp(null); }
+  };
+
+  const handleBlacklistFromLog = async (ip: string, reason: string) => {
+    setError(null); setSuccess(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blacklist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ip, reason: `[Dari Log] ${reason}` }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccess(`IP ${ip} berhasil ditambahkan ke blacklist.`);
+        fetchBlacklist();
+      } else setError(data.message || 'Gagal menambahkan IP.');
+    } catch { setError('Gagal menambahkan IP.'); }
+  };
+
+  return (
+    <div className="space-y-5 max-w-4xl mx-auto">
+      <SectionTitle title="IP Blacklist" subtitle="Kelola IP yang diblokir dan pantau aktivitas mencurigakan" />
+
+      {/* Tambah IP Manual */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <p className="text-sm font-semibold text-slate-800 mb-4">Blacklist IP Manual</p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={newIp}
+            onChange={(e) => setNewIp(e.target.value)}
+            placeholder="Contoh: 192.168.1.1"
+            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition-all font-mono"
+          />
+          <input
+            type="text"
+            value={newReason}
+            onChange={(e) => setNewReason(e.target.value)}
+            placeholder="Alasan (opsional)"
+            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-slate-400 transition-all"
+          />
+          <button
+            onClick={handleAdd}
+            disabled={adding || !newIp.trim()}
+            className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors shrink-0"
+          >
+            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Blacklist
+          </button>
+        </div>
+      </div>
+
+      {/* Alert */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-600">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">{success}</p>
+        </div>
+      )}
+
+      {/* Daftar IP Diblokir */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-800">
+            Daftar IP Diblokir {fetched && `(${entries.length})`}
+          </p>
+          <button
+            onClick={fetchBlacklist}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl disabled:opacity-50 transition-colors"
+          >
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            {fetched ? 'Refresh' : 'Muat Data'}
+          </button>
+        </div>
+        {!fetched ? (
+          <div className="p-16 text-center">
+            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <ShieldX className="w-6 h-6 text-slate-300" />
+            </div>
+            <p className="text-sm font-medium text-slate-500">Klik Muat Data untuk melihat daftar IP blacklist</p>
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="p-16 text-center">
+            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+            </div>
+            <p className="text-sm font-medium text-slate-500">Tidak ada IP yang diblokir</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {entries.map((entry) => (
+              <div key={entry.ip} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center shrink-0">
+                  <ShieldX className="w-4 h-4 text-red-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-bold text-slate-900 font-mono">{entry.ip}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-lg font-semibold border ${entry.auto ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                      {entry.auto ? 'Auto' : 'Manual'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+                    <span>{entry.reason}</span>
+                    {entry.admin && <span>oleh {entry.admin}</span>}
+                    <span>{new Date(entry.created_at).toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleRemove(entry.ip)}
+                  disabled={loadingIp === entry.ip}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-500 text-xs font-semibold rounded-xl disabled:opacity-50 transition-colors shrink-0"
+                >
+                  {loadingIp === entry.ip ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><ShieldOff className="w-3.5 h-3.5" /> Hapus</>}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Log IP Mencurigakan */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">
+              Log IP Mencurigakan {fetchedLogs && `(${logs.length})`}
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">IP yang kena rate limit — disimpan 7 hari</p>
+          </div>
+          <button
+            onClick={fetchLogs}
+            disabled={loadingLogs}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl disabled:opacity-50 transition-colors"
+          >
+            {loadingLogs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+            {fetchedLogs ? 'Refresh' : 'Muat Log'}
+          </button>
+        </div>
+        {!fetchedLogs ? (
+          <div className="p-16 text-center">
+            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Activity className="w-6 h-6 text-slate-300" />
+            </div>
+            <p className="text-sm font-medium text-slate-500">Klik Muat Log untuk melihat aktivitas mencurigakan</p>
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="p-16 text-center">
+            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+            </div>
+            <p className="text-sm font-medium text-slate-500">Tidak ada aktivitas mencurigakan</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {logs.map((log, i) => {
+              const isBlacklisted = entries.some(e => e.ip === log.ip);
+              return (
+                <div key={i} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                  <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-4 h-4 text-orange-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-bold text-slate-900 font-mono">{log.ip}</span>
+                      {isBlacklisted && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-lg font-semibold border bg-red-50 text-red-600 border-red-200">
+                          Sudah diblokir
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+                      <span>{log.reason}</span>
+                      <span className="font-mono">{log.endpoint}</span>
+                      <span>{new Date(log.created_at).toLocaleString('id-ID')}</span>
+                    </div>
+                  </div>
+                  {!isBlacklisted && (
+                    <button
+                      onClick={() => handleBlacklistFromLog(log.ip, log.reason)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-semibold rounded-xl transition-colors shrink-0"
+                    >
+                      <ShieldX className="w-3.5 h-3.5" /> Blacklist
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
-function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Report[]; users: AdminUser[] }) {
+function DashboardInner({ stats, reports, users, token }: { stats: Stats; reports: Report[]; users: AdminUser[]; token: string }) {
   const searchParams = useSearchParams();
-  const router       = useRouter();
+  const router = useRouter();
 
-  const currentTab      = (searchParams.get('tab') as Tab) || 'dashboard';
-  const [statusFilter, setStatusFilter]     = useState<StatusFilter>('semua');
-  const [searchQuery, setSearchQuery]       = useState(searchParams.get('search') || '');
-  const [bankFilter, setBankFilter]         = useState('');
+  const currentTab = (searchParams.get('tab') as Tab) || 'dashboard';
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('semua');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [bankFilter, setBankFilter] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
-  const [expandedId, setExpandedId]         = useState<string | null>(null);
-  const [loadingId, setLoadingId]           = useState<string | null>(null);
-  const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
-  const [bulkLoading, setBulkLoading]       = useState(false);
-  const [userSearch, setUserSearch]         = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
 
-  const setActiveTab = (tab: Tab) => router.push(`/admin?tab=${tab}`);
-
-  const uniqueBanks     = useMemo(() => Array.from(new Set(reports.map(r => r.bank_name).filter(Boolean) as string[])).sort(), [reports]);
+  const uniqueBanks = useMemo(() => Array.from(new Set(reports.map(r => r.bank_name).filter(Boolean) as string[])).sort(), [reports]);
   const uniquePlatforms = useMemo(() => Array.from(new Set(reports.map(r => r.platform).filter(Boolean) as string[])).sort(), [reports]);
 
   const filteredReports = useMemo(() => reports.filter(r => {
-    const matchStatus   = statusFilter === 'semua' || r.status === statusFilter;
-    const matchBank     = !bankFilter || r.bank_name === bankFilter;
+    const matchStatus = statusFilter === 'semua' || r.status === statusFilter;
+    const matchBank = !bankFilter || r.bank_name === bankFilter;
     const matchPlatform = !platformFilter || r.platform === platformFilter;
-    const q             = searchQuery.toLowerCase();
-    const matchSearch   = !q
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q
       || r.target_number.includes(q)
       || r.category.toLowerCase().includes(q)
       || r.reporter_email?.toLowerCase().includes(q)
@@ -117,10 +410,10 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     return matchStatus && matchBank && matchPlatform && matchSearch;
   }), [reports, statusFilter, searchQuery, bankFilter, platformFilter]);
 
-  const todayStr      = new Date().toLocaleDateString('en-CA');
-  const todayReports  = useMemo(() => reports.filter(r => new Date(r.created_at).toLocaleDateString('en-CA') === todayStr), [reports, todayStr]);
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayReports = useMemo(() => reports.filter(r => new Date(r.created_at).toLocaleDateString('en-CA') === todayStr), [reports, todayStr]);
   const todayVerified = useMemo(() => todayReports.filter(r => r.status === 'verified'), [todayReports]);
-  const totalLoss     = useMemo(() => reports.reduce((s, r) => s + (Number(r.loss_amount) || 0), 0), [reports]);
+  const totalLoss = useMemo(() => reports.reduce((s, r) => s + (Number(r.loss_amount) || 0), 0), [reports]);
   const multiVictimCount = useMemo(() => reports.filter(r => r.has_other_victims === 'yes').length, [reports]);
 
   const bankStats = useMemo(() => {
@@ -161,21 +454,14 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
   const statusConfig = {
     pending:   { label: 'Pending',         color: 'bg-amber-50 text-amber-600 border-amber-200',       icon: Clock },
     verified:  { label: 'Verified',        color: 'bg-emerald-50 text-emerald-600 border-emerald-200', icon: CheckCircle2 },
-    rejected:  { label: 'Rejected',        color: 'bg-red-50 text-red-500 border-red-200',              icon: XCircle },
-    withdrawn: { label: 'Sedang Direvisi', color: 'bg-blue-50 text-blue-600 border-blue-200',           icon: FilePen },
+    rejected:  { label: 'Rejected',        color: 'bg-red-50 text-red-500 border-red-200',             icon: XCircle },
+    withdrawn: { label: 'Sedang Direvisi', color: 'bg-blue-50 text-blue-600 border-blue-200',          icon: FilePen },
   };
 
-  // ── Report actions ──────────────────────────────────────────────────────────
   const handleAction = async (id: string, status: 'verified' | 'rejected' | 'pending' | 'withdrawn') => {
     setLoadingId(id);
-    try {
-      await updateReportStatus(id, status);
-      router.refresh();
-    } catch {
-      // Silent fail — user tidak perlu lihat raw error
-    } finally {
-      setLoadingId(null);
-    }
+    try { await updateReportStatus(id, status); router.refresh(); }
+    catch { } finally { setLoadingId(null); }
   };
 
   const handleBulkAction = async (status: 'verified' | 'rejected') => {
@@ -183,13 +469,8 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     setBulkLoading(true);
     try {
       await Promise.all([...selectedIds].map(id => updateReportStatus(id, status)));
-      setSelectedIds(new Set());
-      router.refresh();
-    } catch {
-      // Silent fail
-    } finally {
-      setBulkLoading(false);
-    }
+      setSelectedIds(new Set()); router.refresh();
+    } catch { } finally { setBulkLoading(false); }
   };
 
   const toggleSelect = (id: string) => {
@@ -201,38 +482,42 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
 
   const handleExportCSV = () => {
     const rows = [
-      ['ID','Nomor','Nama','Tipe','Bank','Kategori','Platform','Link URL','Sosmed','Korban Lain','Lapor Ke','Kerugian','Tgl Kejadian','Status','Pelapor','Tgl Lapor'],
+      ['ID', 'Nomor', 'Nama', 'Tipe', 'Bank', 'Kategori', 'Platform', 'Link URL', 'Sosmed', 'Korban Lain', 'Lapor Ke', 'Kerugian', 'Tgl Kejadian', 'Status', 'Pelapor', 'Tgl Lapor'],
       ...reports.map(r => [
-        r.id, r.target_number, r.target_name??'', r.target_type, r.bank_name??'',
-        r.category, r.platform??'', r.link_url??'',
-        (r.social_media_accounts??[]).join(';'),
-        r.has_other_victims??'', (r.reported_to??[]).join(';'),
+        r.id, r.target_number, r.target_name ?? '', r.target_type, r.bank_name ?? '',
+        r.category, r.platform ?? '', r.link_url ?? '',
+        (r.social_media_accounts ?? []).join(';'),
+        r.has_other_victims ?? '', (r.reported_to ?? []).join(';'),
         r.loss_amount ? String(r.loss_amount) : '',
-        r.incident_date??'', r.status, r.reporter_email, r.created_at,
+        r.incident_date ?? '', r.status, r.reporter_email, r.created_at,
       ])
     ];
     const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = `laporan-${todayStr}.csv`; a.click();
+    a.download = `laporan-${todayStr}.csv`;
+    a.click();
   };
+
+  // ── BLACKLIST TAB ─────────────────────────────────────────────────────────
+  if (currentTab === 'blacklist') return <BlacklistTab token={token} />;
 
   // ── DASHBOARD TAB ─────────────────────────────────────────────────────────
   if (currentTab === 'dashboard') return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <SectionTitle title="Dashboard" subtitle="Overview semua laporan masuk" />
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        <StatCard label="Total Laporan"  value={String(stats.total)}   color="text-slate-800"   bg="bg-slate-100"    icon={FileText} />
-        <StatCard label="Menunggu"       value={String(stats.pending)}  color="text-amber-600"   bg="bg-amber-50"     icon={Clock} />
-        <StatCard label="Terverifikasi"  value={String(stats.verified)} color="text-emerald-600" bg="bg-emerald-50"   icon={CheckCircle2} />
-        <StatCard label="Ditolak"        value={String(stats.rejected)} color="text-red-500"     bg="bg-red-50"       icon={XCircle} />
+        <StatCard label="Total Laporan"  value={String(stats.total)}   color="text-slate-800"   bg="bg-slate-100"  icon={FileText} />
+        <StatCard label="Menunggu"       value={String(stats.pending)}  color="text-amber-600"   bg="bg-amber-50"   icon={Clock} />
+        <StatCard label="Terverifikasi"  value={String(stats.verified)} color="text-emerald-600" bg="bg-emerald-50" icon={CheckCircle2} />
+        <StatCard label="Ditolak"        value={String(stats.rejected)} color="text-red-500"     bg="bg-red-50"     icon={XCircle} />
         <StatCard label="Total Kerugian" value={totalLoss > 0 ? formatRupiah(totalLoss) : 'Rp 0'} color="text-slate-800" bg="bg-slate-100" icon={TrendingDown} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
-          { label: 'Masuk Hari Ini',    value: todayReports.length,  color: 'text-blue-600',   bg: 'bg-blue-50',   icon: TrendingUp },
-          { label: 'Verified Hari Ini', value: todayVerified.length, color: 'text-emerald-600',bg: 'bg-emerald-50',icon: CheckCircle2 },
-          { label: 'Multi Korban',      value: multiVictimCount,     color: 'text-orange-600', bg: 'bg-orange-50', icon: Users },
+          { label: 'Masuk Hari Ini',    value: todayReports.length,  color: 'text-blue-600',    bg: 'bg-blue-50',   icon: TrendingUp },
+          { label: 'Verified Hari Ini', value: todayVerified.length, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle2 },
+          { label: 'Multi Korban',      value: multiVictimCount,     color: 'text-orange-600',  bg: 'bg-orange-50', icon: Users },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 flex items-center gap-4">
             <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center shrink-0`}>
@@ -253,38 +538,34 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
           <p className="text-sm text-amber-800 flex-1">
             <span className="font-semibold">{stats.pending}</span> laporan menunggu review
           </p>
-          <button onClick={() => { setActiveTab('laporan'); setStatusFilter('pending'); }}
+          <button onClick={() => router.push('/admin?tab=laporan')}
             className="flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors">
             Review <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <DailyChart reports={reports} />
-        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-6"><DailyChart reports={reports} /></div>
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h3 className="text-sm font-semibold text-slate-900 mb-5">Bank Terbanyak Dilaporkan</h3>
-          {bankStats.length === 0
-            ? <p className="text-sm text-slate-400 text-center py-8">Belum ada data</p>
-            : (
-              <div className="space-y-3">
-                {bankStats.slice(0, 5).map(([label, data]) => (
-                  <div key={label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
-                        {label === 'Nomor Telepon' ? <Phone className="w-3.5 h-3.5 text-slate-500" /> : <Building2 className="w-3.5 h-3.5 text-slate-500" />}
-                      </div>
-                      <span className="text-sm text-slate-700 font-medium">{label}</span>
+          {bankStats.length === 0 ? <p className="text-sm text-slate-400 text-center py-8">Belum ada data</p> : (
+            <div className="space-y-3">
+              {bankStats.slice(0, 5).map(([label, data]) => (
+                <div key={label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
+                      {label === 'Nomor Telepon' ? <Phone className="w-3.5 h-3.5 text-slate-500" /> : <Building2 className="w-3.5 h-3.5 text-slate-500" />}
                     </div>
-                    <div className="flex items-center gap-2">
-                      {data.loss > 0 && <span className="text-xs text-red-500 font-medium">{formatRupiah(data.loss)}</span>}
-                      <span className="text-xs bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-lg">{data.count}</span>
-                    </div>
+                    <span className="text-sm text-slate-700 font-medium">{label}</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="flex items-center gap-2">
+                    {data.loss > 0 && <span className="text-xs text-red-500 font-medium">{formatRupiah(data.loss)}</span>}
+                    <span className="text-xs bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-lg">{data.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -522,9 +803,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
     <div className="space-y-6 max-w-7xl mx-auto">
       <SectionTitle title="Statistik" subtitle="Analisis data laporan" />
       <div className="grid lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <DailyChart reports={reports} />
-        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-6"><DailyChart reports={reports} /></div>
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h3 className="text-sm font-semibold text-slate-900 mb-5">Kategori</h3>
           {categoryStats.length === 0 ? <p className="text-sm text-slate-400 text-center py-8">Belum ada</p> : (
@@ -610,9 +889,7 @@ function DashboardInner({ stats, reports, users }: { stats: Stats; reports: Repo
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredUsers.map(u => (
-            <UserRow key={u.id} user={u} onRefresh={() => router.refresh()} />
-          ))}
+          {filteredUsers.map(u => <UserRow key={u.id} user={u} onRefresh={() => router.refresh()} />)}
         </div>
       )}
     </div>
@@ -626,17 +903,15 @@ function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }
 
   const handleRole = async (r: 'user' | 'admin') => {
     setLoading(true); setAction(r);
-    try { await updateUserRole(user.id, r); onRefresh(); } catch { /* silent */ } finally { setLoading(false); setAction(null); }
+    try { await updateUserRole(user.id, r); onRefresh(); } catch { } finally { setLoading(false); setAction(null); }
   };
-
   const handleBan = async () => {
     setLoading(true); setAction('ban');
-    try { await banUser(user.id); onRefresh(); } catch { /* silent */ } finally { setLoading(false); setAction(null); }
+    try { await banUser(user.id); onRefresh(); } catch { } finally { setLoading(false); setAction(null); }
   };
-
   const handleUnban = async () => {
     setLoading(true); setAction('unban');
-    try { await unbanUser(user.id); onRefresh(); } catch { /* silent */ } finally { setLoading(false); setAction(null); }
+    try { await unbanUser(user.id); onRefresh(); } catch { } finally { setLoading(false); setAction(null); }
   };
 
   const initial = (user.full_name || 'U').charAt(0).toUpperCase();
@@ -654,9 +929,7 @@ function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }
         </div>
         <div className="flex-grow min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <p className={`text-sm font-semibold truncate ${isBanned ? 'text-red-700 line-through' : 'text-slate-900'}`}>
-              {user.full_name || 'Tanpa Nama'}
-            </p>
+            <p className={`text-sm font-semibold truncate ${isBanned ? 'text-red-700 line-through' : 'text-slate-900'}`}>{user.full_name || 'Tanpa Nama'}</p>
             {isAdmin && <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-50 text-red-600 border-red-200">Admin</span>}
             {isBanned && <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-red-100 text-red-700 border-red-300">Banned</span>}
           </div>
@@ -698,7 +971,7 @@ function UserRow({ user, onRefresh }: { user: AdminUser; onRefresh: () => void }
 }
 
 // ── EXPORT ────────────────────────────────────────────────────────────────────
-export default function AdminDashboard(props: { stats: Stats; reports: Report[]; users: AdminUser[] }) {
+export default function AdminDashboard(props: { stats: Stats; reports: Report[]; users: AdminUser[]; token: string }) {
   return (
     <Suspense fallback={
       <div className="max-w-7xl mx-auto space-y-4">

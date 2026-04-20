@@ -50,6 +50,87 @@ const originValidator = async (c: any, next: any) => {
 app.use('/api/auth/*', originValidator);
 app.use('/api/search/*', originValidator);
 
+// ── Helper: Log IP mencurigakan ke KV ────────────────────────────────────────
+export async function logSuspiciousIp(
+  limiter: KVNamespace,
+  ip: string,
+  reason: string,
+  endpoint: string
+): Promise<void> {
+  try {
+    const logKey = `iplog_${ip}_${Date.now()}`;
+    await limiter.put(logKey, JSON.stringify({
+      ip,
+      reason,
+      endpoint,
+      created_at: new Date().toISOString(),
+    }), { expirationTtl: 604800 }); // 7 hari
+  } catch (err) {
+    console.error('[IP LOG] Error:', err);
+  }
+}
+
+// ── Helper: Auto blacklist IP kalau abuse ─────────────────────────────────────
+export async function autoBlacklistIfAbuse(
+  limiter: KVNamespace,
+  ip: string,
+  reason: string
+): Promise<void> {
+  try {
+    const abuseKey = `abuse_count_${ip}`;
+    const current = await limiter.get(abuseKey);
+    const count = current ? parseInt(current) : 0;
+    const newCount = count + 1;
+
+    if (newCount >= 5) {
+      const blacklistKey = `blacklist_${ip}`;
+      const existing = await limiter.get(blacklistKey);
+      if (!existing) {
+        await limiter.put(blacklistKey, JSON.stringify({
+          ip,
+          reason,
+          auto: true,
+          created_at: new Date().toISOString(),
+        }), { expirationTtl: 86400 }); // 24 jam
+        console.warn(`[AUTO BLACKLIST] IP di-blacklist: ${ip}, alasan: ${reason}`);
+        await limiter.delete(abuseKey);
+      }
+    } else {
+      await limiter.put(abuseKey, newCount.toString(), { expirationTtl: 3600 }); // 1 jam
+    }
+  } catch (err) {
+    console.error('[AUTO BLACKLIST] Error:', err);
+  }
+}
+
+// ── IP Blacklist check — semua /api/* ─────────────────────────────────────────
+app.use('/api/*', async (c, next) => {
+  if (!c.env.LIMITER) return next();
+
+  const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
+  if (ip === 'anonymous' || ip === '127.0.0.1') return next();
+
+  const path = new URL(c.req.url).pathname;
+  if (path.startsWith('/api/admin/blacklist') || path.startsWith('/api/admin/iplogs')) return next();
+
+  try {
+    const blacklistKey = `blacklist_${ip}`;
+    const isBlacklisted = await c.env.LIMITER.get(blacklistKey);
+    if (isBlacklisted) {
+      const data = JSON.parse(isBlacklisted);
+      console.warn(`[BLACKLIST] IP diblokir: ${ip}, alasan: ${data.reason}`);
+      return c.json({
+        success: false,
+        message: 'Akses Anda telah diblokir sementara karena aktivitas mencurigakan. Coba lagi dalam 24 jam.',
+      }, 403);
+    }
+  } catch (err) {
+    console.error('[BLACKLIST] Error cek KV:', err);
+  }
+
+  return next();
+});
+
 // ── Lapis 1: Cloudflare native rate limit — /api/auth/* ──────────────────────
 app.use('/api/auth/*', async (c, next) => {
   if (c.env.AUTH_RATE_LIMITER) {
@@ -76,6 +157,7 @@ app.use('/api/*', async (c, next) => {
 
   const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
   const key = `rl_global_${ip}`;
+  const path = new URL(c.req.url).pathname;
 
   try {
     const current = await c.env.LIMITER.get(key);
@@ -83,6 +165,8 @@ app.use('/api/*', async (c, next) => {
 
     if (count >= 20) {
       console.warn(`[RATE LIMIT] Global limit tercapai untuk IP: ${ip}`);
+      await logSuspiciousIp(c.env.LIMITER, ip, 'Melewati global rate limit', path);
+      await autoBlacklistIfAbuse(c.env.LIMITER, ip, 'Terlalu sering melewati global rate limit');
       return c.json({
         success: false,
         message: 'Terlalu banyak permintaan. Coba lagi nanti.',
@@ -103,6 +187,7 @@ app.use('/api/auth/*', async (c, next) => {
 
   const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
   const key = `rl_auth_ip_${ip}`;
+  const path = new URL(c.req.url).pathname;
 
   try {
     const current = await c.env.LIMITER.get(key);
@@ -110,6 +195,8 @@ app.use('/api/auth/*', async (c, next) => {
 
     if (count >= 5) {
       console.warn(`[AUTH RATE LIMIT] IP diblokir sementara: ${ip}`);
+      await logSuspiciousIp(c.env.LIMITER, ip, 'Melewati auth rate limit', path);
+      await autoBlacklistIfAbuse(c.env.LIMITER, ip, 'Terlalu sering melewati auth rate limit');
       return c.json({
         success: false,
         message: 'Terlalu banyak percobaan. Tunggu 1 menit sebelum mencoba lagi.',
@@ -131,6 +218,7 @@ app.use('/api/search/*', async (c, next) => {
 
   const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
   const key = `rl_search_${ip}`;
+  const path = new URL(c.req.url).pathname;
 
   try {
     const current = await c.env.LIMITER.get(key);
@@ -138,6 +226,7 @@ app.use('/api/search/*', async (c, next) => {
 
     if (count >= 30) {
       console.warn(`[SEARCH RATE LIMIT] IP diblokir sementara: ${ip}`);
+      await logSuspiciousIp(c.env.LIMITER, ip, 'Melewati search rate limit', path);
       return c.json({
         success: false,
         message: 'Terlalu banyak permintaan pencarian. Tunggu 1 menit.',

@@ -5,12 +5,11 @@ import type { Env } from '../types';
 
 const admin = new Hono<{ Bindings: Env; Variables: { userId: string; userEmail: string } }>();
 
-// ── Whitelist nilai valid ─────────────────────────────────────────────────────
 const VALID_STATUSES = ['pending', 'verified', 'rejected', 'withdrawn'] as const;
 const VALID_ROLES = ['user', 'admin'] as const;
-
-// FIX: UUID regex untuk validasi semua param :id
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
+const BLACKLIST_TTL = 86400; // 24 jam
 
 // ── Middleware cek role admin ─────────────────────────────────────────────────
 async function requireAdmin(c: any, next: any) {
@@ -31,13 +30,11 @@ async function requireAdmin(c: any, next: any) {
 admin.get('/users', authMiddleware, requireAdmin, async (c) => {
   try {
     const supabase = getSupabaseAdmin(c.env);
-
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, full_name, email, role, is_banned, created_at, updated_at')
       .order('created_at', { ascending: false });
 
-    // Hitung jumlah laporan per user
     const reportCounts: Record<string, number> = {};
     const { data: counts } = await supabase.from('reports').select('reporter_id');
     counts?.forEach((r: { reporter_id: string }) => {
@@ -59,12 +56,9 @@ admin.get('/users', authMiddleware, requireAdmin, async (c) => {
 admin.get('/users/:userId/banned', authMiddleware, requireAdmin, async (c) => {
   try {
     const userId = c.req.param('userId');
-
-    // FIX: Validasi UUID
     if (!UUID_REGEX.test(userId)) {
       return c.json({ success: false, message: 'ID pengguna tidak valid.' }, 400);
     }
-
     const supabase = getSupabaseAdmin(c.env);
     const { data: profile } = await supabase
       .from('profiles')
@@ -81,21 +75,16 @@ admin.get('/users/:userId/banned', authMiddleware, requireAdmin, async (c) => {
 admin.patch('/reports/:id/status', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
-
-    // FIX: Validasi UUID
     if (!UUID_REGEX.test(id)) {
       return c.json({ success: false, message: 'ID laporan tidak valid.' }, 400);
     }
-
     const { status } = await c.req.json();
-
     if (!status || !VALID_STATUSES.includes(status)) {
       return c.json({
         success: false,
         message: `Status tidak valid. Nilai yang diizinkan: ${VALID_STATUSES.join(', ')}.`,
       }, 400);
     }
-
     const supabase = getSupabaseAdmin(c.env);
     const { error } = await supabase.from('reports').update({ status }).eq('id', id);
     if (error) throw error;
@@ -109,27 +98,20 @@ admin.patch('/reports/:id/status', authMiddleware, requireAdmin, async (c) => {
 admin.patch('/users/:id/role', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
-
-    // FIX: Validasi UUID
     if (!UUID_REGEX.test(id)) {
       return c.json({ success: false, message: 'ID pengguna tidak valid.' }, 400);
     }
-
     const { role } = await c.req.json();
-
     if (!role || !VALID_ROLES.includes(role)) {
       return c.json({
         success: false,
         message: `Role tidak valid. Nilai yang diizinkan: ${VALID_ROLES.join(', ')}.`,
       }, 400);
     }
-
-    // Cegah admin hapus role diri sendiri
     const requesterId = c.get('userId');
     if (requesterId === id) {
       return c.json({ success: false, message: 'Tidak dapat mengubah role diri sendiri.' }, 400);
     }
-
     const supabase = getSupabaseAdmin(c.env);
     const { error } = await supabase.from('profiles').update({ role }).eq('id', id);
     if (error) throw error;
@@ -143,18 +125,13 @@ admin.patch('/users/:id/role', authMiddleware, requireAdmin, async (c) => {
 admin.patch('/users/:id/ban', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
-
-    // FIX: Validasi UUID
     if (!UUID_REGEX.test(id)) {
       return c.json({ success: false, message: 'ID pengguna tidak valid.' }, 400);
     }
-
-    // Cegah admin ban diri sendiri
     const requesterId = c.get('userId');
     if (requesterId === id) {
       return c.json({ success: false, message: 'Tidak dapat memban diri sendiri.' }, 400);
     }
-
     const supabase = getSupabaseAdmin(c.env);
     const { error } = await supabase.from('profiles').update({ is_banned: true }).eq('id', id);
     if (error) throw error;
@@ -168,16 +145,107 @@ admin.patch('/users/:id/ban', authMiddleware, requireAdmin, async (c) => {
 admin.patch('/users/:id/unban', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
-
-    // FIX: Validasi UUID
     if (!UUID_REGEX.test(id)) {
       return c.json({ success: false, message: 'ID pengguna tidak valid.' }, 400);
     }
-
     const supabase = getSupabaseAdmin(c.env);
     const { error } = await supabase.from('profiles').update({ is_banned: false }).eq('id', id);
     if (error) throw error;
     return c.json({ success: true });
+  } catch {
+    return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
+  }
+});
+
+// ── GET /api/admin/blacklist ──────────────────────────────────────────────────
+admin.get('/blacklist', authMiddleware, requireAdmin, async (c) => {
+  try {
+    if (!c.env.LIMITER) {
+      return c.json({ success: false, message: 'KV tidak tersedia.' }, 500);
+    }
+    const list = await c.env.LIMITER.list({ prefix: 'blacklist_' });
+    const items = await Promise.all(
+      list.keys.map(async (key: any) => {
+        const value = await c.env.LIMITER.get(key.name);
+        if (!value) return null;
+        try { return JSON.parse(value); } catch { return null; }
+      })
+    );
+    return c.json({ success: true, data: items.filter(Boolean) });
+  } catch {
+    return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
+  }
+});
+
+// ── POST /api/admin/blacklist ─────────────────────────────────────────────────
+admin.post('/blacklist', authMiddleware, requireAdmin, async (c) => {
+  try {
+    if (!c.env.LIMITER) {
+      return c.json({ success: false, message: 'KV tidak tersedia.' }, 500);
+    }
+    const { ip, reason } = await c.req.json();
+    if (!ip || typeof ip !== 'string' || !IP_REGEX.test(ip.trim())) {
+      return c.json({ success: false, message: 'Format IP tidak valid.' }, 400);
+    }
+    const adminEmail = c.get('userEmail');
+    const blacklistKey = `blacklist_${ip.trim()}`;
+    const existing = await c.env.LIMITER.get(blacklistKey);
+    if (existing) {
+      return c.json({ success: false, message: 'IP sudah ada di blacklist.' }, 409);
+    }
+    await c.env.LIMITER.put(blacklistKey, JSON.stringify({
+      ip: ip.trim(),
+      reason: reason?.trim() || 'Diblokir manual oleh admin',
+      auto: false,
+      admin: adminEmail,
+      created_at: new Date().toISOString(),
+    }), { expirationTtl: BLACKLIST_TTL });
+    return c.json({ success: true, message: 'IP berhasil ditambahkan ke blacklist.' });
+  } catch {
+    return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
+  }
+});
+
+// ── DELETE /api/admin/blacklist/:ip ──────────────────────────────────────────
+admin.delete('/blacklist/:ip', authMiddleware, requireAdmin, async (c) => {
+  try {
+    if (!c.env.LIMITER) {
+      return c.json({ success: false, message: 'KV tidak tersedia.' }, 500);
+    }
+    const ip = c.req.param('ip');
+    if (!ip || !IP_REGEX.test(ip)) {
+      return c.json({ success: false, message: 'Format IP tidak valid.' }, 400);
+    }
+    const blacklistKey = `blacklist_${ip}`;
+    const existing = await c.env.LIMITER.get(blacklistKey);
+    if (!existing) {
+      return c.json({ success: false, message: 'IP tidak ditemukan di blacklist.' }, 404);
+    }
+    await c.env.LIMITER.delete(blacklistKey);
+    return c.json({ success: true, message: 'IP berhasil dihapus dari blacklist.' });
+  } catch {
+    return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
+  }
+});
+
+// ── GET /api/admin/iplogs ─────────────────────────────────────────────────────
+admin.get('/iplogs', authMiddleware, requireAdmin, async (c) => {
+  try {
+    if (!c.env.LIMITER) {
+      return c.json({ success: false, message: 'KV tidak tersedia.' }, 500);
+    }
+    const list = await c.env.LIMITER.list({ prefix: 'iplog_' });
+    const items = await Promise.all(
+      list.keys.map(async (key: any) => {
+        const value = await c.env.LIMITER.get(key.name);
+        if (!value) return null;
+        try { return JSON.parse(value); } catch { return null; }
+      })
+    );
+    const logs = items
+      .filter(Boolean)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return c.json({ success: true, data: logs });
   } catch {
     return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
   }

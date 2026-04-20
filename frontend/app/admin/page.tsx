@@ -41,6 +41,10 @@ export default async function AdminPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  // Ambil session untuk token
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token ?? '';
+
   const [
     { count: totalReports },
     { count: pendingCount },
@@ -79,6 +83,7 @@ export default async function AdminPage() {
         stats={stats}
         reports={reports ?? []}
         users={users ?? []}
+        token={token}
       />
     </Suspense>
   );

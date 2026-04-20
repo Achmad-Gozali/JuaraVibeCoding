@@ -1,35 +1,45 @@
 import { Hono } from 'hono';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 import type { Env } from '../types';
 
 const app = new Hono<{ Bindings: Env }>();
 
 // ── GET /api/articles — list semua artikel ────────────────────────────────────
-app.get('/', async (c) => {
-  const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY);
+app.get("/", async (c) => {
+  const supabase = createClient(
+    c.env.SUPABASE_URL,
+    c.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
 
   const { data, error } = await supabase
-    .from('articles')
-    .select('id, title, slug, summary, total_reports, total_loss, top_category, published_at')
-    .order('published_at', { ascending: false })
+    .from("articles")
+    .select(
+      "id, title, slug, summary, total_reports, total_loss, top_category, published_at",
+    )
+    .order("published_at", { ascending: false })
     .limit(20);
 
-  if (error) return c.json({ success: false, message: 'Gagal mengambil artikel.' }, 500);
+  if (error)
+    return c.json({ success: false, message: "Gagal mengambil artikel." }, 500);
   return c.json({ success: true, data });
 });
 
 // ── GET /api/articles/:slug — detail artikel ──────────────────────────────────
-app.get('/:slug', async (c) => {
-  const slug = c.req.param('slug');
-  const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY);
+app.get("/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const supabase = createClient(
+    c.env.SUPABASE_URL,
+    c.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
 
   const { data, error } = await supabase
-    .from('articles')
-    .select('*')
-    .eq('slug', slug)
+    .from("articles")
+    .select("*")
+    .eq("slug", slug)
     .single();
 
-  if (error || !data) return c.json({ success: false, message: 'Artikel tidak ditemukan.' }, 404);
+  if (error || !data)
+    return c.json({ success: false, message: "Artikel tidak ditemukan." }, 404);
   return c.json({ success: true, data });
 });
 
@@ -37,7 +47,10 @@ export default app;
 
 // ── CRON: Generate artikel mingguan ──────────────────────────────────────────
 export async function generateWeeklyArticle(env: Env): Promise<void> {
-  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(
+    env.SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY,
+  );
 
   // Ambil data 7 hari terakhir
   const periodEnd = new Date();
@@ -45,55 +58,68 @@ export async function generateWeeklyArticle(env: Env): Promise<void> {
   periodStart.setDate(periodStart.getDate() - 7);
 
   const { data: reports } = await supabase
-    .from('reports')
-    .select('category, platform, bank_name, target_type, loss_amount, status, created_at')
-    .gte('created_at', periodStart.toISOString())
-    .lte('created_at', periodEnd.toISOString())
-    .in('status', ['verified', 'pending']);
+    .from("reports")
+    .select(
+      "category, platform, bank_name, target_type, loss_amount, status, created_at",
+    )
+    .gte("created_at", periodStart.toISOString())
+    .lte("created_at", periodEnd.toISOString())
+    .in("status", ["verified", "pending"]);
 
   if (!reports || reports.length === 0) {
-    console.log('[CRON] Tidak ada laporan minggu ini, skip generate artikel.');
+    console.log("[CRON] Tidak ada laporan minggu ini, skip generate artikel.");
     return;
   }
 
   // Hitung statistik
   const totalReports = reports.length;
-  const totalLoss = reports.reduce((sum, r) => sum + (Number(r.loss_amount) || 0), 0);
+  const totalLoss = reports.reduce(
+    (sum, r) => sum + (Number(r.loss_amount) || 0),
+    0,
+  );
 
   const categoryCount: Record<string, number> = {};
   const platformCount: Record<string, number> = {};
   const bankCount: Record<string, number> = {};
 
   reports.forEach((r) => {
-    if (r.category) categoryCount[r.category] = (categoryCount[r.category] ?? 0) + 1;
-    if (r.platform) platformCount[r.platform] = (platformCount[r.platform] ?? 0) + 1;
+    if (r.category)
+      categoryCount[r.category] = (categoryCount[r.category] ?? 0) + 1;
+    if (r.platform)
+      platformCount[r.platform] = (platformCount[r.platform] ?? 0) + 1;
     if (r.bank_name) bankCount[r.bank_name] = (bankCount[r.bank_name] ?? 0) + 1;
   });
 
-  const topCategory = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])[0];
-  const topPlatform = Object.entries(platformCount).sort((a, b) => b[1] - a[1])[0];
+  const topCategory = Object.entries(categoryCount).sort(
+    (a, b) => b[1] - a[1],
+  )[0];
+  const topPlatform = Object.entries(platformCount).sort(
+    (a, b) => b[1] - a[1],
+  )[0];
   const topBank = Object.entries(bankCount).sort((a, b) => b[1] - a[1])[0];
 
   const categoryList = Object.entries(categoryCount)
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => `- ${name}: ${count} laporan`)
-    .join('\n');
+    .join("\n");
 
   const platformList = Object.entries(platformCount)
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => `- ${name}: ${count} laporan`)
-    .join('\n');
+    .join("\n");
 
   const bankList = Object.entries(bankCount)
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => `- ${name}: ${count} rekening`)
-    .join('\n');
+    .join("\n");
 
-  const totalLossFormatted = new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', maximumFractionDigits: 0,
+  const totalLossFormatted = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
   }).format(totalLoss);
 
-  const weekStr = `${periodStart.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })} – ${periodEnd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  const weekStr = `${periodStart.toLocaleDateString("id-ID", { day: "numeric", month: "long" })} – ${periodEnd.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
 
   // Generate artikel via Groq
   const prompt = `Kamu adalah analis keamanan digital dari platform KawalTransaksi, platform komunitas anti-penipuan Indonesia.
@@ -104,13 +130,13 @@ Total laporan: ${totalReports}
 Total kerugian: ${totalLossFormatted}
 
 Kategori penipuan:
-${categoryList || '- Tidak ada data'}
+${categoryList || "- Tidak ada data"}
 
 Platform yang digunakan penipu:
-${platformList || '- Tidak ada data'}
+${platformList || "- Tidak ada data"}
 
 Bank/e-wallet yang digunakan penipu:
-${bankList || '- Tidak ada data'}
+${bankList || "- Tidak ada data"}
 
 Tulis artikel analisis pola penipuan minggu ini dalam bahasa Indonesia yang mudah dipahami masyarakat umum. 
 
@@ -123,76 +149,84 @@ Format artikel:
 
 Panjang artikel: 400-600 kata. Gunakan bahasa yang informatif tapi mudah dipahami. Jangan gunakan markdown, tulis dalam paragraf biasa.`;
 
-  const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+  const groqRes = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
     },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1000,
-      temperature: 0.7,
-    }),
-  });
+  );
 
   if (!groqRes.ok) {
-    console.error('[CRON] Groq API error:', await groqRes.text());
+    console.error("[CRON] Groq API error:", await groqRes.text());
     return;
   }
 
-  const groqData = await groqRes.json() as any;
-  const content = groqData.choices?.[0]?.message?.content ?? '';
+  const groqData = (await groqRes.json()) as any;
+  const content = groqData.choices?.[0]?.message?.content ?? "";
   if (!content) {
-    console.error('[CRON] Groq tidak menghasilkan konten.');
+    console.error("[CRON] Groq tidak menghasilkan konten.");
     return;
   }
 
   // Buat title — format: "Laporan Penipuan 7–13 April 2026"
   const startDay = periodStart.getDate();
   const endDay = periodEnd.getDate();
-  const endMonthYear = periodEnd.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-  const startMonth = periodStart.toLocaleDateString('id-ID', { month: 'long' });
+  const endMonthYear = periodEnd.toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
+  const startMonth = periodStart.toLocaleDateString("id-ID", { month: "long" });
 
   // Kalau bulannya beda (misal 31 Maret – 6 April), tampilin bulan keduanya
   const isSameMonth = periodStart.getMonth() === periodEnd.getMonth();
-  const startLabel = isSameMonth
-    ? `${startDay}`
-    : `${startDay} ${startMonth}`;
+  const startLabel = isSameMonth ? `${startDay}` : `${startDay} ${startMonth}`;
 
   const title = `Laporan Penipuan ${startLabel}–${endDay} ${endMonthYear}`;
 
   // Slug: laporan-7-13-april-2026
-  const endMonthSlug = periodEnd.toLocaleDateString('id-ID', { month: 'long' })
+  const endMonthSlug = periodEnd
+    .toLocaleDateString("id-ID", { month: "long" })
     .toLowerCase()
-    .replace(/ /g, '-');
+    .replace(/ /g, "-");
   const endYear = periodEnd.getFullYear();
   const slug = `laporan-${startDay}-${endDay}-${endMonthSlug}-${endYear}`;
 
   // Summary — ambil kalimat pertama dari artikel
-  const summary = content.split('.')[0] + '.';
+  const summary = content.split(".")[0] + ".";
 
   // Simpan ke Supabase
-  const { error } = await supabase.from('articles').upsert({
-    title,
-    slug,
-    content,
-    summary,
-    period_start: periodStart.toISOString(),
-    period_end: periodEnd.toISOString(),
-    total_reports: totalReports,
-    total_loss: totalLoss,
-    top_category: topCategory?.[0] ?? null,
-    top_platform: topPlatform?.[0] ?? null,
-    top_bank: topBank?.[0] ?? null,
-    published_at: new Date().toISOString(),
-  }, { onConflict: 'slug' });
+  const { error } = await supabase.from("articles").upsert(
+    {
+      title,
+      slug,
+      content,
+      summary,
+      period_start: periodStart.toISOString(),
+      period_end: periodEnd.toISOString(),
+      total_reports: totalReports,
+      total_loss: totalLoss,
+      top_category: topCategory?.[0] ?? null,
+      top_platform: topPlatform?.[0] ?? null,
+      top_bank: topBank?.[0] ?? null,
+      published_at: new Date().toISOString(),
+    },
+    { onConflict: "slug" },
+  );
 
   if (error) {
-    console.error('[CRON] Gagal simpan artikel:', error);
+    console.error("[CRON] Gagal simpan artikel:", error);
     return;
   }
 
   console.log(`[CRON] Artikel berhasil di-generate: ${title}`);
-} 
+}
