@@ -102,7 +102,7 @@ export default async function CekNomorPage() {
             </div>
             <div className="hidden md:flex flex-1 justify-center md:justify-end">
               <div className="relative w-full max-w-sm md:max-w-md aspect-square">
-                <Image src="/hero.png" alt="Ilustrasi penipuan online" fill className="object-contain" priority />
+                <Image src="/hero1.png" alt="Ilustrasi penipuan online" fill className="object-contain" priority />
               </div>
             </div>
           </div>
