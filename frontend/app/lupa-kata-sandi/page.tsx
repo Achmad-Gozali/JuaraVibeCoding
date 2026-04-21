@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8787';
 
-export default function LupaKataSandiPage() {
+function LupaKataSandiContent() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -162,5 +162,13 @@ export default function LupaKataSandiPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LupaKataSandiPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-50 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>}>
+      <LupaKataSandiContent />
+    </Suspense>
   );
 }
