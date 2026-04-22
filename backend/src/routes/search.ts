@@ -137,7 +137,7 @@ search.post('/verify-turnstile', async (c) => {
   }
 });
 
-// ── Phone Info Endpoint (Abstract API + KV Cache) ──────────────────────────
+// ── Phone Info Endpoint ────────────────────────────────────────────────────
 search.post('/phone-info', async (c) => {
   try {
     const { phone } = await c.req.json();
@@ -163,14 +163,12 @@ search.post('/phone-info', async (c) => {
       }
     }
 
-    // Tidak ada cache → panggil Abstract API
+    // Panggil Abstract API
     const result = await validatePhone(formatted, c.env.ABSTRACT_API_KEY);
 
-    if (!result || !result.valid) {
-      return c.json({
-        success: false,
-        message: 'Nomor tidak valid atau tidak dapat diverifikasi.',
-      }, 404);
+    // Kalau gagal total
+    if (!result) {
+      return c.json({ success: false, message: 'Gagal menghubungi layanan validasi.' }, 404);
     }
 
     const data = {
@@ -181,7 +179,12 @@ search.post('/phone-info', async (c) => {
       format: result.format?.international || null,
     };
 
-    // Simpan ke KV cache — TTL 30 hari (2_592_000 detik)
+    // Kalau nggak ada info sama sekali, baru return error
+    if (!data.carrier && !data.location) {
+      return c.json({ success: false, message: 'Informasi nomor tidak tersedia.' }, 404);
+    }
+
+    // Simpan ke KV cache — TTL 30 hari
     if (c.env.LIMITER) {
       try {
         await c.env.LIMITER.put(cacheKey, JSON.stringify(data), { expirationTtl: 2_592_000 });
