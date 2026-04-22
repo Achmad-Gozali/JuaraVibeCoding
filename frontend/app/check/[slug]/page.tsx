@@ -134,7 +134,10 @@ async function getCarrierInfo(phone: string): Promise<CarrierInfo | null> {
   try {
     const res = await fetch(`${backendUrl}/api/search/phone-info`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Internal-Key': 'kawaltransaksi-internal-2024',
+      },
       body: JSON.stringify({ phone }),
       cache: 'no-store',
     });
