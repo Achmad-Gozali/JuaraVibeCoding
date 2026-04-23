@@ -95,10 +95,12 @@ function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialInde
         className="relative max-w-3xl max-h-[80vh] w-full h-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
+        <Image
           src={urls[current]}
           alt={`Bukti ${current + 1}`}
-          className="w-full h-full object-contain rounded-lg"
+          fill
+          className="object-contain rounded-lg"
+          unoptimized
         />
       </div>
 
@@ -121,7 +123,7 @@ function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialInde
                 i === current ? 'border-white scale-110' : 'border-white/30 opacity-60'
               }`}
             >
-              <img src={url} alt="" className="w-full h-full object-cover" />
+              <Image src={url} alt="" fill className="object-cover" unoptimized />
             </button>
           ))}
         </div>
@@ -211,7 +213,6 @@ export default function ReportList({ reports, hasWithdrawn = false, hasLinkedRep
           )}
         </div>
 
-        {/* Disclaimer kalau semua masih pending */}
         {allPending && (
           <div className="mb-3 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
             <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />

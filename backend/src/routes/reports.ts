@@ -34,6 +34,19 @@ const VALID_CATEGORIES = [
   "Lainnya",
 ] as const;
 
+const VALID_PROVINCES = [
+  "Aceh", "Sumatera Utara", "Sumatera Barat", "Riau", "Kepulauan Riau",
+  "Jambi", "Bengkulu", "Sumatera Selatan", "Kepulauan Bangka Belitung",
+  "Lampung", "Banten", "DKI Jakarta", "Jawa Barat", "Jawa Tengah",
+  "DI Yogyakarta", "Jawa Timur", "Bali", "Nusa Tenggara Barat",
+  "Nusa Tenggara Timur", "Kalimantan Barat", "Kalimantan Tengah",
+  "Kalimantan Selatan", "Kalimantan Timur", "Kalimantan Utara",
+  "Sulawesi Utara", "Gorontalo", "Sulawesi Tengah", "Sulawesi Barat",
+  "Sulawesi Selatan", "Sulawesi Tenggara", "Maluku", "Maluku Utara",
+  "Papua Barat", "Papua Barat Daya", "Papua", "Papua Pegunungan",
+  "Papua Selatan", "Papua Tengah",
+] as const;
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,6 +65,7 @@ const LIMITS = {
   SOCIAL_ACCOUNT: 100,
   SOCIAL_ACCOUNTS_COUNT: 10,
   LOSS_AMOUNT_MAX: 999_999_999_999,
+  STORE_NAME: 150,
 };
 
 function isValidEvidenceUrl(url: unknown): boolean {
@@ -216,6 +230,27 @@ reports.post("/", authMiddleware, async (c) => {
       );
     }
 
+    if (body.store_name && String(body.store_name).length > LIMITS.STORE_NAME) {
+      return c.json(
+        {
+          success: false,
+          message: `Nama toko terlalu panjang. Maks ${LIMITS.STORE_NAME} karakter.`,
+        },
+        400,
+      );
+    }
+
+    // Validasi provinsi
+    if (
+      body.suspect_city &&
+      !VALID_PROVINCES.includes(body.suspect_city)
+    ) {
+      return c.json(
+        { success: false, message: "Provinsi tidak valid." },
+        400,
+      );
+    }
+
     const chronologyRaw = String(body.chronology ?? "");
     if (chronologyRaw.trim().length < LIMITS.CHRONOLOGY_MIN) {
       return c.json(
@@ -337,6 +372,12 @@ reports.post("/", authMiddleware, async (c) => {
     const sanitizedSocialAccounts = body.social_media_accounts
       ? sanitizeArray(body.social_media_accounts as string[])
       : [];
+    const sanitizedStoreName = body.store_name
+      ? sanitizeText(String(body.store_name))
+      : null;
+    const sanitizedSuspectCity = body.suspect_city
+      ? sanitizeText(String(body.suspect_city))
+      : null;
 
     const rawTargetNumbers = Array.isArray(body.target_numbers)
       ? body.target_numbers
@@ -456,6 +497,8 @@ reports.post("/", authMiddleware, async (c) => {
       reported_to: body.reported_to ?? [],
       suspect_photo_url: suspectPhotoUrl,
       target_numbers: cleanTargetNumbers,
+      store_name: sanitizedStoreName,
+      suspect_city: sanitizedSuspectCity,
     });
 
     if (error) {
@@ -612,7 +655,6 @@ reports.put("/:reportId", authMiddleware, async (c) => {
 
     const body = await c.req.json();
 
-    // ── Validasi panjang input untuk edit ────────────────────────────────────
     const chronologyRaw = String(body.chronology ?? "");
     if (chronologyRaw.trim().length < LIMITS.CHRONOLOGY_MIN) {
       return c.json(
@@ -676,6 +718,26 @@ reports.put("/:reportId", authMiddleware, async (c) => {
       );
     }
 
+    if (body.store_name && String(body.store_name).length > LIMITS.STORE_NAME) {
+      return c.json(
+        {
+          success: false,
+          message: `Nama toko terlalu panjang. Maks ${LIMITS.STORE_NAME} karakter.`,
+        },
+        400,
+      );
+    }
+
+    if (
+      body.suspect_city &&
+      !VALID_PROVINCES.includes(body.suspect_city)
+    ) {
+      return c.json(
+        { success: false, message: "Provinsi tidak valid." },
+        400,
+      );
+    }
+
     if (Array.isArray(body.social_media_accounts)) {
       if (body.social_media_accounts.length > LIMITS.SOCIAL_ACCOUNTS_COUNT) {
         return c.json(
@@ -727,7 +789,6 @@ reports.put("/:reportId", authMiddleware, async (c) => {
     const editedSuspectPhotoUrl = isValidEvidenceUrl(body.suspect_photo_url)
       ? (body.suspect_photo_url as string)
       : null;
-
     const editedLinkUrl = isValidHttpUrl(body.link_url);
 
     const sanitizedData = {
@@ -749,6 +810,12 @@ reports.put("/:reportId", authMiddleware, async (c) => {
       evidence_urls: editedEvidenceUrls,
       evidence_url: editedEvidenceUrls[0] || null,
       suspect_photo_url: editedSuspectPhotoUrl,
+      store_name: body.store_name
+        ? sanitizeText(String(body.store_name))
+        : null,
+      suspect_city: body.suspect_city
+        ? sanitizeText(String(body.suspect_city))
+        : null,
       status: "pending",
     };
 

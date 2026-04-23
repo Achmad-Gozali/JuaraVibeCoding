@@ -1,6 +1,6 @@
 // ============================================
 // 📁 LOKASI: types/database.ts
-// ✅ UPDATE: Tambah tabel articles
+// ✅ UPDATE: Tambah store_name & suspect_city
 // ============================================
 
 export type TargetType = 'phone' | 'bank_account' | 'ewallet';
@@ -93,6 +93,8 @@ export interface Database {
           suspect_photo_url: string | null;
           has_other_victims: string | null;
           reported_to: string[] | null;
+          store_name: string | null;
+          suspect_city: string | null;
         };
         Insert: {
           id?: string;
@@ -103,7 +105,7 @@ export interface Database {
           category: string;
           chronology: string;
           evidence_url?: string | null;
-          evidence_urls: string[] | null;
+          evidence_urls?: string[] | null;
           status?: string;
           created_at?: string;
           bank_name?: string | null;
@@ -115,6 +117,8 @@ export interface Database {
           suspect_photo_url?: string | null;
           has_other_victims?: string | null;
           reported_to?: string[] | null;
+          store_name?: string | null;
+          suspect_city?: string | null;
         };
         Update: {
           id?: string;
@@ -125,7 +129,7 @@ export interface Database {
           category?: string;
           chronology?: string;
           evidence_url?: string | null;
-          evidence_urls: string[] | null;
+          evidence_urls?: string[] | null;
           status?: string;
           created_at?: string;
           bank_name?: string | null;
@@ -137,6 +141,8 @@ export interface Database {
           suspect_photo_url?: string | null;
           has_other_victims?: string | null;
           reported_to?: string[] | null;
+          store_name?: string | null;
+          suspect_city?: string | null;
         };
         Relationships: [];
       };
@@ -205,6 +211,7 @@ export interface Database {
           category: string;
           chronology: string;
           evidence_url: string | null;
+          evidence_urls: string[] | null;
           status: string;
           created_at: string;
           bank_name: string | null;
@@ -216,6 +223,9 @@ export interface Database {
           suspect_photo_url: string | null;
           has_other_victims: string | null;
           reported_to: string[] | null;
+          target_numbers: Json | null;
+          store_name: string | null;
+          suspect_city: string | null;
         }[];
       };
       update_report_status: {

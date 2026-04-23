@@ -32,6 +32,7 @@ export default function ConfirmPage() {
     };
 
     handleHash();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

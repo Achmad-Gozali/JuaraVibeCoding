@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Lock, Signal } from 'lucide-react';
+import { Lock, Signal, MapPin, Store } from 'lucide-react';
 import { formatNum } from '@/lib/utils';
 
 function formatSosmed(acc: string): { label: string; isUrl: boolean; href: string } {
@@ -36,6 +36,8 @@ interface ReportItem {
   platform?: string | null;
   loss_amount?: number | string | null;
   status?: string | null;
+  store_name?: string | null;
+  suspect_city?: string | null;
 }
 
 interface Props {
@@ -114,6 +116,10 @@ export default function NumberCard({
   const platform = reports.find((r) => r.platform)?.platform ?? null;
   const totalLoss = reports.reduce((sum, r) => sum + (Number(r.loss_amount) || 0), 0);
 
+  // Ambil store_name & suspect_city — prioritaskan yang paling pertama ada isinya
+  const storeName = reports.find((r) => r.store_name)?.store_name ?? null;
+  const suspectCity = reports.find((r) => r.suspect_city)?.suspect_city ?? null;
+
   const bankNameFromDB = reports[0]?.bank_name ?? null;
   const targetType = reports[0]?.target_type ?? defaultType;
 
@@ -129,6 +135,31 @@ export default function NumberCard({
 
   const carrierLabel = carrierInfo?.carrier ?? null;
 
+  // Grid info: kumpulkan semua field yang ada isinya
+  const infoGrid = [
+    category ? { label: 'Kategori', value: category, className: 'text-slate-800' } : null,
+    platform ? { label: 'Platform', value: platform, className: 'text-slate-800' } : null,
+    totalLoss > 0
+      ? {
+          label: 'Kerugian',
+          value: new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0,
+          }).format(totalLoss),
+          className: 'text-red-600',
+          sub: !hasVerified ? 'belum dikonfirmasi' : null,
+        }
+      : null,
+    storeName ? { label: 'Nama Toko', value: storeName, className: 'text-slate-800' } : null,
+    suspectCity ? { label: 'Provinsi', value: suspectCity, className: 'text-slate-800' } : null,
+  ].filter(Boolean) as {
+    label: string;
+    value: string;
+    className: string;
+    sub?: string | null;
+  }[];
+
   return (
     <div>
       <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 mb-2.5 font-medium px-0.5">
@@ -136,6 +167,7 @@ export default function NumberCard({
       </p>
 
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        {/* ── Header: nomor + badge ── */}
         <div className="p-4 sm:p-6 flex justify-between items-start gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-2xl sm:text-5xl font-medium text-slate-900 tracking-tight break-all leading-none mb-3 font-mono">
@@ -143,13 +175,18 @@ export default function NumberCard({
             </p>
             <div className="flex flex-wrap items-center gap-2">
               {targetName && (
-                <span className={`text-[11px] px-2.5 py-1 rounded-md font-medium border ${config.nameBadgeBg} ${config.nameBadgeText} ${config.nameBadgeBorder}`}>
+                <span
+                  className={`text-[11px] px-2.5 py-1 rounded-md font-medium border ${config.nameBadgeBg} ${config.nameBadgeText} ${config.nameBadgeBorder}`}
+                >
                   a.n. {targetName}
                 </span>
               )}
 
               {hasNameButGated && (
-                <Link href="/login" className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-md font-medium border border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100 transition-colors">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-md font-medium border border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100 transition-colors"
+                >
                   <Lock className="w-3 h-3" />
                   a.n. ••••••
                 </Link>
@@ -183,8 +220,16 @@ export default function NumberCard({
             <div className="shrink-0">
               <p className="text-[10px] text-slate-400 mb-1.5">Foto penipu</p>
               <div className="relative w-14 h-14 sm:w-16 sm:h-16">
-                <Image src={suspectPhotoUrl} alt="Foto profil penipu" fill className="object-cover rounded-lg border border-slate-200" unoptimized />
-                <span className="absolute -bottom-1 -right-1 bg-red-600 text-white text-[8px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide">Penipu</span>
+                <Image
+                  src={suspectPhotoUrl}
+                  alt="Foto profil penipu"
+                  fill
+                  className="object-cover rounded-lg border border-slate-200"
+                  unoptimized
+                />
+                <span className="absolute -bottom-1 -right-1 bg-red-600 text-white text-[8px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                  Penipu
+                </span>
               </div>
             </div>
           )}
@@ -201,32 +246,28 @@ export default function NumberCard({
           )}
         </div>
 
-        {(category || platform || totalLoss > 0) && (
-          <div className="px-4 sm:px-6 py-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {category && (
-              <div>
-                <p className="text-[10px] text-slate-400 mb-0.5">Kategori</p>
-                <p className="text-xs font-medium text-slate-800 leading-snug">{category}</p>
-              </div>
-            )}
-            {platform && (
-              <div>
-                <p className="text-[10px] text-slate-400 mb-0.5">Platform</p>
-                <p className="text-xs font-medium text-slate-800">{platform}</p>
-              </div>
-            )}
-            {totalLoss > 0 && (
-              <div>
-                <p className="text-[10px] text-slate-400 mb-0.5">Kerugian</p>
-                <p className="text-xs font-medium text-red-600">
-                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalLoss)}
+        {/* ── Info grid: Kategori, Platform, Kerugian, Nama Toko, Provinsi ── */}
+        {infoGrid.length > 0 && (
+          <div className="px-4 sm:px-6 py-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+            {infoGrid.map((item) => (
+              <div key={item.label}>
+                <p className="text-[10px] text-slate-400 mb-0.5 flex items-center gap-1">
+                  {item.label === 'Nama Toko' && <Store className="w-2.5 h-2.5" />}
+                  {item.label === 'Provinsi' && <MapPin className="w-2.5 h-2.5" />}
+                  {item.label}
                 </p>
-                {!hasVerified && <p className="text-[10px] text-slate-400 mt-0.5">belum dikonfirmasi</p>}
+                <p className={`text-xs font-medium leading-snug ${item.className}`}>
+                  {item.value}
+                </p>
+                {item.sub && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">{item.sub}</p>
+                )}
               </div>
-            )}
+            ))}
           </div>
         )}
 
+        {/* ── Akun media sosial ── */}
         {allSocialAccounts.length > 0 && (
           <div className="px-4 sm:px-6 py-3 border-t border-slate-100">
             <p className="text-[10px] text-slate-400 mb-2">Akun media sosial penipu</p>
@@ -234,12 +275,22 @@ export default function NumberCard({
               {allSocialAccounts.map((acc, i) => {
                 const fmt = formatSosmed(acc);
                 return (
-                  <span key={i} className="text-[11px] px-2.5 py-1 border border-slate-200 bg-slate-50 text-slate-700 rounded-md font-mono">
+                  <span
+                    key={i}
+                    className="text-[11px] px-2.5 py-1 border border-slate-200 bg-slate-50 text-slate-700 rounded-md font-mono"
+                  >
                     {fmt.isUrl ? (
-                      <a href={fmt.href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors">
+                      <a
+                        href={fmt.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 transition-colors"
+                      >
                         {truncateUrl(fmt.label, 35)}
                       </a>
-                    ) : fmt.label}
+                    ) : (
+                      fmt.label
+                    )}
                   </span>
                 );
               })}
@@ -247,23 +298,38 @@ export default function NumberCard({
           </div>
         )}
 
+        {/* ── Tautan berbahaya ── */}
         {dangerLink && (
           <div className="px-4 sm:px-6 py-3 border-t border-slate-100 bg-red-50/40">
             <p className="text-[10px] text-slate-400 mb-2">Tautan berbahaya terdeteksi</p>
             <div className="bg-white border border-red-200 rounded-lg p-3 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-red-700 font-mono break-all">{truncateUrl(dangerLink, 55)}</span>
-              <span className="text-[10px] font-bold px-2 py-1 bg-red-600 text-white rounded-md uppercase tracking-wider shrink-0">High risk</span>
+              <span className="text-[11px] text-red-700 font-mono break-all">
+                {truncateUrl(dangerLink, 55)}
+              </span>
+              <span className="text-[10px] font-bold px-2 py-1 bg-red-600 text-white rounded-md uppercase tracking-wider shrink-0">
+                High risk
+              </span>
             </div>
-            <p className="text-[10px] text-red-500 mt-1.5">Jangan klik atau bagikan tautan ini kepada siapapun.</p>
+            <p className="text-[10px] text-red-500 mt-1.5">
+              Jangan klik atau bagikan tautan ini kepada siapapun.
+            </p>
           </div>
         )}
 
+        {/* ── Sudah dilaporkan ke ── */}
         {allReportedTo.length > 0 && (
           <div className="px-4 sm:px-6 py-3 border-t border-slate-100">
             <p className="text-[10px] text-slate-400 mb-2">Sudah dilaporkan ke</p>
             <div className="flex flex-wrap gap-2">
               {allReportedTo.map((v) => (
-                <span key={v} className={`text-[11px] px-2.5 py-1 rounded-md font-medium border ${v === 'belum' ? 'bg-white text-slate-500 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                <span
+                  key={v}
+                  className={`text-[11px] px-2.5 py-1 rounded-md font-medium border ${
+                    v === 'belum'
+                      ? 'bg-white text-slate-500 border-slate-200'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}
+                >
                   {reportedToLabel[v] ?? v}
                 </span>
               ))}

@@ -120,6 +120,7 @@ const walletNameMap: Record<string, string> = {
 };
 
 // ── Indonesian Carrier Detection ───────────────────────────────────────────
+// Sumber: Kominfo SDPPI — alokasi prefix resmi per operator (update 2025)
 interface CarrierInfo {
   carrier: string;
   type: 'mobile' | 'fixed' | 'unknown';
@@ -133,7 +134,7 @@ const INDONESIAN_PREFIXES: { prefix: string; carrier: string; type: 'mobile' | '
   { prefix: '0821', carrier: 'Telkomsel', type: 'mobile' },
   { prefix: '0822', carrier: 'Telkomsel', type: 'mobile' },
   { prefix: '0823', carrier: 'Telkomsel', type: 'mobile' },
-  { prefix: '0851', carrier: 'Telkomsel', type: 'mobile' },
+  { prefix: '0851', carrier: 'Telkomsel (by.U)', type: 'mobile' },
   { prefix: '0852', carrier: 'Telkomsel', type: 'mobile' },
   { prefix: '0853', carrier: 'Telkomsel', type: 'mobile' },
 
@@ -178,27 +179,32 @@ const INDONESIAN_PREFIXES: { prefix: string; carrier: string; type: 'mobile' | '
   { prefix: '0888', carrier: 'Smartfren', type: 'mobile' },
   { prefix: '0889', carrier: 'Smartfren', type: 'mobile' },
 
-  // ── Telkom (fixed/PSTN) ───────────────────────────────────────
-  { prefix: '021', carrier: 'Telkom (Jakarta)', type: 'fixed' },
-  { prefix: '022', carrier: 'Telkom (Bandung)', type: 'fixed' },
-  { prefix: '024', carrier: 'Telkom (Semarang)', type: 'fixed' },
-  { prefix: '031', carrier: 'Telkom (Surabaya)', type: 'fixed' },
-  { prefix: '061', carrier: 'Telkom (Medan)', type: 'fixed' },
+  // ── Net1 Indonesia ────────────────────────────────────────────
+  { prefix: '0848', carrier: 'Net1 Indonesia', type: 'mobile' },
+  { prefix: '0868', carrier: 'Net1 Indonesia', type: 'mobile' },
+
+  // ── Ceria ─────────────────────────────────────────────────────
+  { prefix: '0828', carrier: 'Ceria', type: 'mobile' },
+
+  // ── Telkom fixed line (PSTN) ──────────────────────────────────
   { prefix: '0274', carrier: 'Telkom (Yogyakarta)', type: 'fixed' },
   { prefix: '0411', carrier: 'Telkom (Makassar)', type: 'fixed' },
-
-  // ── IndiHome / Telkom broadband voice ────────────────────────
-  { prefix: '0800', carrier: 'Telkom IndiHome', type: 'fixed' },
-
-  // ── MyRepublic / Biznet / operator kecil lain ─────────────────
-  { prefix: '0804', carrier: 'Layanan Korporat', type: 'fixed' },
+  { prefix: '021',  carrier: 'Telkom (Jakarta)',   type: 'fixed' },
+  { prefix: '022',  carrier: 'Telkom (Bandung)',   type: 'fixed' },
+  { prefix: '024',  carrier: 'Telkom (Semarang)',  type: 'fixed' },
+  { prefix: '031',  carrier: 'Telkom (Surabaya)',  type: 'fixed' },
+  { prefix: '061',  carrier: 'Telkom (Medan)',     type: 'fixed' },
+  { prefix: '0800', carrier: 'Telkom IndiHome',    type: 'fixed' },
 ];
 
 function detectCarrier(phone: string): CarrierInfo | null {
+  // Normalisasi: hapus non-digit, konversi 62xxx → 0xxx
   let normalized = phone.replace(/\D/g, '');
   if (normalized.startsWith('62')) normalized = '0' + normalized.slice(2);
-  if (normalized.startsWith('+62')) normalized = '0' + normalized.slice(3);
 
+  if (normalized.length < 5) return null;
+
+  // Sort dari prefix terpanjang ke terpendek agar match paling spesifik dulu
   const sorted = [...INDONESIAN_PREFIXES].sort((a, b) => b.prefix.length - a.prefix.length);
 
   for (const entry of sorted) {
@@ -329,13 +335,16 @@ export default async function CheckPage({ params, searchParams }: CheckPageProps
   const uniquePlatforms = Array.from(new Set(reports.map((r) => r.platform).filter(Boolean)));
   const multiVictimCount = reports.filter((r) => r.has_other_victims === 'yes').length;
 
+  // ── Deteksi carrier lokal — hanya untuk nomor HP, zero network call ──────
   const isPhoneNumber = defaultType === 'phone' && !defaultBankName && !defaultWalletName;
   const carrierInfo = isPhoneNumber ? detectCarrier(realNumber) : null;
 
-  // ── Risk badges — "Kerugian besar" dihapus karena sudah tampil di stats grid
   const riskBadges: { label: string; color: string }[] = [];
   if (recentReports.length >= 3) {
     riskBadges.push({ label: `Dilaporkan ${recentReports.length}x dalam 30 hari`, color: 'bg-red-50 text-red-700 border-red-200' });
+  }
+  if (totalLoss >= 10_000_000) {
+    riskBadges.push({ label: `Kerugian besar — ${new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 }).format(totalLoss)}`, color: 'bg-orange-50 text-orange-700 border-orange-200' });
   }
   if (multiVictimCount >= 2) {
     riskBadges.push({ label: `${multiVictimCount} laporan sebut ada korban lain`, color: 'bg-amber-50 text-amber-700 border-amber-200' });

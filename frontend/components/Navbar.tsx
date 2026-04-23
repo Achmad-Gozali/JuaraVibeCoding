@@ -159,7 +159,7 @@ export default function Navbar() {
             {/* AUTH — kanan (desktop) */}
             <div className="hidden lg:flex items-center gap-2 shrink-0 ml-auto">
               {isLoading ? (
-                <div className="w-24 h-9 bg-slate-100 animate-pulse rounded-lg" />
+                <div className="w-40 h-9 bg-slate-100 animate-pulse rounded-lg" />
               ) : user ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -202,14 +202,25 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <Link href="/login" className="px-5 py-2.5 bg-slate-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-700 transition-colors">
-                  Masuk Portal
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/login"
+                    className="px-5 py-2.5 border border-slate-300 text-slate-700 text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    Masuk
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-5 py-2.5 bg-emerald-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-emerald-800 transition-colors"
+                  >
+                    Daftar
+                  </Link>
+                </div>
               )}
             </div>
 
             {/* MOBILE: Avatar / Masuk kanan */}
-            <div className="lg:hidden ml-auto">
+            <div className="lg:hidden ml-auto flex items-center gap-2">
               {isLoading ? (
                 <div className="w-8 h-8 bg-slate-100 rounded-full animate-pulse" />
               ) : user ? (
@@ -220,9 +231,14 @@ export default function Navbar() {
                   <span className="text-white text-xs font-black">{initials}</span>
                 </button>
               ) : (
-                <Link href="/login" className="text-xs font-bold text-slate-900 px-3 py-2 bg-slate-100 rounded-lg">
-                  Masuk
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link href="/login" className="text-xs font-bold text-slate-700 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                    Masuk
+                  </Link>
+                  <Link href="/register" className="text-xs font-bold text-white px-3 py-2 bg-emerald-700 rounded-lg hover:bg-emerald-800 transition-colors">
+                    Daftar
+                  </Link>
+                </div>
               )}
             </div>
 
@@ -263,6 +279,24 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
+
+            {/* Bottom drawer — kalau belum login */}
+            {!user && (
+              <div className="px-3 pb-8 pt-1 border-t border-slate-100 space-y-2">
+                <Link
+                  href="/register"
+                  className="w-full flex items-center justify-center px-4 py-3 bg-emerald-700 text-white text-sm font-bold rounded-xl hover:bg-emerald-800 transition-colors"
+                >
+                  Daftar Sekarang
+                </Link>
+                <Link
+                  href="/login"
+                  className="w-full flex items-center justify-center px-4 py-3 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  Masuk
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -55,7 +55,6 @@ export default function ResetKataSandiPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      // Cek token dari URL hash (format Supabase lama)
       const hash = window.location.hash;
       if (hash) {
         const params = new URLSearchParams(hash.substring(1));
@@ -71,7 +70,6 @@ export default function ResetKataSandiPage() {
         }
       }
 
-      // Cek token dari URL search params (format Supabase baru)
       const searchParams = new URLSearchParams(window.location.search);
       const token_hash = searchParams.get('token_hash');
       const type = searchParams.get('type');
@@ -88,7 +86,6 @@ export default function ResetKataSandiPage() {
         }
       }
 
-      // Cek session yang sudah ada
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setSessionReady(true);
@@ -99,6 +96,7 @@ export default function ResetKataSandiPage() {
     };
 
     checkSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
