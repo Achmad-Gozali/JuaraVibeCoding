@@ -398,7 +398,7 @@ export default function EditReportForm({ report }: EditReportFormProps) {
               <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Sudah lapor ke</label>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { val: 'polisi', label: '🚔 Polisi / Bareskrim' },
+                  { val: 'polisi', label: 'Polisi / Bareskrim' },
                   { val: 'ojk', label: 'OJK' },
                   { val: 'bi', label: 'Bank Indonesia' },
                   { val: 'kominfo', label: 'Kominfo' },
