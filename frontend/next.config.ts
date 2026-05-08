@@ -85,12 +85,12 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "worker-src 'self' blob:",  // ← tambah blob: untuk SW
+              "worker-src 'self' blob:",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://challenges.cloudflare.com https://*.challenges.cloudflare.com https://static.cloudflareinsights.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://*.supabase.co https://picsum.photos",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com/recaptcha/ https://*.cloudflare.com https://challenges.cloudflare.com https://*.challenges.cloudflare.com https://api.kawaltransaksi.com http://localhost:8787 https://static.cloudflareinsights.com https://*.sentry.io",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com/recaptcha/ https://*.cloudflare.com https://challenges.cloudflare.com https://*.challenges.cloudflare.com https://api.kawaltransaksi.com https://kawaltransaksi-api.achmadgozali.workers.dev http://localhost:8787 https://static.cloudflareinsights.com https://*.sentry.io",
               "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/ https://challenges.cloudflare.com https://*.challenges.cloudflare.com",
               "object-src 'none'",
               "base-uri 'self'",
@@ -131,7 +131,6 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // ← Tambah header khusus untuk sw.js
       {
         source: '/sw.js',
         headers: [

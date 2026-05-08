@@ -15,6 +15,7 @@ app.use('*', cors({
       'http://localhost:3000',
       'http://localhost:3001',
       'https://kawaltransaksi.com',
+      'https://kawaltransaksi-605520424162.asia-southeast1.run.app',
       c.env.FRONTEND_URL,
     ].filter(Boolean);
     if (allowedOrigins.includes(origin ?? '')) return origin;
@@ -38,6 +39,7 @@ const originValidator = async (c: any, next: any) => {
     'http://localhost:3000',
     'http://localhost:3001',
     'https://kawaltransaksi.com',
+    'https://kawaltransaksi-605520424162.asia-southeast1.run.app',
     c.env.FRONTEND_URL,
   ].filter(Boolean);
 

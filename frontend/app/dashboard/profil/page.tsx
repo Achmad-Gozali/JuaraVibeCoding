@@ -36,7 +36,7 @@ export default async function ProfilPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="border-b border-zinc-200 bg-white">
+      <div className="border-b border-zinc-200 bg-white md:hidden">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-900 text-sm font-medium transition-colors group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
@@ -50,9 +50,6 @@ export default async function ProfilPage() {
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-            <User className="w-3 h-3" /> Profil Saya
-          </div>
           <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight">Akun Saya</h1>
           <p className="text-zinc-400 text-sm mt-1">Informasi akun kamu di KawalTransaksi</p>
         </motion.div>
