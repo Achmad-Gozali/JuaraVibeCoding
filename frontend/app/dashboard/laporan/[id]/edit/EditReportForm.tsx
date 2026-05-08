@@ -399,14 +399,14 @@ export default function EditReportForm({ report }: EditReportFormProps) {
               <div className="flex flex-wrap gap-2">
                 {[
                   { val: 'polisi', label: '🚔 Polisi / Bareskrim' },
-                  { val: 'ojk', label: '🏦 OJK' },
-                  { val: 'bi', label: '🏛️ Bank Indonesia' },
-                  { val: 'kominfo', label: '📡 Kominfo' },
-                  { val: 'bssn', label: '🔐 BSSN' },
-                  { val: 'platform', label: '📱 Platform terkait' },
-                  { val: 'bank', label: '🏦 Bank terkait' },
-                  { val: 'ylki', label: '⚖️ YLKI' },
-                  { val: 'belum', label: '❌ Belum lapor' },
+                  { val: 'ojk', label: 'OJK' },
+                  { val: 'bi', label: 'Bank Indonesia' },
+                  { val: 'kominfo', label: 'Kominfo' },
+                  { val: 'bssn', label: 'BSSN' },
+                  { val: 'platform', label: 'Platform terkait' },
+                  { val: 'bank', label: 'Bank terkait' },
+                  { val: 'ylki', label: ' YLKI' },
+                  { val: 'belum', label: ' Belum lapor' },
                 ].map(opt => (
                   <label key={opt.val} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium cursor-pointer transition-all ${reportedTo.includes(opt.val) ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'}`}>
                     <input type="checkbox" checked={reportedTo.includes(opt.val)}
