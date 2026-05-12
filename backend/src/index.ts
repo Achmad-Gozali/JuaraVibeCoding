@@ -5,6 +5,7 @@ import reportsRoutes from './routes/reports';
 import adminRoutes from './routes/admin';
 import searchRoutes from './routes/search';
 import articlesRoutes, { generateWeeklyArticle } from './routes/articles';
+import publicRoutes from './routes/public';
 import type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -22,15 +23,17 @@ app.use('*', cors({
     return null;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Internal-Key'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Internal-Key', 'X-API-Key'],
   credentials: true,
 }));
 
 const originValidator = async (c: any, next: any) => {
   if (c.req.method === 'OPTIONS') return next();
-
-  // Skip untuk internal server-to-server request
   if (c.req.header('X-Internal-Key') === 'kawaltransaksi-internal-2024') return next();
+
+  // Skip origin check untuk public API
+  const path = new URL(c.req.url).pathname;
+  if (path.startsWith('/api/v1/')) return next();
 
   const origin = c.req.header('Origin') || c.req.header('Referer') || '';
   if (origin.trim() === '') return next();
@@ -92,7 +95,6 @@ app.use('/api/*', async (c, next) => {
     const blacklistKey = `blacklist_${ip}`;
     const isBlacklisted = await c.env.LIMITER.get(blacklistKey);
     if (isBlacklisted) {
-      const data = JSON.parse(isBlacklisted);
       return c.json({ success: false, message: 'Akses Anda telah diblokir sementara.' }, 403);
     }
   } catch (err) {
@@ -117,6 +119,8 @@ app.use('/api/*', async (c, next) => {
   const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
   const key = `rl_global_${ip}`;
   const path = new URL(c.req.url).pathname;
+  // Skip rate limit untuk public API — punya rate limit sendiri via API key
+  if (path.startsWith('/api/v1/')) return next();
   try {
     const current = await c.env.LIMITER.get(key);
     const count = current ? parseInt(current) : 0;
@@ -208,6 +212,7 @@ app.route('/api/reports', reportsRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/search', searchRoutes);
 app.route('/api/articles', articlesRoutes);
+app.route('/api/v1', publicRoutes);
 
 app.notFound((c) => c.json({ success: false, message: 'Endpoint tidak ditemukan.' }, 404));
 app.onError((err, c) => {
