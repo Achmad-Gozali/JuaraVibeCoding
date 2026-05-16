@@ -5,10 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
-import {
-  LogOut, Menu, X, User, FileText, ChevronDown, Home,
-  Phone, Building2, Flag, Database, Newspaper, Code2,
-} from 'lucide-react';
+import { LogOut, Menu, X, User, FileText, ChevronDown, Home, Phone, Building2, Flag, Database, Newspaper } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const publicMenuItems = [
@@ -17,17 +14,15 @@ const publicMenuItems = [
   { href: '/cek-rekening', label: 'Cek Rekening', icon: Building2 },
   { href: '/report',       label: 'Laporkan',     icon: Flag      },
   { href: '/artikel',      label: 'Artikel',      icon: Newspaper },
-  { href: '/developer',    label: 'API',          icon: Code2     },
 ];
 
 const privateMenuItems = [
-  { href: '/',               label: 'Beranda',        icon: Home      },
-  { href: '/cek-nomor',      label: 'Cek Nomor',      icon: Phone     },
-  { href: '/cek-rekening',   label: 'Cek Rekening',   icon: Building2 },
-  { href: '/laporan-publik', label: 'Laporan Publik', icon: Database  },
-  { href: '/report',         label: 'Laporkan',       icon: Flag      },
-  { href: '/artikel',        label: 'Artikel',        icon: Newspaper },
-  { href: '/developer',      label: 'API',            icon: Code2     },
+  { href: '/',                label: 'Beranda',        icon: Home      },
+  { href: '/cek-nomor',       label: 'Cek Nomor',      icon: Phone     },
+  { href: '/cek-rekening',    label: 'Cek Rekening',   icon: Building2 },
+  { href: '/laporan-publik',  label: 'Laporan Publik', icon: Database  },
+  { href: '/report',          label: 'Laporkan',       icon: Flag      },
+  { href: '/artikel',         label: 'Artikel',        icon: Newspaper },
 ];
 
 interface BeforeInstallPromptEvent extends Event {
@@ -194,10 +189,6 @@ export default function Navbar() {
                         <User className="w-4 h-4 text-slate-400" />
                         Profil Saya
                       </Link>
-                      <Link href="/developer/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                        <Code2 className="w-4 h-4 text-slate-400" />
-                        API Dashboard
-                      </Link>
                       <div className="border-t border-slate-100 mt-1 pt-1">
                         <button
                           onClick={handleSignOut}
@@ -261,7 +252,7 @@ export default function Navbar() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
           <div className="relative w-72 bg-white h-full shadow-2xl flex flex-col animate-slide-in-left">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <Link href="/" className="flex items-center gap-2" onClick={() => setIsMenuOpen(false)}>
+              <Link href="/" className="flex items-center gap-2">
                 <Image src="/logo.png" alt="KawalTransaksi" width={32} height={32} className="rounded-lg" />
                 <span className="text-sm font-black tracking-tighter text-slate-900 uppercase">
                   Kawal<span className="text-emerald-700">Transaksi</span>
@@ -277,7 +268,6 @@ export default function Navbar() {
                 <Link
                   key={href}
                   href={href}
-                  onClick={() => setIsMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                     isActive(href)
                       ? 'bg-emerald-50 text-emerald-700'
@@ -290,18 +280,17 @@ export default function Navbar() {
               ))}
             </div>
 
+            {/* Bottom drawer — kalau belum login */}
             {!user && (
               <div className="px-3 pb-8 pt-1 border-t border-slate-100 space-y-2">
                 <Link
                   href="/register"
-                  onClick={() => setIsMenuOpen(false)}
                   className="w-full flex items-center justify-center px-4 py-3 bg-emerald-700 text-white text-sm font-bold rounded-xl hover:bg-emerald-800 transition-colors"
                 >
                   Daftar Sekarang
                 </Link>
                 <Link
                   href="/login"
-                  onClick={() => setIsMenuOpen(false)}
                   className="w-full flex items-center justify-center px-4 py-3 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors"
                 >
                   Masuk
@@ -335,23 +324,17 @@ export default function Navbar() {
             </div>
 
             <div className="flex-1 px-3 py-4 space-y-1">
-              <Link href="/dashboard/laporan" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
+              <Link href="/dashboard/laporan" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
                 <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
                   <FileText className="w-4 h-4 text-slate-500" />
                 </div>
                 <span className="text-sm font-bold text-slate-800">Laporan Saya</span>
               </Link>
-              <Link href="/dashboard/profil" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
+              <Link href="/dashboard/profil" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
                 <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
                   <User className="w-4 h-4 text-slate-500" />
                 </div>
                 <span className="text-sm font-bold text-slate-800">Profil Saya</span>
-              </Link>
-              <Link href="/developer/dashboard" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                  <Code2 className="w-4 h-4 text-slate-500" />
-                </div>
-                <span className="text-sm font-bold text-slate-800">API Dashboard</span>
               </Link>
             </div>
 

@@ -2,6 +2,22 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // ── MAINTENANCE MODE ──────────────────────────────────────────────────────
+  const isMaintenance = process.env.MAINTENANCE_MODE === 'true';
+  const isMaintenancePage = pathname.startsWith('/maintenance');
+  const isStaticAsset = pathname.startsWith('/_next') || pathname.startsWith('/api');
+
+  if (isMaintenance && !isMaintenancePage && !isStaticAsset) {
+    return NextResponse.redirect(new URL('/maintenance', request.url));
+  }
+
+  if (!isMaintenance && isMaintenancePage) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   let supabaseResponse = NextResponse.next({
     request: { headers: request.headers },
   });
@@ -31,7 +47,6 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const pathname = request.nextUrl.pathname;
 
   if (['/dashboard', '/admin'].some(path => pathname.startsWith(path)) && !user) {
     const url = new URL('/login', request.url);
@@ -40,30 +55,29 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/admin') && user) {
-    const cachedRole = request.cookies.get('user_role')?.value;
+    // Selalu query DB untuk cek role terkini — tidak cache cookie
+    // Ini mencegah edge case admin di-demote tapi cookie lama masih valid
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-    if (cachedRole && cachedRole !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
+    if (profile?.role !== 'admin') {
+      // Hapus cookie user_role kalau ada
+      supabaseResponse = NextResponse.redirect(new URL('/', request.url));
+      supabaseResponse.cookies.delete('user_role');
+      return supabaseResponse;
     }
 
-    if (!cachedRole) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.role !== 'admin') {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-
-      supabaseResponse.cookies.set('user_role', profile.role, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        maxAge: 60 * 60, // 1 jam
-      });
-    }
+    // Set cookie user_role dengan TTL pendek (15 menit) sebagai hint UI saja
+    // Bukan untuk keputusan keamanan — keamanan tetap dari query DB di atas
+    supabaseResponse.cookies.set('user_role', profile.role, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 15,
+    });
   }
 
   supabaseResponse.headers.delete('x-vercel-id');

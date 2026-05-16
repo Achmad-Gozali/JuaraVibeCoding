@@ -32,7 +32,7 @@ export default async function LaporanPage() {
 
   const { data: reports, error } = await supabase
     .from('reports')
-    .select('id, target_number, target_name, target_type, category, chronology, status, created_at, bank_name, loss_amount, incident_date, platform, link_url, social_media_accounts, has_other_victims, reported_to, store_name, suspect_city, suspect_photo_url, evidence_urls, evidence_url')
+    .select('id, target_number, target_name, target_type, category, chronology, status, created_at, bank_name, loss_amount, incident_date, platform, link_url, social_media_accounts, has_other_victims, reported_to')
     .eq('reporter_id', user.id)
     .order('created_at', { ascending: false });
 

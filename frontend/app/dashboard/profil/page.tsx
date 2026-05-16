@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft, User, Mail, Calendar, Shield } from 'lucide-react';
 import type { Metadata } from 'next';
 import * as motion from 'motion/react-client';
+import EditNamaForm from './EditNamaForm';
+import GantiPasswordButton from './GantiPasswordButton';
 
 export const metadata: Metadata = {
   title: 'Profil Saya - KawalTransaksi',
@@ -36,7 +38,7 @@ export default async function ProfilPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="border-b border-zinc-200 bg-white md:hidden">
+      <div className="lg:hidden border-b border-zinc-200 bg-white">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-900 text-sm font-medium transition-colors group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
@@ -74,7 +76,6 @@ export default async function ProfilPage() {
           className="bg-white border border-zinc-200 rounded-2xl divide-y divide-zinc-100"
         >
           {[
-            { icon: User,     label: 'Nama Lengkap',   value: fullName },
             { icon: Mail,     label: 'Email',           value: user.email ?? '-' },
             { icon: Calendar, label: 'Bergabung Sejak', value: joinedAt },
             { icon: Shield,   label: 'Login Via',       value: provider.charAt(0).toUpperCase() + provider.slice(1) },
@@ -94,6 +95,27 @@ export default async function ProfilPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-white border border-zinc-200 rounded-2xl divide-y divide-zinc-100"
+        >
+          <EditNamaForm currentName={fullName} />
+          {provider === 'email' ? (
+            <GantiPasswordButton email={user.email ?? ''} />
+          ) : (
+            <div className="flex items-center gap-4 px-6 py-4">
+              <div className="w-9 h-9 bg-zinc-100 rounded-xl flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-zinc-400" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Password</p>
+                <p className="text-sm font-semibold text-zinc-500 mt-0.5">Dikelola oleh {provider.charAt(0).toUpperCase() + provider.slice(1)}</p>
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="grid grid-cols-2 gap-3"
         >
           <Link href="/dashboard/laporan"

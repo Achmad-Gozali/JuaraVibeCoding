@@ -4,8 +4,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+  const { searchParams, origin: requestOrigin } = new URL(request.url);
+
+  // ✅ Fix: pakai NEXT_PUBLIC_SITE_URL supaya ga ke-redirect ke 0.0.0.0
+  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || requestOrigin;
+
   const code = searchParams.get('code');
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type');

@@ -5,7 +5,7 @@ import reportsRoutes from './routes/reports';
 import adminRoutes from './routes/admin';
 import searchRoutes from './routes/search';
 import articlesRoutes, { generateWeeklyArticle } from './routes/articles';
-import publicRoutes from './routes/public';
+import uploadRoutes from './routes/upload';
 import type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -16,24 +16,23 @@ app.use('*', cors({
       'http://localhost:3000',
       'http://localhost:3001',
       'https://kawaltransaksi.com',
-      'https://kawaltransaksi-605520424162.asia-southeast1.run.app',
+      'https://kawaltransaksi-605520424162.asia-southeast1.run.app', // ✅ tambah clone URL
       c.env.FRONTEND_URL,
     ].filter(Boolean);
     if (allowedOrigins.includes(origin ?? '')) return origin;
     return null;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Internal-Key', 'X-API-Key'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Internal-Key'],
   credentials: true,
 }));
 
 const originValidator = async (c: any, next: any) => {
   if (c.req.method === 'OPTIONS') return next();
-  if (c.req.header('X-Internal-Key') === 'kawaltransaksi-internal-2024') return next();
 
-  // Skip origin check untuk public API
-  const path = new URL(c.req.url).pathname;
-  if (path.startsWith('/api/v1/')) return next();
+  // Skip untuk internal server-to-server request
+  const internalKey = c.req.header('X-Internal-Key');
+  if (internalKey && internalKey === c.env.INTERNAL_API_KEY) return next();
 
   const origin = c.req.header('Origin') || c.req.header('Referer') || '';
   if (origin.trim() === '') return next();
@@ -42,7 +41,7 @@ const originValidator = async (c: any, next: any) => {
     'http://localhost:3000',
     'http://localhost:3001',
     'https://kawaltransaksi.com',
-    'https://kawaltransaksi-605520424162.asia-southeast1.run.app',
+    'https://kawaltransaksi-605520424162.asia-southeast1.run.app', // ✅ tambah clone URL
     c.env.FRONTEND_URL,
   ].filter(Boolean);
 
@@ -63,6 +62,7 @@ const SIZE_LIMITS: Record<string, number> = {
   '/api/reports': 512 * 1024,
   '/api/admin':   50 * 1024,
   '/api/search':  5 * 1024,
+  '/api/upload':  6 * 1024 * 1024,
 };
 const DEFAULT_SIZE_LIMIT = 1 * 1024 * 1024;
 
@@ -119,8 +119,6 @@ app.use('/api/*', async (c, next) => {
   const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
   const key = `rl_global_${ip}`;
   const path = new URL(c.req.url).pathname;
-  // Skip rate limit untuk public API — punya rate limit sendiri via API key
-  if (path.startsWith('/api/v1/')) return next();
   try {
     const current = await c.env.LIMITER.get(key);
     const count = current ? parseInt(current) : 0;
@@ -212,7 +210,7 @@ app.route('/api/reports', reportsRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/search', searchRoutes);
 app.route('/api/articles', articlesRoutes);
-app.route('/api/v1', publicRoutes);
+app.route('/api/upload', uploadRoutes);
 
 app.notFound((c) => c.json({ success: false, message: 'Endpoint tidak ditemukan.' }, 404));
 app.onError((err, c) => {

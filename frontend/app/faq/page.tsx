@@ -39,7 +39,7 @@ const faqs = [
   },
   {
     q: 'Bagaimana cara kerja fitur AI Analysis?',
-    a: 'Fitur AI kami menggunakan teknologi Gemini untuk menganalisis dua hal: (1) Kronologi — AI mendeteksi pola penipuan dari cerita Anda dan menentukan tingkat risiko. (2) Bukti screenshot — AI memindai keaslian gambar dan mengidentifikasi red flags.',
+    a: 'Fitur AI kami menggunakan teknologi Groq untuk menganalisis dua hal: (1) Kronologi — AI mendeteksi pola penipuan dari cerita Anda dan menentukan tingkat risiko. (2) Bukti screenshot — AI memindai keaslian gambar dan mengidentifikasi red flags.',
   },
   {
     q: 'Apakah data di KawalTransaksi akurat?',

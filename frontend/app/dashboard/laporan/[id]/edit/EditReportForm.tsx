@@ -1,11 +1,15 @@
 'use client';
 
+// ============================================
+// 📁 LOKASI: frontend/components/EditReportForm.tsx
+// ✅ FIX — standardize BACKEND_URL: throw jika tidak ada
+// ============================================
+
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Save, ArrowLeft, Upload, X } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import Link from 'next/link';
-import Image from 'next/image';
 
 const BACKEND_URL = (() => {
   const url = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -14,29 +18,9 @@ const BACKEND_URL = (() => {
 })();
 
 const VALID_CATEGORIES = [
-  'Jual Beli Online', 'Toko Online Palsu', 'Barang Tidak Sesuai', 'COD Palsu', 'Dropship Fiktif',
-  'Investasi Bodong', 'Trading Palsu', 'Arisan Online', 'Pinjaman Online', 'Koperasi Bodong',
-  'Binary Option', 'Kripto Palsu', 'Money Game', 'MLM Ilegal',
-  'Phishing / Soceng', 'Modus Kurir/APK', 'Impersonasi', 'SIM Swap', 'Pencurian Data',
-  'Lowongan Kerja Palsu', 'Jasa Tidak Dikerjakan', 'Freelance Palsu', 'Kerja Online Palsu', 'Joki / Titip Beli Palsu',
-  'Rental / Sewa Fiktif', 'Kos / Kontrakan Palsu', 'Tiket Palsu',
-  'Penipuan Percintaan', 'Pinjam Uang Tidak Bayar', 'Hadiah / Undian Palsu', 'Donasi Palsu',
-  'Pura-pura Kecelakaan', 'Penipuan Umroh/Haji',
-  'Lainnya',
+  'Jual Beli Online', 'Investasi Bodong', 'Pinjaman Online',
+  'Phishing / Soceng', 'Modus Kurir/APK', 'Lainnya',
 ] as const;
-
-const PROVINSI_LIST = [
-  'Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau',
-  'Jambi', 'Bengkulu', 'Sumatera Selatan', 'Kepulauan Bangka Belitung',
-  'Lampung', 'Banten', 'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah',
-  'DI Yogyakarta', 'Jawa Timur', 'Bali', 'Nusa Tenggara Barat',
-  'Nusa Tenggara Timur', 'Kalimantan Barat', 'Kalimantan Tengah',
-  'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara',
-  'Sulawesi Utara', 'Gorontalo', 'Sulawesi Tengah', 'Sulawesi Barat',
-  'Sulawesi Selatan', 'Sulawesi Tenggara', 'Maluku', 'Maluku Utara',
-  'Papua Barat', 'Papua Barat Daya', 'Papua', 'Papua Pegunungan',
-  'Papua Selatan', 'Papua Tengah',
-];
 
 interface Report {
   id: string;
@@ -55,9 +39,6 @@ interface Report {
   reported_to: string[] | null;
   evidence_urls: string[] | null;
   evidence_url: string | null;
-  store_name: string | null;
-  suspect_city: string | null;
-  suspect_photo_url: string | null;
 }
 
 interface EditReportFormProps {
@@ -70,28 +51,24 @@ export default function EditReportForm({ report }: EditReportFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const [category, setCategory] = useState(report.category);
-  const [chronology, setChronology] = useState(report.chronology);
-  const [targetName, setTargetName] = useState(report.target_name ?? '');
-  const [bankName, setBankName] = useState(report.bank_name ?? '');
-  const [lossAmount, setLossAmount] = useState(report.loss_amount ? String(report.loss_amount) : '');
-  const [incidentDate, setIncidentDate] = useState(report.incident_date ?? '');
-  const [platform, setPlatform] = useState(report.platform ?? '');
-  const [linkUrl, setLinkUrl] = useState(report.link_url ?? '');
+  const [category, setCategory]             = useState(report.category);
+  const [chronology, setChronology]         = useState(report.chronology);
+  const [targetName, setTargetName]         = useState(report.target_name ?? '');
+  const [bankName, setBankName]             = useState(report.bank_name ?? '');
+  const [lossAmount, setLossAmount]         = useState(report.loss_amount ? String(report.loss_amount) : '');
+  const [incidentDate, setIncidentDate]     = useState(report.incident_date ?? '');
+  const [platform, setPlatform]             = useState(report.platform ?? '');
+  const [linkUrl, setLinkUrl]               = useState(report.link_url ?? '');
   const [hasOtherVictims, setHasOtherVictims] = useState(report.has_other_victims ?? '');
-  const [reportedTo, setReportedTo] = useState<string[]>(report.reported_to ?? []);
+  const [reportedTo, setReportedTo]         = useState<string[]>(report.reported_to ?? []);
   const [socialMediaAccounts, setSocialMediaAccounts] = useState<string[]>(
     report.social_media_accounts?.filter(Boolean) ?? []
   );
-  const [socialInput, setSocialInput] = useState('');
-  const [evidenceUrls, setEvidenceUrls] = useState<string[]>(
+  const [socialInput, setSocialInput]       = useState('');
+  const [evidenceUrls, setEvidenceUrls]     = useState<string[]>(
     report.evidence_urls?.filter(Boolean) ?? (report.evidence_url ? [report.evidence_url] : [])
   );
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
-  const [storeName, setStoreName] = useState(report.store_name ?? '');
-  const [suspectCity, setSuspectCity] = useState(report.suspect_city ?? '');
-  const [suspectPhotoUrl, setSuspectPhotoUrl] = useState<string | null>(report.suspect_photo_url ?? null);
-  const [uploadingSuspectPhoto, setUploadingSuspectPhoto] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -116,8 +93,8 @@ export default function EditReportForm({ report }: EditReportFormProps) {
 
   const handleEvidenceUpload = useCallback(async (files: FileList) => {
     if (!files.length) return;
-    if (evidenceUrls.length >= 10) {
-      setError('Maksimal 10 file bukti.');
+    if (evidenceUrls.length >= 5) {
+      setError('Maksimal 5 file bukti.');
       return;
     }
     setUploadingEvidence(true);
@@ -126,7 +103,7 @@ export default function EditReportForm({ report }: EditReportFormProps) {
       if (!session) { setError('Sesi habis. Silakan login ulang.'); return; }
 
       const urls: string[] = [];
-      for (const file of Array.from(files).slice(0, 10 - evidenceUrls.length)) {
+      for (const file of Array.from(files).slice(0, 5 - evidenceUrls.length)) {
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) continue;
         if (file.size > 5 * 1024 * 1024) continue;
 
@@ -149,42 +126,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
       setUploadingEvidence(false);
     }
   }, [evidenceUrls.length, supabase]);
-
-  const handleSuspectPhotoUpload = useCallback(async (file: File) => {
-    if (!file) return;
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      setError('Format foto tidak didukung. Gunakan JPG atau PNG.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Ukuran foto melebihi 5MB.');
-      return;
-    }
-    setUploadingSuspectPhoto(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError('Sesi habis. Silakan login ulang.'); return; }
-
-      const ext = file.name.split('.').pop() ?? 'jpg';
-      const path = `suspect/${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-      const { data, error: uploadError } = await supabase.storage
-        .from('reports')
-        .upload(path, file, { contentType: file.type });
-
-      if (uploadError || !data) {
-        setError('Gagal upload foto penipu.');
-        return;
-      }
-
-      const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(data.path);
-      setSuspectPhotoUrl(publicUrl);
-    } catch {
-      setError('Gagal upload foto penipu. Coba lagi.');
-    } finally {
-      setUploadingSuspectPhoto(false);
-    }
-  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,9 +160,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
           has_other_victims: hasOtherVictims || null,
           reported_to: reportedTo,
           evidence_urls: evidenceUrls,
-          store_name: storeName || null,
-          suspect_city: suspectCity || null,
-          suspect_photo_url: suspectPhotoUrl || null,
         }),
       });
 
@@ -263,7 +201,6 @@ export default function EditReportForm({ report }: EditReportFormProps) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-
           {/* Kategori */}
           <div className="bg-white border border-zinc-200 rounded-2xl p-5 space-y-3">
             <label className="text-xs font-bold text-zinc-900 uppercase tracking-wider block">Kategori *</label>
@@ -294,54 +231,33 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Nama Pelaku</label>
-                <input type="text" value={targetName} onChange={(e) => setTargetName(e.target.value)}
-                  placeholder="A.N. ..." maxLength={100}
+                <input type="text" value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="A.N. ..." maxLength={100}
                   className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
               </div>
               <div>
                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Bank/E-Wallet</label>
-                <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)}
-                  placeholder="Contoh: BCA, GoPay" maxLength={50}
+                <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Contoh: BCA, GoPay" maxLength={50}
                   className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
               </div>
               <div>
                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Total Kerugian (Rp)</label>
-                <input type="text" inputMode="numeric" value={lossAmount}
-                  onChange={(e) => setLossAmount(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Contoh: 500000" maxLength={15}
+                <input type="text" inputMode="numeric" value={lossAmount} onChange={(e) => setLossAmount(e.target.value.replace(/\D/g, ''))} placeholder="Contoh: 500000" maxLength={15}
                   className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
               </div>
               <div>
                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Tanggal Kejadian</label>
-                <input type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)}
-                  max={new Date().toLocaleDateString('en-CA')}
+                <input type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} max={new Date().toLocaleDateString('en-CA')}
                   className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
               </div>
               <div>
                 <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Platform</label>
-                <input type="text" value={platform} onChange={(e) => setPlatform(e.target.value)}
-                  placeholder="Contoh: Tokopedia, WhatsApp" maxLength={50}
+                <input type="text" value={platform} onChange={(e) => setPlatform(e.target.value)} placeholder="Contoh: Tokopedia, WhatsApp" maxLength={50}
                   className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
               </div>
               <div>
-                <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Link URL</label>
-                <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="https://..." maxLength={500}
+                <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Link URL (Opsional)</label>
+                <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." maxLength={500}
                   className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
-              </div>
-              <div>
-                <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Nama Toko / Akun Marketplace</label>
-                <input type="text" value={storeName} onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="Contoh: Toko Elektronik Murah 99" maxLength={150}
-                  className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
-              </div>
-              <div>
-                <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Provinsi Penipu</label>
-                <select value={suspectCity} onChange={(e) => setSuspectCity(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all bg-white">
-                  <option value="">Pilih provinsi...</option>
-                  {PROVINSI_LIST.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
               </div>
             </div>
 
@@ -353,20 +269,14 @@ export default function EditReportForm({ report }: EditReportFormProps) {
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSocialAccount(); } }}
                   placeholder="@username atau link profil" maxLength={200}
                   className="flex-1 px-3 py-2.5 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 transition-all" />
-                <button type="button" onClick={addSocialAccount}
-                  className="px-3 py-2.5 bg-zinc-100 text-zinc-600 rounded-xl text-sm hover:bg-zinc-200 transition-colors font-medium">
-                  Tambah
-                </button>
+                <button type="button" onClick={addSocialAccount} className="px-3 py-2.5 bg-zinc-100 text-zinc-600 rounded-xl text-sm hover:bg-zinc-200 transition-colors font-medium">Tambah</button>
               </div>
               {socialMediaAccounts.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {socialMediaAccounts.map(acc => (
                     <span key={acc} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-100 rounded-lg text-xs font-mono text-zinc-700">
                       @{acc}
-                      <button type="button" onClick={() => removeSocialAccount(acc)}
-                        className="text-zinc-400 hover:text-zinc-700 transition-colors">
-                        <X className="w-3 h-3" />
-                      </button>
+                      <button type="button" onClick={() => removeSocialAccount(acc)} className="text-zinc-400 hover:text-zinc-700 transition-colors"><X className="w-3 h-3" /></button>
                     </span>
                   ))}
                 </div>
@@ -377,16 +287,9 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             <div>
               <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Ada korban lain?</label>
               <div className="flex gap-3">
-                {[
-                  { val: 'yes', label: 'Ya' },
-                  { val: 'no', label: 'Tidak' },
-                  { val: 'unknown', label: 'Tidak tahu' }
-                ].map(opt => (
+                {[{ val: 'yes', label: 'Ya' }, { val: 'no', label: 'Tidak' }, { val: 'unknown', label: 'Tidak tahu' }].map(opt => (
                   <label key={opt.val} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium cursor-pointer transition-all ${hasOtherVictims === opt.val ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'}`}>
-                    <input type="radio" name="hasOtherVictims" value={opt.val}
-                      checked={hasOtherVictims === opt.val}
-                      onChange={() => setHasOtherVictims(opt.val)}
-                      className="sr-only" />
+                    <input type="radio" name="hasOtherVictims" value={opt.val} checked={hasOtherVictims === opt.val} onChange={() => setHasOtherVictims(opt.val)} className="sr-only" />
                     {opt.label}
                   </label>
                 ))}
@@ -397,21 +300,9 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             <div>
               <label className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider block mb-1.5">Sudah lapor ke</label>
               <div className="flex flex-wrap gap-2">
-                {[
-                  { val: 'polisi', label: 'Polisi / Bareskrim' },
-                  { val: 'ojk', label: 'OJK' },
-                  { val: 'bi', label: 'Bank Indonesia' },
-                  { val: 'kominfo', label: 'Kominfo' },
-                  { val: 'bssn', label: 'BSSN' },
-                  { val: 'platform', label: 'Platform terkait' },
-                  { val: 'bank', label: 'Bank terkait' },
-                  { val: 'ylki', label: ' YLKI' },
-                  { val: 'belum', label: ' Belum lapor' },
-                ].map(opt => (
+                {[{ val: 'polisi', label: '🚔 Polisi' }, { val: 'ojk', label: '🏦 OJK' }, { val: 'platform', label: '📱 Platform' }, { val: 'belum', label: '❌ Belum' }].map(opt => (
                   <label key={opt.val} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium cursor-pointer transition-all ${reportedTo.includes(opt.val) ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'}`}>
-                    <input type="checkbox" checked={reportedTo.includes(opt.val)}
-                      onChange={() => handleReportedToToggle(opt.val)}
-                      className="sr-only" />
+                    <input type="checkbox" checked={reportedTo.includes(opt.val)} onChange={() => handleReportedToToggle(opt.val)} className="sr-only" />
                     {opt.label}
                   </label>
                 ))}
@@ -419,57 +310,7 @@ export default function EditReportForm({ report }: EditReportFormProps) {
             </div>
           </div>
 
-          {/* Foto Profil Penipu */}
-          <div className="bg-white border border-zinc-200 rounded-2xl p-5 space-y-3">
-            <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Foto Profil Penipu</h3>
-            {suspectPhotoUrl ? (
-              <div className="relative inline-block">
-                <div className="relative w-24 h-24">
-                  <Image
-                    src={suspectPhotoUrl}
-                    alt="Foto penipu"
-                    fill
-                    className="object-cover rounded-2xl border border-zinc-200"
-                    unoptimized
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSuspectPhotoUrl(null)}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-zinc-900 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors shadow-sm"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <label className="border-2 border-dashed border-zinc-200 rounded-xl p-6 flex flex-col items-center gap-3 hover:border-emerald-400 hover:bg-emerald-50/20 transition-all cursor-pointer group">
-                <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center group-hover:bg-emerald-50 group-hover:border-emerald-100 transition-all">
-                  {uploadingSuspectPhoto
-                    ? <Loader2 className="w-4 h-4 text-zinc-400 animate-spin" />
-                    : <Upload className="w-4 h-4 text-zinc-300 group-hover:text-emerald-500 transition-colors" />
-                  }
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-zinc-500 group-hover:text-zinc-700 transition-colors">
-                    {uploadingSuspectPhoto ? 'Mengupload...' : 'Klik untuk upload foto penipu'}
-                  </p>
-                  <p className="text-xs text-zinc-300 mt-1">JPG, PNG · maks 5MB</p>
-                </div>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png"
-                  className="sr-only"
-                  disabled={uploadingSuspectPhoto}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleSuspectPhotoUpload(file);
-                  }}
-                />
-              </label>
-            )}
-          </div>
-
-          {/* Bukti Foto */}
+          {/* Bukti */}
           <div className="bg-white border border-zinc-200 rounded-2xl p-5 space-y-3">
             <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Bukti Transfer / Chat</h3>
             <div
@@ -479,13 +320,9 @@ export default function EditReportForm({ report }: EditReportFormProps) {
               onClick={() => document.getElementById('evidence-input')?.click()}
             >
               <Upload className="w-6 h-6 text-zinc-300 mx-auto mb-2" />
-              <p className="text-sm text-zinc-400">
-                {uploadingEvidence ? 'Mengupload...' : 'Drag & drop atau klik untuk pilih file'}
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-1">JPG, PNG, WebP — maks. 5MB per file, maks. 10 file</p>
-              <input id="evidence-input" type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple className="sr-only"
+              <p className="text-sm text-zinc-400">{uploadingEvidence ? 'Mengupload...' : 'Drag & drop atau klik untuk pilih file'}</p>
+              <p className="text-[11px] text-zinc-400 mt-1">JPG, PNG, WebP — maks. 5MB per file, maks. 5 file</p>
+              <input id="evidence-input" type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only"
                 onChange={(e) => { if (e.target.files) handleEvidenceUpload(e.target.files); }} />
             </div>
             {evidenceUrls.length > 0 && (
@@ -493,10 +330,8 @@ export default function EditReportForm({ report }: EditReportFormProps) {
                 {evidenceUrls.map((url, i) => (
                   <div key={i} className="relative group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`Bukti ${i + 1}`}
-                      className="w-20 h-20 object-cover rounded-xl border border-zinc-200" />
-                    <button type="button"
-                      onClick={() => setEvidenceUrls(prev => prev.filter((_, idx) => idx !== i))}
+                    <img src={url} alt={`Bukti ${i + 1}`} className="w-20 h-20 object-cover rounded-xl border border-zinc-200" />
+                    <button type="button" onClick={() => setEvidenceUrls(prev => prev.filter((_, idx) => idx !== i))}
                       className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <X className="w-3 h-3" />
                     </button>
@@ -508,10 +343,7 @@ export default function EditReportForm({ report }: EditReportFormProps) {
 
           <button type="submit" disabled={loading || success}
             className="w-full py-3.5 bg-zinc-900 text-white font-bold text-sm rounded-xl hover:bg-black disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2">
-            {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
-              : <><Save className="w-4 h-4" /> Simpan & Kirim Ulang untuk Review</>
-            }
+            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</> : <><Save className="w-4 h-4" /> Simpan & Kirim Ulang untuk Review</>}
           </button>
         </form>
       </div>
