@@ -14,7 +14,7 @@ interface Step2Props {
   onAnalyzeText: () => void;
 }
 
-const COOLDOWN_MS = 10 * 60 * 1000;
+const COOLDOWN_MS = 10 * 60 * 1000; // 10 menit
 const MIN_CHARS = 100;
 
 export function Step2Kronologi({
@@ -26,28 +26,23 @@ export function Step2Kronologi({
 }: Step2Props) {
   const chronologyProgress = Math.min((chronology.length / 150) * 100, 100);
 
-  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
-  const [remaining, setRemaining] = useState<number>(0);
-  const [now, setNow] = useState<number>(() => Date.now()); // ✅ fix: initial value langsung
+  const [isCoolingDown, setIsCoolingDown] = useState(false);
+  const [remaining, setRemaining] = useState(0);
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-
-  useEffect(() => {
-    if (!cooldownUntil) return;
+    if (!isCoolingDown) return;
     const interval = setInterval(() => {
-      const diff = cooldownUntil - Date.now();
-      if (diff <= 0) {
-        setCooldownUntil(null);
-        setRemaining(0);
-      } else {
-        setRemaining(Math.ceil(diff / 1000));
-      }
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          setIsCoolingDown(false);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, [cooldownUntil]);
+  }, [isCoolingDown]);
 
   const formatRemaining = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -57,10 +52,10 @@ export function Step2Kronologi({
 
   const handleAnalyze = () => {
     onAnalyzeText();
-    setCooldownUntil(Date.now() + COOLDOWN_MS);
+    setIsCoolingDown(true);
+    setRemaining(COOLDOWN_MS / 1000);
   };
 
-  const isCoolingDown = cooldownUntil !== null && now < cooldownUntil;
   const canAnalyze = chronology.length >= MIN_CHARS && !isAnalyzingText && !isCoolingDown && !textAnalysis;
 
   return (
@@ -126,11 +121,7 @@ export function Step2Kronologi({
                 ? 'Tambahkan lebih banyak detail untuk memperkuat laporan'
                 : '✓ Kronologi sudah cukup lengkap'}
             </span>
-            <span
-              className={`text-xs font-semibold shrink-0 ${
-                chronology.length >= 150 ? 'text-emerald-500' : 'text-slate-400'
-              }`}
-            >
+            <span className={`text-xs font-semibold shrink-0 ${chronology.length >= 150 ? 'text-emerald-500' : 'text-slate-400'}`}>
               {chronology.length} / 150
             </span>
           </div>
@@ -138,23 +129,30 @@ export function Step2Kronologi({
 
         {!textAnalysis && !isAnalyzingText && (
           <div className="mt-4 flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-100 rounded-xl">
-            <Sparkles className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {chronology.length < MIN_CHARS
-                ? `Tulis minimal ${MIN_CHARS} karakter untuk mengaktifkan Analisis AI.`
-                : isCoolingDown
-                ? `Analisis berikutnya tersedia dalam ${formatRemaining(remaining)}.`
-                : 'Klik Analisis AI untuk mengevaluasi kelengkapan kronologi sebelum mengirim laporan.'}
-            </p>
+            {isCoolingDown ? (
+              <>
+                <Clock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Analisis berikutnya tersedia dalam <span className="font-semibold text-slate-600">{formatRemaining(remaining)}</span>.
+                </p>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {chronology.length < MIN_CHARS
+                    ? `Tulis minimal ${MIN_CHARS} karakter untuk mengaktifkan Analisis AI.`
+                    : 'Klik Analisis AI untuk mengevaluasi kelengkapan kronologi sebelum mengirim laporan.'}
+                </p>
+              </>
+            )}
           </div>
         )}
 
         {isAnalyzingText && (
           <div className="mt-4 flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-100 rounded-xl">
             <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />
-            <p className="text-xs text-slate-500 font-medium">
-              Sedang menganalisis kronologi...
-            </p>
+            <p className="text-xs text-slate-500 font-medium">Sedang menganalisis kronologi...</p>
           </div>
         )}
 

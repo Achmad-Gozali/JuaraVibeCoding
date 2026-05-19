@@ -23,7 +23,7 @@ interface Step3Props {
   onTurnstileError: () => void;
 }
 
-const COOLDOWN_MS = 10 * 60 * 1000;
+const COOLDOWN_MS = 10 * 60 * 1000; // 10 menit
 
 export function Step3BuktiKirim({
   evidenceFiles,
@@ -40,28 +40,23 @@ export function Step3BuktiKirim({
   const hasFiles = evidenceFiles.length > 0;
   const allAnalyzed = hasFiles && !hasUnanalyzed;
 
-  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
-  const [remaining, setRemaining] = useState<number>(0);
-  const [now, setNow] = useState<number>(() => Date.now()); // ✅ fix: initial value langsung
+  const [isCoolingDown, setIsCoolingDown] = useState(false);
+  const [remaining, setRemaining] = useState(0);
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-
-  useEffect(() => {
-    if (!cooldownUntil) return;
+    if (!isCoolingDown) return;
     const interval = setInterval(() => {
-      const diff = cooldownUntil - Date.now();
-      if (diff <= 0) {
-        setCooldownUntil(null);
-        setRemaining(0);
-      } else {
-        setRemaining(Math.ceil(diff / 1000));
-      }
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          setIsCoolingDown(false);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, [cooldownUntil]);
+  }, [isCoolingDown]);
 
   const formatRemaining = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -71,15 +66,14 @@ export function Step3BuktiKirim({
 
   const handleAnalyzeAll = () => {
     onAnalyzeAll();
-    setCooldownUntil(Date.now() + COOLDOWN_MS);
+    setIsCoolingDown(true);
+    setRemaining(COOLDOWN_MS / 1000);
   };
 
-  const isCoolingDown = cooldownUntil !== null && now < cooldownUntil;
   const canAnalyze = hasFiles && hasUnanalyzed && !isAnalyzingAll && !isCoolingDown;
 
   return (
     <div className="space-y-4">
-
       <Card>
         <div className="p-4 sm:p-5">
 
@@ -146,19 +140,14 @@ export function Step3BuktiKirim({
           {isAnalyzingAll && (
             <div className="mb-4 flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-100 rounded-xl">
               <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />
-              <p className="text-xs text-slate-500 font-medium">
-                Sedang menganalisis foto bukti...
-              </p>
+              <p className="text-xs text-slate-500 font-medium">Sedang menganalisis foto bukti...</p>
             </div>
           )}
 
           {hasFiles && (
             <div className="space-y-3 mb-4">
               {evidenceFiles.map((item: EvidenceFile, index: number) => (
-                <div
-                  key={index}
-                  className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50"
-                >
+                <div key={index} className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
                   <div className="relative h-40 sm:h-48 w-full">
                     <Image
                       src={item.preview}
@@ -179,9 +168,7 @@ export function Step3BuktiKirim({
                     </span>
                   </div>
                   <div className="px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-3">
-                    <span className="text-xs sm:text-sm text-slate-400 truncate min-w-0">
-                      {item.file.name}
-                    </span>
+                    <span className="text-xs sm:text-sm text-slate-400 truncate min-w-0">{item.file.name}</span>
                     {item.isAnalyzing && (
                       <span className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -253,7 +240,6 @@ export function Step3BuktiKirim({
           </p>
         )}
       </div>
-
     </div>
   );
 }

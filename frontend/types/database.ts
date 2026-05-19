@@ -1,11 +1,15 @@
 // ============================================
-// 📁 LOKASI: types/database.ts
-// ✅ UPDATE: Tambah store_name & suspect_city
+// 📁 LOKASI: frontend/types/database.ts
+// ✅ UPDATE: Sinkronisasi lengkap dengan struktur tabel Supabase
 // ============================================
 
-export type TargetType = 'phone' | 'bank_account' | 'ewallet';
-export type ReportStatus = 'pending' | 'verified' | 'rejected' | 'withdrawn';
-export type UserRole = 'user' | 'admin' | 'moderator';
+export type TargetType    = 'phone' | 'bank_account' | 'ewallet';
+export type ReportStatus  = 'pending' | 'verified' | 'rejected' | 'withdrawn';
+export type UserRole      = 'user' | 'admin' | 'moderator';
+export type FeedbackCategory = 'bug' | 'feature' | 'ui_ux' | 'other';
+export type FeedbackUrgency  = 'low' | 'medium' | 'high' | 'critical';
+export type FeedbackStatus   = 'pending' | 'in_review' | 'fixed' | 'closed';
+export type ArticleStatus = 'draft' | 'published';
 
 export interface Profile {
   id: string;
@@ -30,6 +34,22 @@ export interface Report {
   created_at: string;
 }
 
+export interface Feedback {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  category: FeedbackCategory;
+  title: string;
+  description: string;
+  page_url: string | null;
+  urgency: FeedbackUrgency;
+  screenshot_urls: string[];
+  status: FeedbackStatus;
+  admin_reply: string | null;
+  replied_at: string | null;
+  created_at: string;
+}
+
 export type Json =
   | string
   | number
@@ -50,6 +70,11 @@ export interface Database {
           avatar_url: string | null;
           website: string | null;
           role: string;
+          email: string | null;
+          is_banned: boolean;
+          failed_attempts: number;
+          locked_until: string | null;
+          welcome_sent: boolean;
         };
         Insert: {
           id: string;
@@ -59,6 +84,11 @@ export interface Database {
           avatar_url?: string | null;
           website?: string | null;
           role?: string;
+          email?: string | null;
+          is_banned?: boolean;
+          failed_attempts?: number;
+          locked_until?: string | null;
+          welcome_sent?: boolean;
         };
         Update: {
           id?: string;
@@ -68,9 +98,15 @@ export interface Database {
           avatar_url?: string | null;
           website?: string | null;
           role?: string;
+          email?: string | null;
+          is_banned?: boolean;
+          failed_attempts?: number;
+          locked_until?: string | null;
+          welcome_sent?: boolean;
         };
         Relationships: [];
       };
+
       reports: {
         Row: {
           id: string;
@@ -146,6 +182,7 @@ export interface Database {
         };
         Relationships: [];
       };
+
       articles: {
         Row: {
           id: string;
@@ -154,11 +191,15 @@ export interface Database {
           summary: string;
           content: string;
           published_at: string;
+          status: string;
+          cover_image: string | null;
           total_reports: number | null;
           total_loss: number | null;
           top_category: string | null;
           top_platform: string | null;
           top_bank: string | null;
+          period_start: string | null;
+          period_end: string | null;
           created_at: string;
         };
         Insert: {
@@ -168,11 +209,15 @@ export interface Database {
           summary: string;
           content: string;
           published_at?: string;
+          status?: string;
+          cover_image?: string | null;
           total_reports?: number | null;
           total_loss?: number | null;
           top_category?: string | null;
           top_platform?: string | null;
           top_bank?: string | null;
+          period_start?: string | null;
+          period_end?: string | null;
           created_at?: string;
         };
         Update: {
@@ -182,20 +227,172 @@ export interface Database {
           summary?: string;
           content?: string;
           published_at?: string;
+          status?: string;
+          cover_image?: string | null;
           total_reports?: number | null;
           total_loss?: number | null;
           top_category?: string | null;
           top_platform?: string | null;
           top_bank?: string | null;
+          period_start?: string | null;
+          period_end?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      feedback: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          user_email: string | null;
+          category: string;
+          title: string;
+          description: string;
+          page_url: string | null;
+          urgency: string;
+          screenshot_urls: string[];
+          status: string;
+          admin_reply: string | null;
+          replied_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          user_email?: string | null;
+          category: string;
+          title: string;
+          description: string;
+          page_url?: string | null;
+          urgency?: string;
+          screenshot_urls?: string[];
+          status?: string;
+          admin_reply?: string | null;
+          replied_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          user_email?: string | null;
+          category?: string;
+          title?: string;
+          description?: string;
+          page_url?: string | null;
+          urgency?: string;
+          screenshot_urls?: string[];
+          status?: string;
+          admin_reply?: string | null;
+          replied_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      // ✅ api_keys — dengan semua kolom keamanan
+      api_keys: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          key: string;
+          key_hash: string | null;
+          key_prefix: string | null;
+          environment: string;
+          requests_today: number;
+          requests_total: number;
+          daily_limit: number;
+          last_reset_at: string | null;
+          last_used_at: string | null;
+          expires_at: string | null;
+          failed_attempts: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          key: string;
+          key_hash?: string | null;
+          key_prefix?: string | null;
+          environment?: string;
+          requests_today?: number;
+          requests_total?: number;
+          daily_limit?: number;
+          last_reset_at?: string | null;
+          last_used_at?: string | null;
+          expires_at?: string | null;
+          failed_attempts?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          key?: string;
+          key_hash?: string | null;
+          key_prefix?: string | null;
+          environment?: string;
+          requests_today?: number;
+          requests_total?: number;
+          daily_limit?: number;
+          last_reset_at?: string | null;
+          last_used_at?: string | null;
+          expires_at?: string | null;
+          failed_attempts?: number;
+          is_active?: boolean;
           created_at?: string;
         };
         Relationships: [];
       };
     };
+
     Views: {
       [_ in never]: never;
     };
+
     Functions: {
+      get_stats_nomor: {
+        Args: Record<string, never>;
+        Returns: { total_laporan: number; total_nomor: number; total_kerugian: number };
+      };
+      get_stats_rekening: {
+        Args: Record<string, never>;
+        Returns: { total_laporan: number; total_rekening: number; total_kerugian: number };
+      };
+      get_stats: {
+        Args: Record<string, never>;
+        Returns: { total: number; verified: number; total_loss: number };
+      };
+      get_laporan_publik: {
+        Args: { p_type?: string; p_sort?: string; p_q?: string; p_page?: number; p_per_page?: number };
+        Returns: {
+          data: {
+            target_number: string;
+            target_name: string | null;
+            target_type: string;
+            bank_name: string | null;
+            category: string | null;
+            latest_at: string;
+            earliest_at: string;
+            total: number;
+            verified_count: number;
+            pending_count: number;
+          }[];
+          total_unique: number;
+        };
+      };
+      get_laporan_stats: {
+        Args: Record<string, never>;
+        Returns: { target_type: string; bank_name: string | null; category: string | null; status: string; created_at: string }[];
+      };
+      get_check_page_data: {
+        Args: { p_number: string };
+        Returns: { reports: any[]; linked: any[] };
+      };
       get_category_counts: {
         Args: Record<string, never>;
         Returns: { category: string; count: number }[];
@@ -228,6 +425,10 @@ export interface Database {
           suspect_city: string | null;
         }[];
       };
+      increment_api_usage: {
+        Args: { key_id: string };
+        Returns: undefined;
+      };
       update_report_status: {
         Args: { report_id: string; new_status: string };
         Returns: undefined;
@@ -237,10 +438,12 @@ export interface Database {
         Returns: undefined;
       };
     };
+
     Enums: {
-      target_type_enum: 'phone' | 'bank_account';
+      target_type_enum:   'phone' | 'bank_account';
       report_status_enum: 'pending' | 'verified' | 'rejected' | 'withdrawn';
     };
+
     CompositeTypes: {
       [_ in never]: never;
     };

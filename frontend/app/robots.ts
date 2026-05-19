@@ -11,7 +11,9 @@ export default function robots(): MetadataRoute.Robots {
           '/',
           '/cek-nomor',
           '/cek-rekening',
-          '/cek-ewallet',
+          '/cek-rekening/',
+          '/cek-nomor/cek-ewallet',
+          '/cek-nomor/cek-ewallet/',
           '/check/',
           '/laporan-publik',
           '/edukasi',
@@ -24,6 +26,7 @@ export default function robots(): MetadataRoute.Robots {
           '/login',
           '/register',
           '/report',
+          '/developer',
         ],
         disallow: [
           '/admin',
