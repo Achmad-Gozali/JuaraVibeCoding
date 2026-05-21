@@ -1,12 +1,10 @@
 import { Suspense } from 'react';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase-server';
-import AdminDashboard from './AdminDashboard';
-import type { FeedbackItem } from './tabs/FeedbackTab';
+import { createClient } from '@/core/supabase/server';
+import AdminDashboard from '@/app/admin/AdminDashboard';
+import type { FeedbackItem } from '@/features/admin/tabs/FeedbackTab';
 
 export const dynamic = 'force-dynamic';
-
-// ── Fetch users ───────────────────────────────────────────────────────────────
 
 async function fetchUsers() {
   const supabase = createSupabaseAdmin(
@@ -38,8 +36,6 @@ async function fetchUsers() {
   }));
 }
 
-// ── Fetch feedbacks ───────────────────────────────────────────────────────────
-
 async function fetchFeedbacks(): Promise<FeedbackItem[]> {
   const supabase = createSupabaseAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,8 +55,6 @@ async function fetchFeedbacks(): Promise<FeedbackItem[]> {
 
   return (data ?? []) as FeedbackItem[];
 }
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function AdminPage() {
   const supabase = await createClient();

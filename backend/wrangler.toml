@@ -9,7 +9,7 @@ routes = [
 
 [vars]
 NODE_ENV = "production"
-FRONTEND_URL = "https://kawaltransaksi.com"
+FRONTEND_URL = "https://kawaltransaksi.com,https://kawaltransaksi-605520424162.asia-southeast1.run.app"
 ADMIN_EMAIL = "kawaltransaksi@gmail.com"
 R2_PUBLIC_URL = "https://cdn.kawaltransaksi.com"
 # TURNSTILE_SECRET_KEY & SUPABASE secrets → gunakan: wrangler secret put

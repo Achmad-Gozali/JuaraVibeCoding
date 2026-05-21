@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase-server';
+import { createClient } from '@/core/supabase/server';
 import { redirect } from 'next/navigation';
-import AdminShell from './AdminShell';
+import AdminShell from '@/features/admin/AdminShell';
 
 export default async function AdminLayout({
   children,
