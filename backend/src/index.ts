@@ -20,7 +20,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use('*', cors({
   origin: (origin, c) => {
-    const allowed = ['http://localhost:3000', 'http://localhost:3001', 'https://kawaltransaksi.com', c.env.FRONTEND_URL].filter(Boolean);
+    const allowed = ['http://localhost:3000', 'http://localhost:3001', 'https://kawaltransaksi.com', c.env.FRONTEND_URL, c.env.FRONTEND_URL_CLONE].filter(Boolean);
     if (!origin) return '*';
     return allowed.includes(origin) ? origin : null;
   },
@@ -53,7 +53,7 @@ const originValidator = async (c: { req: { method: string; header: (k: string) =
   if (internalKey && internalKey === c.env.INTERNAL_API_KEY) return next();
   const origin = c.req.header('Origin') || c.req.header('Referer') || '';
   if (!origin.trim()) return next();
-  const allowed = ['http://localhost:3000', 'http://localhost:3001', 'https://kawaltransaksi.com', c.env.FRONTEND_URL].filter(Boolean);
+  const allowed = ['http://localhost:3000', 'http://localhost:3001', 'https://kawaltransaksi.com', c.env.FRONTEND_URL, c.env.FRONTEND_URL_CLONE].filter(Boolean);
   if (!allowed.some((a: string) => origin.startsWith(a))) {
     return c.json({ success: false, message: 'Akses ditolak.' }, 403);
   }

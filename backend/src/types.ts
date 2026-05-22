@@ -7,6 +7,7 @@ export interface Env {
   GROQ_API_KEY: string;
   TURNSTILE_SECRET_KEY: string;
   FRONTEND_URL: string;
+  FRONTEND_URL_CLONE: string; // ← tambah ini
   NODE_ENV: string;
   RESEND_API_KEY: string;
   ADMIN_EMAIL: string;
