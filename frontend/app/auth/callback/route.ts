@@ -10,9 +10,10 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type');
   const next = searchParams.get('next') ?? searchParams.get('redirectTo') ?? '/';
 
-  // Fix: pakai SITE_URL kalau origin-nya 0.0.0.0 atau tidak sesuai
+  // Selalu pakai SITE_URL di production
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  const baseUrl = (siteUrl && origin.includes('0.0.0.0')) ? siteUrl : origin;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const baseUrl = (isProduction && siteUrl) ? siteUrl : origin;
 
   const cookieStore = await cookies();
 
