@@ -674,6 +674,17 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      {/* Legal links */}
+    <section className="bg-slate-50 py-6 border-t border-slate-200">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-center gap-6">
+      <Link href="/kebijakan-privasi" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+      Kebijakan Privasi
+    </Link>
+    <Link href="/syarat-ketentuan" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+      Syarat & Ketentuan
+    </Link>
+  </div>
+</section>
     </main>
   );
 }
