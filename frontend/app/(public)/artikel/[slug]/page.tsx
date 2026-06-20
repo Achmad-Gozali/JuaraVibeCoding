@@ -5,10 +5,8 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import SidebarArtikel from "./SidebarArtikel";
 
-// [OK] FIX: revalidate 1 jam, bukan 0
 export const revalidate = 3600;
 
-// [OK] FIX: URL production yang benar
 const SITE_URL = "https://kawaltransaksi.com";
 
 interface Props {
@@ -19,19 +17,69 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
 
-  // [OK] FIX: hapus cast `as any`
   const { data } = await supabase
     .from("articles")
-    .select("title, summary, cover_image")
+    .select("title, summary, cover_image, published_at, top_category")
     .eq("slug", slug)
     .single();
 
-  if (!data) return { title: "Artikel tidak ditemukan - KawalTransaksi" };
+  if (!data) {
+    return {
+      title: "Artikel tidak ditemukan - KawalTransaksi",
+      robots: { index: false },
+    };
+  }
+
+  const articleUrl = `${SITE_URL}/artikel/${slug}`;
+  const fullTitle = `${data.title} | KawalTransaksi`;
 
   return {
-    title: `${data.title} - KawalTransaksi`,
+    title: fullTitle,
     description: data.summary,
-    openGraph: data.cover_image ? { images: [data.cover_image] } : undefined,
+
+    alternates: {
+      canonical: articleUrl,
+    },
+
+    openGraph: {
+      title: fullTitle,
+      description: data.summary,
+      url: articleUrl,
+      siteName: "KawalTransaksi",
+      locale: "id_ID",
+      type: "article",
+      publishedTime: data.published_at,
+      authors: ["KawalTransaksi"],
+      section: data.top_category ?? "Edukasi",
+      ...(data.cover_image && {
+        images: [
+          {
+            url: data.cover_image,
+            width: 1200,
+            height: 675,
+            alt: data.title,
+          },
+        ],
+      }),
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title: fullTitle,
+      description: data.summary,
+      ...(data.cover_image && { images: [data.cover_image] }),
+    },
+
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
   };
 }
 
@@ -117,7 +165,6 @@ export default async function ArtikelDetailPage({ params }: Props) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  // [OK] FIX: hapus cast `as any`
   const { data: article } = await supabase
     .from("articles")
     .select("*")
@@ -127,7 +174,6 @@ export default async function ArtikelDetailPage({ params }: Props) {
 
   if (!article) notFound();
 
-  // [OK] FIX: hapus cast `as any`
   const { data: others } = await supabase
     .from("articles")
     .select("title, slug, published_at, cover_image, summary, top_category")
@@ -176,7 +222,12 @@ export default async function ArtikelDetailPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Beranda", item: SITE_URL },
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Beranda",
+        item: SITE_URL,
+      },
       {
         "@type": "ListItem",
         position: 2,
@@ -237,12 +288,14 @@ export default async function ArtikelDetailPage({ params }: Props) {
             </h1>
 
             {article.cover_image && (
-              <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-8">
+              <div className="relative w-full rounded-2xl overflow-hidden mb-8 bg-slate-100">
                 <Image
                   src={article.cover_image}
                   alt={article.title}
-                  fill
-                  className="object-cover"
+                  width={1200}
+                  height={675}
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="w-full h-auto object-contain"
                   priority
                 />
               </div>
@@ -274,7 +327,7 @@ export default async function ArtikelDetailPage({ params }: Props) {
                     Cek Nomor HP
                   </Link>
                   <Link
-                    href="/cek-rekening"
+                    href="/cek-nomor/cek-rekening"
                     className="flex-1 sm:flex-none text-center px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold rounded-xl transition-colors uppercase tracking-widest"
                   >
                     Cek Rekening Bank
@@ -297,12 +350,12 @@ export default async function ArtikelDetailPage({ params }: Props) {
                       className="group flex flex-col bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:border-slate-300 hover:-translate-y-1 transition-all duration-200 shadow-sm"
                     >
                       {a.cover_image ? (
-                        <div className="relative w-full h-40 overflow-hidden">
+                        <div className="relative w-full h-40 overflow-hidden bg-slate-100">
                           <Image
                             src={a.cover_image}
                             alt={a.title}
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="object-contain group-hover:scale-105 transition-transform duration-300"
                           />
                         </div>
                       ) : (

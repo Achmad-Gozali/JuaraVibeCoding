@@ -7,13 +7,12 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const token_hash = searchParams.get('token_hash');
-  console.log('[AUTH CALLBACK] origin:', origin, '| NODE_ENV:', process.env.NODE_ENV, '| siteUrl:', process.env.NEXT_PUBLIC_SITE_URL);
   const type = searchParams.get('type');
   const state = searchParams.get('state');
   const next = searchParams.get('next') ?? state ?? '/';
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === 'production' && !!siteUrl && !origin.includes('localhost');
   const baseUrl = (isProduction && siteUrl) ? siteUrl : origin;
 
   const cookieStore = await cookies();

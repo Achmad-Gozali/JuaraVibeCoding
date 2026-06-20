@@ -13,7 +13,8 @@ import developerRoutes from './features/developer/developer.route';
 import robotRoutes, { runScheduler } from './features/robot/robot.route';
 import appealRoutes    from './features/robot/appeal-system';
 import { runConfidenceDecay } from './features/robot/blacklist-engine';
-import { detectTrends } from './features/robot/trend-detector';
+import { detectTrends }       from './features/robot/trend-detector';
+import { detectThreats }      from './features/robot/threat-detector';
 import { logSuspiciousIp, autoBlacklistIfAbuse } from './core/abuse';
 import { getSupabaseAdmin } from './core/supabase';
 import type { Env } from './types';
@@ -24,11 +25,16 @@ type HonoCtx = Context<{ Bindings: Env }>;
 
 const app = new Hono<{ Bindings: Env }>();
 
-// -- CORS ----------------------------------------------------------------------
-
 app.use('*', cors({
   origin: (origin, c) => {
-    const allowed = ['http://localhost:3000', 'http://localhost:3001', 'https://kawaltransaksi.com', 'https://www.kawaltransaksi.com', c.env.FRONTEND_URL, c.env.FRONTEND_URL_CLONE].filter((v): v is string => !!v);
+    const allowed = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://kawaltransaksi.com',
+      'https://www.kawaltransaksi.com',
+      c.env.FRONTEND_URL,
+      c.env.FRONTEND_URL_CLONE,
+    ].filter(Boolean);
     if (!origin) return '*';
     return allowed.includes(origin) ? origin : null;
   },
@@ -36,8 +42,6 @@ app.use('*', cors({
   allowHeaders: ['Content-Type', 'Authorization', 'X-Internal-Key', 'X-API-Key', 'Idempotency-Key'],
   credentials: true,
 }));
-
-// -- Security Headers ----------------------------------------------------------
 
 app.use('*', async (c, next) => {
   await next();
@@ -52,16 +56,21 @@ app.use('*', async (c, next) => {
     h.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 });
 
-// -- Origin Validator ----------------------------------------------------------
-
 const originValidator = async (c: HonoCtx, next: Next) => {
   if (c.req.method === 'OPTIONS') return next();
   const internalKey = c.req.header('X-Internal-Key');
   if (internalKey && internalKey === c.env.INTERNAL_API_KEY) return next();
   const origin = c.req.header('Origin') || c.req.header('Referer') || '';
   if (!origin.trim()) return next();
-  const allowed = ['http://localhost:3000', 'http://localhost:3001', 'https://kawaltransaksi.com', 'https://www.kawaltransaksi.com', c.env.FRONTEND_URL, c.env.FRONTEND_URL_CLONE].filter((v): v is string => !!v);
-  if (!allowed.some(a => origin.startsWith(a)))
+  const allowed = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://kawaltransaksi.com',
+    'https://www.kawaltransaksi.com',
+    c.env.FRONTEND_URL,
+    c.env.FRONTEND_URL_CLONE,
+  ].filter((x): x is string => Boolean(x));
+  if (!allowed.some((a) => origin.startsWith(a)))
     return c.json({ success: false, message: 'Akses ditolak.' }, 403);
   return next();
 };
@@ -69,18 +78,17 @@ const originValidator = async (c: HonoCtx, next: Next) => {
 app.use('/api/auth/*',   originValidator);
 app.use('/api/search/*', originValidator);
 
-// -- Request Size Limits -------------------------------------------------------
-
 const SIZE_LIMITS: Record<string, number> = {
-  '/api/auth':     10 * 1024,
-  '/api/reports':  512 * 1024,
-  '/api/admin':    50 * 1024,
-  '/api/search':   5 * 1024,
-  '/api/upload':   6 * 1024 * 1024,
-  '/api/feedback': 10 * 1024,
-  '/api/v1':       5 * 1024,
-  '/api/robot':    5 * 1024,
-  '/api/appeals':  10 * 1024,
+  '/api/auth':           10 * 1024,
+  '/api/reports':        512 * 1024,
+  '/api/admin/articles': 5 * 1024 * 1024,
+  '/api/admin':          50 * 1024,
+  '/api/search':         5 * 1024,
+  '/api/upload':         6 * 1024 * 1024,
+  '/api/feedback':       10 * 1024,
+  '/api/v1':             5 * 1024,
+  '/api/robot':          5 * 1024,
+  '/api/appeals':        10 * 1024,
 };
 
 app.use('/api/*', async (c, next) => {
@@ -95,8 +103,6 @@ app.use('/api/*', async (c, next) => {
   return next();
 });
 
-// -- IP Blacklist --------------------------------------------------------------
-
 app.use('/api/*', async (c, next) => {
   if (!c.env.LIMITER) return next();
   const ip   = c.req.header('CF-Connecting-IP') || 'anonymous';
@@ -110,13 +116,12 @@ app.use('/api/*', async (c, next) => {
   return next();
 });
 
-// -- Rate Limiters -------------------------------------------------------------
-
 app.use('/api/auth/*', async (c, next) => {
   if (c.env.AUTH_RATE_LIMITER) {
     const ip = c.req.header('CF-Connecting-IP') || 'anonymous';
     const { success } = await c.env.AUTH_RATE_LIMITER.limit({ key: ip });
-    if (!success) return c.json({ success: false, message: 'Terlalu banyak permintaan. Coba lagi nanti.', retry_after: 60 }, 429);
+    if (!success)
+      return c.json({ success: false, message: 'Terlalu banyak permintaan. Coba lagi nanti.', retry_after: 60 }, 429);
   }
   return next();
 });
@@ -147,14 +152,28 @@ const kvRateLimit = async (
 
 app.use('/api/*', (c, next) => {
   const path = new URL(c.req.url).pathname;
-  if (path.startsWith('/api/v1') || path.startsWith('/api/robot')) return next();
-  return kvRateLimit(c, next, { key: 'rl_global_', max: 20, ttl: 60, label: 'GLOBAL RL', logReason: 'Melewati global rate limit', blacklist: true });
+  if (path.startsWith('/api/robot')) return next();
+  return kvRateLimit(c, next, {
+    key:       'rl_global_',
+    max:       20,
+    ttl:       60,
+    label:     'GLOBAL RL',
+    logReason: 'Melewati global rate limit',
+    blacklist: true,
+  });
 });
+
+app.use('/api/robot/*', (c, next) => kvRateLimit(c, next, {
+  key:       'rl_robot_',
+  max:       10,
+  ttl:       60,
+  label:     'ROBOT RL',
+  logReason: 'Melewati robot rate limit',
+  blacklist: true,
+}));
 
 app.use('/api/auth/*',   (c, next) => kvRateLimit(c, next, { key: 'rl_auth_ip_', max: 5,  ttl: 60, label: 'AUTH RL',   logReason: 'Melewati auth rate limit',   blacklist: true }));
 app.use('/api/search/*', (c, next) => kvRateLimit(c, next, { key: 'rl_search_',  max: 30, ttl: 60, label: 'SEARCH RL', logReason: 'Melewati search rate limit' }));
-
-// -- Honeypot ------------------------------------------------------------------
 
 async function honeypotHandler(c: HonoCtx) {
   const ip   = c.req.header('CF-Connecting-IP') || 'anonymous';
@@ -163,7 +182,8 @@ async function honeypotHandler(c: HonoCtx) {
     const key = `blacklist_${ip}`;
     if (!await c.env.LIMITER.get(key)) {
       await c.env.LIMITER.put(key, JSON.stringify({
-        ip, reason: `Honeypot hit: ${path}`, auto: true, label: 'scanner', created_at: new Date().toISOString(),
+        ip, reason: `Honeypot hit: ${path}`, auto: true, label: 'scanner',
+        created_at: new Date().toISOString(),
       }), { expirationTtl: 86400 });
     }
     await logSuspiciousIp(c.env.LIMITER, ip, 'Honeypot hit: scanner detected', path);
@@ -171,9 +191,13 @@ async function honeypotHandler(c: HonoCtx) {
   return c.json({ success: false, message: 'Endpoint tidak ditemukan.' }, 404);
 }
 
-// -- Health & Robots.txt -------------------------------------------------------
+app.get('/health', async (c) => {
+  const token = c.req.header('X-Health-Token');
+  if (!token || token !== c.env.HEALTH_SECRET)
+    return c.json({ success: false, message: 'Endpoint tidak ditemukan.' }, 404);
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-app.get('/health',     (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 app.get('/robots.txt', (c) => c.text([
   'User-agent: *', 'Allow: /', '',
   'Disallow: /api/v1/accounts', 'Disallow: /api/v1/reports', 'Disallow: /api/v1/keys',
@@ -181,12 +205,8 @@ app.get('/robots.txt', (c) => c.text([
   'Disallow: /api/internal',    'Disallow: /api/robot', '',
 ].join('\n')));
 
-// -- Honeypot Endpoints --------------------------------------------------------
-
 ['/api/v1/accounts', '/api/v1/reports', '/api/v1/keys', '/api/v1/token',
  '/api/v1/users',    '/api/v1/admin',   '/api/internal'].forEach(p => app.all(p, honeypotHandler));
-
-// -- Routes --------------------------------------------------------------------
 
 app.route('/api/auth',      authRoutes);
 app.route('/api/reports',   reportsRoutes);
@@ -206,8 +226,6 @@ app.onError((err, c) => {
   return c.json({ success: false, message: 'Terjadi kesalahan server.' }, 500);
 });
 
-// -- Scheduled (Cron) ---------------------------------------------------------
-
 export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
@@ -226,15 +244,31 @@ export default {
         runScheduler(supabase)
           .catch(err => console.error('[CRON] Robot scheduler error:', err))
       );
-    } else if (cron === '0 * * * *') {
-      const isFirstOfMonth = new Date().getDate() === 1;
+    } else if (cron === '*/15 * * * *') {
+      const now            = new Date();
+      const isFirstOfMonth = now.getDate() === 1 && now.getHours() === 0;
       ctx.waitUntil(
         Promise.all([
-          detectTrends(supabase).catch(err => console.error('[CRON] Trend error:', err)),
+          detectTrends(supabase)
+            .catch(err => console.error('[CRON] Trend error:', err)),
+          env.LIMITER
+            ? detectThreats(env.LIMITER, supabase)
+                .catch(err => console.error('[CRON] Threat error:', err))
+            : Promise.resolve(),
           isFirstOfMonth
-            ? runConfidenceDecay(supabase).catch(err => console.error('[CRON] Decay error:', err))
+            ? runConfidenceDecay(supabase)
+                .catch(err => console.error('[CRON] Decay error:', err))
             : Promise.resolve(),
         ])
+      );
+    } else if (cron === '0 19 * * *') {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+      ctx.waitUntil(
+        Promise.resolve(
+          supabase.from('robot_logs').delete().lt('created_at', thirtyDaysAgo)
+        )
+          .then(() => console.log('[CRON] Robot logs cleanup selesai'))
+          .catch(err => console.error('[CRON] Cleanup error:', err))
       );
     }
   },

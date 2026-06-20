@@ -33,7 +33,6 @@ export interface Report {
   evidence_url: string | null;
   status: ReportStatus;
   created_at: string;
-  // Robot fields
   robot_score: number | null;
   robot_status: string | null;
   robot_verdict_at: string | null;
@@ -138,7 +137,6 @@ export interface Database {
           reported_to: string[] | null;
           store_name: string | null;
           suspect_city: string | null;
-          // Robot fields
           robot_score: number | null;
           robot_status: string | null;
           robot_verdict_at: string | null;
@@ -203,12 +201,11 @@ export interface Database {
         Relationships: [];
       };
 
-      // -- Blacklist (robot) ---------------------------------------------------
       blacklist: {
         Row: {
           id: string;
           target_number: string;
-          level: string; // medium | high | critical
+          level: string;
           total_reports: number;
           unique_reporters: number;
           last_reported_at: string | null;
@@ -237,7 +234,6 @@ export interface Database {
         Relationships: [];
       };
 
-      // -- Robot Trends --------------------------------------------------------
       robot_trends: {
         Row: {
           id: string;
@@ -260,13 +256,11 @@ export interface Database {
           target_number?: string;
           report_count?: number;
           is_viral?: boolean;
-          detected_at?: string;
           updated_at?: string;
         };
         Relationships: [];
       };
 
-      // -- Robot Logs (audit) --------------------------------------------------
       robot_logs: {
         Row: {
           id: string;
@@ -304,7 +298,6 @@ export interface Database {
         Relationships: [];
       };
 
-      // -- Robot Health --------------------------------------------------------
       robot_health: {
         Row: {
           id: string;
@@ -342,16 +335,15 @@ export interface Database {
         Relationships: [];
       };
 
-      // -- Appeal System -------------------------------------------------------
       report_appeals: {
         Row: {
           id: string;
           report_id: string;
           user_id: string;
           reason: string;
-          status: string; // pending | approved | rejected
-          evidence_urls: string[] | null;  // <- tambah
-          loss_amount: number | null;      // <- tambah
+          status: string;
+          evidence_urls: string[] | null;
+          loss_amount: number | null;
           reviewed_at: string | null;
           created_at: string;
         };
@@ -361,8 +353,8 @@ export interface Database {
           user_id: string;
           reason: string;
           status?: string;
-          evidence_urls?: string[] | null;  // <- tambah
-          loss_amount?: number | null;      // <- tambah
+          evidence_urls?: string[] | null;
+          loss_amount?: number | null;
           reviewed_at?: string | null;
           created_at?: string;
         };
@@ -372,8 +364,8 @@ export interface Database {
           user_id?: string;
           reason?: string;
           status?: string;
-          evidence_urls?: string[] | null;  // <- tambah
-          loss_amount?: number | null;      // <- tambah
+          evidence_urls?: string[] | null;
+          loss_amount?: number | null;
           reviewed_at?: string | null;
           created_at?: string;
         };
@@ -492,9 +484,8 @@ export interface Database {
           id: string;
           user_id: string;
           name: string;
-          key: string;
-          key_hash: string | null;
-          key_prefix: string | null;
+          key_hash: string;
+          key_prefix: string;
           environment: string;
           requests_today: number;
           requests_total: number;
@@ -510,9 +501,8 @@ export interface Database {
           id?: string;
           user_id: string;
           name: string;
-          key: string;
-          key_hash?: string | null;
-          key_prefix?: string | null;
+          key_hash: string;
+          key_prefix: string;
           environment?: string;
           requests_today?: number;
           requests_total?: number;
@@ -528,9 +518,8 @@ export interface Database {
           id?: string;
           user_id?: string;
           name?: string;
-          key?: string;
-          key_hash?: string | null;
-          key_prefix?: string | null;
+          key_hash?: string;
+          key_prefix?: string;
           environment?: string;
           requests_today?: number;
           requests_total?: number;
@@ -561,6 +550,15 @@ export interface Database {
       get_stats: {
         Args: Record<string, never>;
         Returns: { total: number; verified: number; total_loss: number };
+      };
+      // Leaderboard RPC
+      get_leaderboard_nomor: {
+        Args: Record<string, never>;
+        Returns: { target_number: string; report_count: number }[];
+      };
+      get_leaderboard_rekening: {
+        Args: Record<string, never>;
+        Returns: { target_number: string; bank_name: string | null; report_count: number }[];
       };
       get_laporan_publik: {
         Args: { p_type?: string; p_sort?: string; p_q?: string; p_page?: number; p_per_page?: number };
